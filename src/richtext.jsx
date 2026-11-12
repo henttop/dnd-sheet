@@ -334,23 +334,25 @@ function inlineToHtml(nodes) {
   }).join("");
 }
 
-function htmlToInline(root) {
+/* разбор HTML-узлов в inline-узлы документа */
+function htmlToInline(node) {
   const out = [];
-  const walk = (node, marks) => {
-    if (node.nodeType === 3) {
-      const t = node.textContent;
+  const walk = (n, marks) => {
+    if (!n) return;
+    if (n.nodeType === 3) {
+      const t = n.textContent;
       if (t) out.push({ type: "text", text: t, marks });
       return;
     }
-    if (node.nodeType !== 1) return;
-    const tag = node.tagName.toLowerCase();
+    if (n.nodeType !== 1) return;
+    const tag = n.tagName.toLowerCase();
     if (tag === "br") { out.push({ type: "text", text: "\n", marks }); return; }
-    if (node.classList?.contains("ed-res")) {
-      out.push({ type: "resource", attrs: { id: node.dataset.res || "", name: node.textContent.replace(/^📦\s*/, "") } });
+    if (n.classList?.contains("ed-res")) {
+      out.push({ type: "resource", attrs: { id: n.dataset.res || "", name: n.textContent.replace(/^📦\s*/, "") } });
       return;
     }
-    if (node.classList?.contains("ed-roller")) {
-      out.push({ type: "roller", attrs: { expr: node.textContent.replace(/^🎲\s*/, "") } });
+    if (n.classList?.contains("ed-roller")) {
+      out.push({ type: "roller", attrs: { expr: n.textContent.replace(/^🎲\s*/, "") } });
       return;
     }
     let m = marks;
@@ -359,11 +361,37 @@ function htmlToInline(root) {
     else if (tag === "u") m = [...m, { type: "underline" }];
     else if (tag === "s" || tag === "strike") m = [...m, { type: "strike" }];
     else if (tag === "code") m = [...m, { type: "code" }];
-    else if (tag === "a") m = [...m, { type: "link", attrs: { href: node.getAttribute("href") || "#" } }];
-    for (const c of node.childNodes) walk(c, m);
+    else if (tag === "a") m = [...m, { type: "link", attrs: { href: n.getAttribute("href") || "#" } }];
+    for (const c of n.childNodes) walk(c, m);
   };
-  for (const c of root.childNodes) walk(c, []);
-  return out.filter(n => !(n.type === "text" && !n.text));
+  if (node.nodeType === 3 || node.nodeType === 1) walk(node, []);
+  return out;
+}
+
+/* содержимое контейнера → массив абзацев (голый текст тоже считаем абзацем) */
+function collectParagraphs(container) {
+  const out = [];
+  let buf = [];
+  const flush = () => { if (buf.length) { out.push({ type: "paragraph", content: buf }); buf = []; } };
+  if (!container) return out;
+  for (const node of Array.from(container.childNodes)) {
+    if (node.nodeType === 3) {
+      if (node.textContent.trim()) buf.push({ type: "text", text: node.textContent, marks: [] });
+      continue;
+    }
+    if (node.nodeType !== 1) continue;
+    const tag = node.tagName.toLowerCase();
+    if (tag === "p" || tag === "div") {
+      flush();
+      const inl = htmlToInline(node);
+      if (inl.length) out.push({ type: "paragraph", content: inl });
+      continue;
+    }
+    if (tag === "br") { buf.push({ type: "text", text: "\n", marks: [] }); continue; }
+    buf.push(...htmlToInline(node));
+  }
+  flush();
+  return out;
 }
 
 /* документ → HTML для редактора (спойлеры встроены в общий текстовый слой) */
@@ -401,38 +429,51 @@ export function docToEditorHtml(doc) {
 /* содержимое редактора → документ */
 export function editorToDoc(root) {
   const content = [];
-  const children = Array.from(root.children);
-  for (const el of children) {
-    if (el.classList?.contains("ed-sp")) {
-      const title = el.querySelector(".ed-sp-title");
-      const bodyEl = el.querySelector(".ed-sp-body");
-      const bodyParts = bodyEl ? Array.from(bodyEl.children) : [];
-      const bodyContent = bodyParts.length
-        ? bodyParts.map(p => ({ type: "paragraph", content: htmlToInline(p) }))
-        : [{ type: "paragraph", content: htmlToInline(bodyEl || el) }];
+  let buf = [];
+  const flush = () => { if (buf.length) { content.push({ type: "paragraph", content: buf }); buf = []; } };
+
+  for (const node of Array.from(root.childNodes)) {
+    // голый текст в корне — тоже абзац
+    if (node.nodeType === 3) {
+      if (node.textContent.trim()) buf.push({ type: "text", text: node.textContent, marks: [] });
+      continue;
+    }
+    if (node.nodeType !== 1) continue;
+    const tag = node.tagName.toLowerCase();
+
+    if (node.classList?.contains("ed-sp")) {
+      flush();
+      const title = node.querySelector(".ed-sp-title");
+      const bodyEl = node.querySelector(".ed-sp-body");
+      const bodyContent = collectParagraphs(bodyEl);
       content.push({
         type: "spoiler",
         content: [
           { type: "spoilerSummary", content: [{ type: "text", text: (title?.textContent || "").trim() }] },
-          { type: "spoilerContent", content: bodyContent },
+          { type: "spoilerContent", content: bodyContent.length ? bodyContent : [{ type: "paragraph", content: [] }] },
         ],
       });
       continue;
     }
-    if (el.tagName === "HR") { content.push({ type: "divider" }); continue; }
-    if (el.tagName === "UL" || el.tagName === "OL") {
-      const listItems = Array.from(el.children).map(li => ({
-        type: "listItem",
-        content: [{ type: "paragraph", content: htmlToInline(li) }],
-      }));
-      content.push({ type: el.tagName === "OL" ? "orderedList" : "bulletList", content: listItems });
+    if (tag === "hr") { flush(); content.push({ type: "divider" }); continue; }
+    if (tag === "ul" || tag === "ol") {
+      flush();
+      const items = Array.from(node.children)
+        .map(li => ({ type: "listItem", content: [{ type: "paragraph", content: htmlToInline(li) }] }))
+        .filter(li => li.content[0].content.length);
+      if (items.length) content.push({ type: tag === "ol" ? "orderedList" : "bulletList", content: items });
       continue;
     }
-    if (el.tagName === "P" || el.tagName === "DIV") {
-      content.push({ type: "paragraph", content: htmlToInline(el) });
+    if (tag === "p" || tag === "div") {
+      flush();
+      const inl = htmlToInline(node);
+      if (inl.length) content.push({ type: "paragraph", content: inl });
       continue;
     }
+    // прочие inline-элементы — в текущий абзац
+    buf.push(...htmlToInline(node));
   }
+  flush();
   if (!content.length) content.push({ type: "paragraph", content: [] });
   return { type: "doc", content };
 }
