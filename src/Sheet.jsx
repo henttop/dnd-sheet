@@ -117,9 +117,9 @@ function CharBar({ c, onSave, onSettings, onPortrait }) {
       </div>
       <div className="vitals">
         <AcVital c={c} onSave={onSave} />
-        <div className="vital"><div><div className="v-main"><Editable value={v.speed?.value ?? 0} onSave={x => { v.speed = { value: +x || 0 }; onSave(); }} width={36} /></div><div className="v-sub">скорость</div></div></div>
+        <div className="vital"><div><div className="v-main"><Editable value={v.speed?.value ?? 0} onSave={x => { v.speed = { value: +x || 0 }; onSave(); }} width={56} /></div><div className="v-sub">скорость</div></div></div>
         <div className="vital" title="Бонус мастерства (по уровню). Поставь 0 — вернётся автоматический.">
-          <div><div className="v-main"><Editable value={signed(profOf(c))} onSave={x => { const n = parseNum(x); d.proficiencyCustom = { value: n > 0 ? n : 0 }; onSave(); }} width={36} /></div><div className="v-sub">владение</div></div>
+          <div><div className="v-main"><Editable value={signed(profOf(c))} onSave={x => { const n = parseNum(x); d.proficiencyCustom = { value: n > 0 ? n : 0 }; onSave(); }} width={56} /></div><div className="v-sub">владение</div></div>
         </div>
         <HpBox c={c} onSave={onSave} />
       </div>
@@ -386,7 +386,7 @@ function StatBlock({ c, st, onSave }) {
     <div className="stat">
       <div className="stat-head">
         <h3>{STAT_NAMES[st]}</h3>
-        <span className="score"><Editable value={score} onSave={x => { d.stats[st].score = Math.max(1, +x || 10); onSave(); }} width={28} /></span>
+        <span className="score"><Editable value={score} onSave={x => { d.stats[st].score = Math.max(1, +x || 10); onSave(); }} width={64} /></span>
       </div>
       <div className="stat-roll">
         <button className="roll-btn" onClick={() => window.__rollD20(`Проверка ${STAT_NAMES[st]}`, m)}>
