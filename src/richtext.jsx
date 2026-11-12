@@ -304,6 +304,139 @@ export function textToDoc(text) {
   return { type: "doc", content };
 }
 
+/* ---------- Работа с contenteditable-редактором ---------- */
+const escHtml = (s) => String(s ?? "")
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+function inlineToHtml(nodes) {
+  return (nodes || []).map(ch => {
+    if (ch.type === "text") {
+      let t = escHtml(ch.text);
+      const marks = ch.marks || [];
+      if (marks.some(m => m.type === "bold")) t = `<b>${t}</b>`;
+      if (marks.some(m => m.type === "italic")) t = `<i>${t}</i>`;
+      if (marks.some(m => m.type === "underline")) t = `<u>${t}</u>`;
+      if (marks.some(m => m.type === "strike")) t = `<s>${t}</s>`;
+      if (marks.some(m => m.type === "code")) t = `<code>${t}</code>`;
+      const link = marks.find(m => m.type === "link");
+      if (link) t = `<a href="${escHtml(link.attrs?.href || "#")}">${t}</a>`;
+      return t;
+    }
+    if (ch.type === "resource") {
+      const a = ch.attrs || {};
+      return `<span class="ed-res" data-res="${escHtml(a.id || "")}" contenteditable="false">📦 ${escHtml(a.name || "ресурс")}</span>`;
+    }
+    if (ch.type === "roller") {
+      const e = ch.attrs?.expr || ch.attrs?.formula || "";
+      return `<span class="ed-roller" contenteditable="false">🎲 ${escHtml(e)}</span>`;
+    }
+    return "";
+  }).join("");
+}
+
+function htmlToInline(root) {
+  const out = [];
+  const walk = (node, marks) => {
+    if (node.nodeType === 3) {
+      const t = node.textContent;
+      if (t) out.push({ type: "text", text: t, marks });
+      return;
+    }
+    if (node.nodeType !== 1) return;
+    const tag = node.tagName.toLowerCase();
+    if (tag === "br") { out.push({ type: "text", text: "\n", marks }); return; }
+    if (node.classList?.contains("ed-res")) {
+      out.push({ type: "resource", attrs: { id: node.dataset.res || "", name: node.textContent.replace(/^📦\s*/, "") } });
+      return;
+    }
+    if (node.classList?.contains("ed-roller")) {
+      out.push({ type: "roller", attrs: { expr: node.textContent.replace(/^🎲\s*/, "") } });
+      return;
+    }
+    let m = marks;
+    if (tag === "b" || tag === "strong") m = [...m, { type: "bold" }];
+    else if (tag === "i" || tag === "em") m = [...m, { type: "italic" }];
+    else if (tag === "u") m = [...m, { type: "underline" }];
+    else if (tag === "s" || tag === "strike") m = [...m, { type: "strike" }];
+    else if (tag === "code") m = [...m, { type: "code" }];
+    else if (tag === "a") m = [...m, { type: "link", attrs: { href: node.getAttribute("href") || "#" } }];
+    for (const c of node.childNodes) walk(c, m);
+  };
+  for (const c of root.childNodes) walk(c, []);
+  return out.filter(n => !(n.type === "text" && !n.text));
+}
+
+/* документ → HTML для редактора (спойлеры встроены в общий текстовый слой) */
+export function docToEditorHtml(doc) {
+  const parts = [];
+  for (const node of doc?.content || []) {
+    if (node.type === "spoiler") {
+      const sum = ((node.content || []).find(x => x.type === "spoilerSummary")?.content || [])
+        .map(t => inlineToHtml([t])).join("");
+      const body = ((node.content || []).find(x => x.type === "spoilerContent")?.content || [])
+        .map(p => `<p>${inlineToHtml(p.content)}</p>`).join("") || "<p><br></p>";
+      parts.push(
+        `<div class="ed-sp" data-sp="1" contenteditable="false">` +
+        `<div class="ed-sp-head">` +
+        `<button type="button" class="ed-sp-chev" contenteditable="false" title="развернуть/свернуть">›</button>` +
+        `<span class="ed-sp-title" contenteditable="true">${sum || "Спойлер"}</span>` +
+        `<button type="button" class="ed-sp-unwrap" contenteditable="false" title="убрать спойлер (текст останется)">×</button>` +
+        `<button type="button" class="ed-sp-trash" contenteditable="false" title="удалить блок с текстом">🗑</button>` +
+        `</div><div class="ed-sp-body" contenteditable="true">${body}</div></div>`
+      );
+    } else if (node.type === "divider") {
+      parts.push(`<hr class="ed-divider">`);
+    } else if (node.type === "bulletList" || node.type === "orderedList") {
+      const tag = node.type === "orderedList" ? "ol" : "ul";
+      const items = (node.content || []).map(li =>
+        `<li>${inlineToHtml(li.content?.[0]?.content || [])}</li>`).join("");
+      parts.push(`<${tag} class="ed-list">${items}</${tag}>`);
+    } else {
+      parts.push(`<p class="ed-p">${inlineToHtml(node.content)}</p>`);
+    }
+  }
+  return parts.join("") || `<p class="ed-p"><br></p>`;
+}
+
+/* содержимое редактора → документ */
+export function editorToDoc(root) {
+  const content = [];
+  const children = Array.from(root.children);
+  for (const el of children) {
+    if (el.classList?.contains("ed-sp")) {
+      const title = el.querySelector(".ed-sp-title");
+      const bodyEl = el.querySelector(".ed-sp-body");
+      const bodyParts = bodyEl ? Array.from(bodyEl.children) : [];
+      const bodyContent = bodyParts.length
+        ? bodyParts.map(p => ({ type: "paragraph", content: htmlToInline(p) }))
+        : [{ type: "paragraph", content: htmlToInline(bodyEl || el) }];
+      content.push({
+        type: "spoiler",
+        content: [
+          { type: "spoilerSummary", content: [{ type: "text", text: (title?.textContent || "").trim() }] },
+          { type: "spoilerContent", content: bodyContent },
+        ],
+      });
+      continue;
+    }
+    if (el.tagName === "HR") { content.push({ type: "divider" }); continue; }
+    if (el.tagName === "UL" || el.tagName === "OL") {
+      const listItems = Array.from(el.children).map(li => ({
+        type: "listItem",
+        content: [{ type: "paragraph", content: htmlToInline(li) }],
+      }));
+      content.push({ type: el.tagName === "OL" ? "orderedList" : "bulletList", content: listItems });
+      continue;
+    }
+    if (el.tagName === "P" || el.tagName === "DIV") {
+      content.push({ type: "paragraph", content: htmlToInline(el) });
+      continue;
+    }
+  }
+  if (!content.length) content.push({ type: "paragraph", content: [] });
+  return { type: "doc", content };
+}
+
 /* ---------- Работа с выделением в текстовом поле ---------- */
 export function wrapSelection(ta, before, after = before, fallback = "") {
   const text = ta.value ?? "";

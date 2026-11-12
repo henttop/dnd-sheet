@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef } from "react";
+﻿import React, { useEffect, useState, useRef } from "react";
 import { characters, save } from "./store.js";
 import { SPELL_BY_ID, SPELL_BY_SLUG } from "./store.js";
 import { RollHost, Editable, Popover, ProfPopover, DieIcon, CreateModal, useAnchorPos } from "./ui.jsx";
@@ -7,7 +7,7 @@ import WeaponModal, { weaponBonus, damageInfo } from "./WeaponModal.jsx";
 import { AvatarMenu, SettingsDrawer, PortraitDrawer } from "./panels.jsx";
 import { getUi, setUi } from "./uistore.js";
 import { Avatar } from "./List.jsx";
-import { renderDoc, docToText, textToDoc, wrapSelection, insertAtCursor, docToSegments, segmentsToDoc } from "./richtext.jsx";
+import { renderDoc, docToText, textToDoc, docToEditorHtml, editorToDoc } from "./richtext.jsx";
 import TextMenu from "./TextMenu.jsx";
 import InsertBar from "./InsertBar.jsx";
 import ResourceModal from "./ResourceModal.jsx";
@@ -596,57 +596,123 @@ function TextTab({ c, onSave, blocks }) {
 
 function RtBlock({ c, title, blockKey, onSave, compact }) {
   const [edit, setEdit] = useState(false);
-  const [segs, setSegs] = useState([]);
   const [menu, setMenu] = useState(null);
   const [resModal, setResModal] = useState(null);
-  const taRef = useRef(null);
+  const richRef = useRef(null);
   const doc = docOf(c, blockKey);
   const resources = Object.values(c.data.resources || {});
 
-  const startEdit = () => { setSegs(docToSegments(doc)); setEdit(true); };
+  // один общий текстовый слой со встроенными спойлерами
+  useEffect(() => {
+    if (!edit || !richRef.current) return;
+    if (richRef.current.dataset.filled === "1") return;
+    richRef.current.innerHTML = docToEditorHtml(doc);
+    richRef.current.dataset.filled = "1";
+  }, [edit, doc]);
 
-  const updateSeg = (i, patch) => setSegs(l => l.map((sg, k) => (k === i ? { ...sg, ...patch } : sg)));
-  const removeSeg = (i) => setSegs(l => l.filter((_, k) => k !== i));
-  // снять спойлер, но оставить его текст обычным абзацем
-  const unwrapSeg = (i) => setSegs(l => l.flatMap((sg, k) => {
-    if (k !== i || sg.type !== "spoiler") return [sg];
-    const text = [sg.summary, sg.body].filter(Boolean).join("\n");
-    return [{ type: "text", text }];
-  }));
-  const addSpoiler = () => setSegs(l => [...l, { type: "spoiler", summary: "Спойлер", body: "" }]);
+  const startEdit = () => setEdit(true);
+  const closeEdit = () => {
+    if (richRef.current) richRef.current.dataset.filled = "";
+    setEdit(false);
+  };
+  const save = () => {
+    const el = richRef.current;
+    if (!el) return;
+    setDoc(c, blockKey, editorToDoc(el));
+    onSave();
+    closeEdit();
+  };
 
-  // вставка текста/маркера в активное текстовое поле
-  const applyText = (i, next, pos) => {
-    setSegs(l => l.map((sg, k) => (k === i ? { ...sg, text: next } : sg)));
-    requestAnimationFrame(() => {
-      const ta = taRef.current;
-      if (!ta) return;
-      ta.focus();
-      if (pos != null) ta.setSelectionRange(pos, pos);
-    });
+  // команды работают с текущим выделением внутри contenteditable
+  const exec = (cmd, val = null) => {
+    richRef.current?.focus();
+    document.execCommand(cmd, false, val);
+  };
+
+  const insertSpoiler = () => {
+    richRef.current?.focus();
+    const html = '<div class="ed-sp" data-sp="1" contenteditable="false">'
+      + '<div class="ed-sp-head">'
+      + '<button type="button" class="ed-sp-chev" contenteditable="false">›</button>'
+      + '<span class="ed-sp-title" contenteditable="true">Спойлер</span>'
+      + '<button type="button" class="ed-sp-unwrap" contenteditable="false">×</button>'
+      + '<button type="button" class="ed-sp-trash" contenteditable="false">🗑</button>'
+      + '</div><div class="ed-sp-body" contenteditable="true"><p><br></p></div></div><p><br></p>';
+    document.execCommand("insertHTML", false, html);
+  };
+
+  const insertResource = (res) => {
+    richRef.current?.focus();
+    const html = res
+      ? '<span class="ed-res" data-res="' + res.id + '" contenteditable="false">📦 ' + res.name + '</span>'
+      : '<span class="ed-res" contenteditable="false">📦 ресурс</span>';
+    document.execCommand("insertHTML", false, html);
+  };
+
+  const insertRoll = () => {
+    richRef.current?.focus();
+    document.execCommand("insertHTML", false, '<span class="ed-roller" contenteditable="false">🎲 1d6</span>');
+  };
+
+  const insertDivider = () => {
+    richRef.current?.focus();
+    document.execCommand("insertHTML", false, '<hr class="ed-divider"><p><br></p>');
   };
 
   const onFormat = (mark) => {
-    const ta = taRef.current;
-    if (!ta) return;
-    const r = wrapSelection(ta, mark, mark);
-    applyText(ta.dataset.idx, r.next, r.pos);
+    const map = { "**": "bold", "*": "italic", "__": "underline", "~~": "strikeWithSelection", "`": "code" };
+    const cmd = map[mark];
+    if (!cmd) return;
+    if (cmd === "strikeWithSelection") {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount) document.execCommand("strikeThrough");
+      return;
+    }
+    exec(cmd);
   };
 
   const onInsert = (kind, res) => {
-    const ta = taRef.current;
-    if (kind === "spoiler") { addSpoiler(); return; }
-    if (!ta) return;
-    if (kind === "resource") {
-      const id = res.id;
-      const marker = `{{${id}::${res.name}}}`;
-      const r = insertAtCursor(ta, marker);
-      applyText(ta.dataset.idx, r.next, r.pos);
+    if (kind === "spoiler") { insertSpoiler(); return; }
+    if (kind === "resource") { insertResource(res); return; }
+    if (kind === "roll") { insertRoll(); return; }
+    if (kind === "divider") { insertDivider(); return; }
+    if (kind === "list") { exec("insertUnorderedList"); return; }
+  };
+
+  // клики по элементам спойлера внутри contenteditable
+  const onRichClick = (e) => {
+    const el = e.target;
+    const root = richRef.current;
+    if (!root) return;
+    const chev = el.closest?.(".ed-sp-chev");
+    if (chev) {
+      e.preventDefault();
+      const sp = chev.closest(".ed-sp");
+      const body = sp?.querySelector(".ed-sp-body");
+      if (body) {
+        const hidden = body.style.display === "none";
+        body.style.display = hidden ? "" : "none";
+        sp.classList.toggle("open", hidden);
+      }
       return;
     }
-    const ins = kind === "roll" ? "[[1d6]]" : kind === "divider" ? "\n——\n" : "\n- ";
-    const r = insertAtCursor(ta, ins);
-    applyText(ta.dataset.idx, r.next, r.pos);
+    const unwrap = el.closest?.(".ed-sp-unwrap");
+    if (unwrap) {
+      e.preventDefault();
+      const sp = unwrap.closest(".ed-sp");
+      const body = sp?.querySelector(".ed-sp-body");
+      if (!sp || !body) return;
+      // снимаем обёртку — текст остаётся
+      const frag = document.createDocumentFragment();
+      Array.from(body.children).forEach(ch => frag.appendChild(ch));
+      sp.replaceWith(frag);
+      return;
+    }
+    const trash = el.closest?.(".ed-sp-trash");
+    if (trash) {
+      e.preventDefault();
+      trash.closest(".ed-sp")?.remove();
+    }
   };
 
   const onResourceChange = (id, patch) => {
@@ -662,53 +728,23 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
     <div className="panel">
       <h4 style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span>{title.toUpperCase()}</span>
-        <button className="edit-toggle" onClick={() => { if (edit) setEdit(false); else startEdit(); }}>{edit ? "отмена" : "правка"}</button>
+        <button className="edit-toggle" onClick={() => { if (edit) closeEdit(); else startEdit(); }}>{edit ? "отмена" : "правка"}</button>
       </h4>
       {edit ? (
         <>
           <div className="rt-editor-blocks">
-            <div className="rt-editor-segs">
-            {segs.map((sg, i) => (
-              sg.type === "spoiler" ? (
-                <div className="ed-spoiler" key={i}>
-                  <button type="button" className="ed-spoiler-chev" title="развернуть/свернуть"
-                    onClick={() => updateSeg(i, { open: !sg.open })}>
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                      <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
-                    </svg>
-                  </button>
-                  <input className="ed-spoiler-title" value={sg.summary} placeholder="Заголовок спойлера"
-                    onChange={e => updateSeg(i, { summary: e.target.value })} />
-                  <button className="ed-spoiler-unwrap" title="убрать спойлер (текст останется)"
-                    onClick={() => unwrapSeg(i)}>×</button>
-                  <button className="ed-spoiler-del" title="удалить блок вместе с текстом"
-                    onClick={() => removeSeg(i)}>🗑</button>
-                  <textarea className="ed-spoiler-body" rows={3} value={sg.body} placeholder="Скрытый текст"
-                    onChange={e => updateSeg(i, { body: e.target.value })} />
-                </div>
-              ) : (
-                <textarea
-                  key={i}
-                  ref={el => { if (el && el === taRef.current) { } }}
-                  data-idx={i}
-                  className="rt-edit rt-edit-line"
-                  rows={Math.max(1, (sg.text || "").split("\n").length)}
-                  value={sg.text}
-                  onFocus={e => { taRef.current = e.target; }}
-                  onChange={e => updateSeg(i, { text: e.target.value })}
-                  onContextMenu={e => {
-                    e.preventDefault();
-                    taRef.current = e.target;
-                    setMenu({ x: e.clientX, y: e.clientY });
-                  }}
-                />
-              )
-            ))}
-            </div>
+            <div
+              ref={richRef}
+              className="rt-rich"
+              contentEditable
+              suppressContentEditableWarning
+              onClick={onRichClick}
+              onContextMenu={e => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY }); }}
+            />
             <InsertBar onFormat={onFormat} onInsert={onInsert} />
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
-            <button className="save-btn" onClick={() => { setDoc(c, blockKey, segmentsToDoc(segs)); onSave(); setEdit(false); }}>Сохранить</button>
+            <button className="save-btn" onClick={save}>Сохранить</button>
             <span className="hint">{RT_HINT}</span>
           </div>
           {menu ? (
@@ -725,11 +761,7 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
         <ResourceModal
           resource={c.data.resources[resModal.id]}
           onChange={(nr) => onResourceChange(resModal.id, nr)}
-          onDelete={() => {
-            delete c.data.resources[resModal.id];
-            setResModal(null);
-            onSave();
-          }}
+          onDelete={() => { delete c.data.resources[resModal.id]; setResModal(null); onSave(); }}
           onClose={() => setResModal(null)}
         />
       ) : null}
