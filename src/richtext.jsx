@@ -53,9 +53,13 @@ function Node({ n, ctx = {} }) {
       const live = a.id && ctx.resources ? ctx.resources[a.id] : null;
       const name = live ? (live.name || "ресурс") : (a.name || "ресурс");
       const cur = live ? (live.current ?? 0) : (a.current ?? 0);
+      const mx = live ? (live.resolvedMax ?? live.max ?? 0) : (a.max ?? 0);
       const step = (d) => {
         if (!a.id || !ctx.onResource) return;
-        ctx.onResource(a.id, { current: Math.max(0, (cur ?? 0) + d) });
+        let next = (cur ?? 0) + d;
+        if (mx > 0) next = Math.min(next, mx);   // текущее не может быть больше максимума
+        next = Math.max(0, next);
+        ctx.onResource(a.id, { current: next });
       };
       return (
         <span className="sheet-resource" data-id={a.id}>
@@ -67,7 +71,7 @@ function Node({ n, ctx = {} }) {
           <span className="sheet-resource__block-controls">
             <button type="button" className="sheet-resource__button" data-type="decrement"
               onClick={e => { e.stopPropagation(); step(-1); }}>−</button>
-            <span className="sheet-resource__label">{cur}</span>
+            <span className="sheet-resource__label">{mx > 0 ? `${cur}/${mx}` : cur}</span>
             <button type="button" className="sheet-resource__button" data-type="increment"
               onClick={e => { e.stopPropagation(); step(1); }}>+</button>
           </span>

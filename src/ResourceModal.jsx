@@ -65,7 +65,13 @@ export default function ResourceModal({ resource, onChange, onDelete, onClose })
           <div className="res-values">
             <label className="pop-field">ТЕКУЩЕЕ
               <input type="number" className="edit-in" value={current}
-                onChange={e => { const v = +e.target.value || 0; setCurrent(v); commit({ current: v }); }} />
+                onChange={e => {
+                  let v = +e.target.value || 0;
+                  const limit = parseInt(max, 10) || 0;
+                  if (limit > 0 && v > limit) v = limit;   // не больше максимума
+                  if (v < 0) v = 0;
+                  setCurrent(v); commit({ current: v });
+                }} />
             </label>
             <label className="pop-field">МАКСИМУМ
               <input className="f-input" value={typeof max === "string" ? max : (formula || max)} placeholder="10"
