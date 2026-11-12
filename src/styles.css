@@ -381,9 +381,12 @@ img{display:block}
 .spell-row .sp-sub{font-size:11px;color:#c4cbee}
 
 /* ===== Всплывающий результат броска (стопка слева внизу, как в LSS) ===== */
-.roll-stack{position:fixed;left:16px;bottom:16px;z-index:100;display:flex;flex-direction:column-reverse;
+.roll-stack{position:fixed;left:16px;bottom:16px;z-index:100;display:flex;flex-direction:column;
   gap:8px;align-items:flex-start;pointer-events:none}
 .roll-stack .roll-pop{position:static;pointer-events:auto}
+/* старые броски — приглушены, чтобы свежий результат сразу бросался в глаза */
+.roll-pop.old{opacity:.45;filter:saturate(.6)}
+.roll-pop.old:hover{opacity:.9;filter:none}
 .roll-pop{background:var(--card2);border:1px solid var(--accent);border-radius:12px;
   box-shadow:0 10px 30px rgba(0,0,0,.6);padding:10px 16px 12px;text-align:center;min-width:170px;
   animation:roll-in .18s ease-out}

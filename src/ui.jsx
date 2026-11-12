@@ -46,21 +46,23 @@ export function RollHost() {
   if (!list.length) return null;
   return (
     <div className="roll-stack">
-      {list.map(st => (
-        <RollCard key={st.id} st={st} ui={ui} onClose={() => setList(l => l.filter(x => x.id !== st.id))} />
+      {list.map((st, i) => (
+        <RollCard key={st.id} st={st} ui={ui} old={i < list.length - 1}
+          onClose={() => setList(l => l.filter(x => x.id !== st.id))} />
       ))}
     </div>
   );
 }
 
-function RollCard({ st, ui, onClose }) {
+function RollCard({ st, ui, onClose, old }) {
   const mood = ui.critColors === false ? "" : (st.crit ? " crit" : st.fail ? " fail" : "");
   const allDice = (st.rolls || []).flatMap(r => (r.parts && r.parts.length ? r.parts : [r.value]));
+  const cls = "roll-pop" + mood + (old ? " old" : "");
 
   // карточка броска заклинания (журнал кубиков у LSS)
   if (st.spell) {
     return (
-      <div className={"roll-pop spell-pop" + mood}>
+      <div className={cls + " spell-pop"}>
         <button className="rp-close" onClick={onClose}>×</button>
         <div className="rp-title">{st.title}</div>
         <div className="rp-sub">{st.kind}{st.sub ? " · " + st.sub : ""}</div>
@@ -83,7 +85,7 @@ function RollCard({ st, ui, onClose }) {
   // бросок нескольких кубиков (дайсница) — показываем каждый своим кубиком
   if (st.rolls && st.rolls.length) {
     return (
-      <div className={"roll-pop" + mood}>
+      <div className={cls}>
         <button className="rp-close" onClick={onClose}>×</button>
         <div className="rp-title">{st.title}</div>
         <div className="rp-body">
@@ -103,7 +105,7 @@ function RollCard({ st, ui, onClose }) {
   }
 
   return (
-    <div className={"roll-pop" + mood}>
+    <div className={cls}>
       <button className="rp-close" onClick={onClose}>×</button>
       <div className="rp-title">{st.title}</div>
       <div className="rp-body">
