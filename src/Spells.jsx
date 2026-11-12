@@ -15,6 +15,7 @@ const CLASS_RU = {
   fighter: "воин", monk: "монах", paladin: "паладин", ranger: "следопыт", rogue: "плут",
   sorcerer: "чародей", warlock: "колдун", wizard: "волшебник",
 };
+const SLOT_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 /* ================= Вкладка «Заклинания» ================= */
 export default function SpellsTab({ c, onSave, ui = {} }) {
@@ -33,6 +34,7 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState(emptyFilters());
   const [showCast, setShowCast] = useState(false);
+  const [castLevel, setCastLevel] = useState(null);   // выбранный уровень ячейки
 
   const spells = useMemo(() => {
     return prepared.map(id => {
@@ -49,6 +51,7 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
   }, [spells]);
 
   const shown = spells.filter(s => {
+    if (castLevel !== null && s.level !== "?" && s.level > castLevel) return false;
     if (filter === "all") { /* без быстрого фильтра */ }
     else if (filter === "conc") { if (!s.conc) return false; }
     else if (filter === "other") { if (s.level !== "?") return false; }
@@ -78,6 +81,37 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
     const s = slots[key];
     if (!s) return null;
     return { total: s.value || 0, used: s.filled || 0 };
+  };
+
+  /* наложение: тратит ячейку выбранного уровня и бросает урон (с учётом «улучшения») */
+  const castSpell = (e, spell, useLevel, up) => {
+    e.stopPropagation();
+    const dmg = spell.dmg && spell.dmg.length ? spell.dmg : null;
+    // трата ячейки
+    if (spell.level > 0) {
+      const key = "slots-" + useLevel;
+      const s = (c.data.spells ||= {})[key] || { value: 0, filled: 0 };
+      if ((s.filled || 0) >= (s.value || 0)) {
+        window.__rollSpell(spell.name, 0, "нет ячеек " + useLevel + " уровня", []);
+        return;
+      }
+      s.filled = (s.filled || 0) + 1;
+      c.data.spells[key] = s;
+      onSave();
+    }
+    if (!dmg || !dmg.length) return;
+    const rolls = [];
+    let total = 0;
+    for (const part of dmg) {
+      const expr = upcastDice(part.d, up);
+      const res = rollDiceExpr(expr);
+      if (!res) continue;
+      total += res.total;
+      const faces = +(String(expr).match(/[dкк](\d+)/i)?.[1] || 20);
+      rolls.push({ faces, value: res.total, parts: res.raw });
+    }
+    window.__rollSpell(spell.name, total,
+      dmg.map(x => x.t).join(", ") + (up > 0 ? ` · ячейка ${useLevel} ур.` : ""), rolls);
   };
 
   return (
@@ -134,8 +168,57 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
             Атака = {cast.prof} + {cast.mod >= 0 ? "+" + cast.mod : cast.mod}
             {cast.modCustom ? ` + ${cast.modCustom} (своё)` : ""} = <b>{atk >= 0 ? "+" + atk : atk}</b>
           </div>
+          <div className="f-label f-sep">ЯЧЕЙКИ ЗАКЛИНАНИЙ ПО УРОВНЯМ</div>
+          <div className="sp-slots-grid">
+            {SLOT_LEVELS.map(lv => (
+              <label key={lv} className="pop-field" style={{ marginBottom: 0 }}>
+                {lv}-й
+                <input type="number" min="0" className="edit-in"
+                  value={slots["slots-" + lv]?.value ?? 0}
+                  onChange={e => {
+                    const d = c.data;
+                    d.spells = d.spells || {};
+                    const key = "slots-" + lv;
+                    const cur = d.spells[key] || { value: 0, filled: 0 };
+                    d.spells[key] = { ...cur, value: Math.max(0, +e.target.value || 0) };
+                    onSave();
+                  }} />
+              </label>
+            ))}
+          </div>
+          <div className="f-hint">Сколько ячеек каждого уровня есть у персонажа. В меню заклинаний
+            их можно выбрать радио-кнопками — выбранной ячейкой накладывается заклинание
+            (при наложении ячейкой выше уровня заклинания кубики урона растут).</div>
         </div>
       ) : null}
+
+      <div className="sp-slot-choose">
+        <span className="f-label">ЯЧЕЙКА ДЛЯ НАЛОЖЕНИЯ</span>
+        <div className="sp-radios">
+          <label className={"sp-radio" + (castLevel === null ? " on" : "")}>
+            <input type="radio" checked={castLevel === null} onChange={() => setCastLevel(null)} />
+            <span>Все</span>
+          </label>
+          {SLOT_LEVELS.map(lv => {
+            const si = slotInfo(lv);
+            if (!si && !spells.some(s => s.level === lv)) return null;
+            return (
+              <label key={lv} className={"sp-radio" + (castLevel === lv ? " on" : "")}
+                title={si ? `ячеек ${si.total}, потрачено ${si.used}` : "нет ячеек этого уровня"}>
+                <input type="radio" checked={castLevel === lv} onChange={() => setCastLevel(lv)} />
+                <span>{lv}</span>
+                {si ? <span className="sp-radio-cnt">{si.total - si.used}/{si.total}</span> : null}
+              </label>
+            );
+          })}
+        </div>
+        {castLevel !== null ? (
+          <div className="f-hint">
+            Накладываем ячейкой {castLevel}-го уровня: заклинания ниже уровня «улучшаются» —
+            добавляется по одной кости урона за уровень разницы.
+          </div>
+        ) : null}
+      </div>
 
       <div className="sp-filters">
         <button className={"sp-filter" + (filter === "all" ? " on" : "")} onClick={() => setFilter("all")}>Все</button>
@@ -175,7 +258,8 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
               ) : null}
             </div>
             {g.list.map(s => (
-              <SpellRow key={s.id} spell={s} dc={dc} atk={atk} onOpen={() => setModal(s)} />
+              <SpellRow key={s.id} spell={s} dc={dc} atk={atk} onOpen={() => setModal(s)}
+                castLevel={castLevel} onCast={castSpell} />
             ))}
           </div>
         );
@@ -190,29 +274,19 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
 }
 
 /* ================= Строка заклинания ================= */
-function SpellRow({ spell, dc, atk, onOpen }) {
+function SpellRow({ spell, dc, atk, onOpen, castLevel, onCast }) {
   const s = spell;
   const dmg = s.dmg && s.dmg.length ? s.dmg : null;
+  const useLevel = castLevel !== null && castLevel >= s.level ? castLevel : s.level;
+  // заговоры ячейками не усиливаются (только особые умения классов)
+  const up = s.level > 0 ? useLevel - s.level : 0;
+  const dmgText = dmg ? dmg.map(x => upcastDice(x.d, up)).join(" + ") : "—";
+
   const info = [];
   info.push(s.shortTime || "—");
   info.push(s.range || "—");
   info.push(s.mode === "save" ? `Сл ${dc}` : s.mode === "attack" ? `Лоб ${atk}` : "—");
-  info.push(dmg ? dmg.map(x => x.d).join(" + ") : "—");
-
-  const cast = (e) => {
-    e.stopPropagation();
-    if (!dmg || !dmg.length) return;
-    const rolls = [];
-    let total = 0;
-    for (const part of dmg) {
-      const res = rollDiceExpr(part.d);
-      if (!res) continue;
-      total += res.total;
-      const faces = +(String(part.d).match(/к(\d+)/)?.[1] || 20);
-      rolls.push({ faces, value: res.total, parts: res.raw });
-    }
-    window.__rollSpell(s.name, total, dmg.map(x => x.t).join(", "), rolls);
-  };
+  info.push(dmgText);
 
   return (
     <div className="sp-row" onClick={onOpen}>
@@ -220,17 +294,27 @@ function SpellRow({ spell, dc, atk, onOpen }) {
         <div className="sp-row-name">
           {s.name}
           {s.ritual ? <span className="sp-badge" title="Ритуал">К</span> : null}
+          {s.conc ? <span className="sp-badge" title="Концентрация">К*</span> : null}
+          {up > 0 ? <span className="sp-badge up" title={`Наложено ячейкой ${useLevel} уровня`}>+{up}</span> : null}
         </div>
         <div className="sp-row-sub">{s.level === 0 ? "Заговор" : s.level === "?" ? "—" : `${s.level}-й уровень`}</div>
       </div>
       <div className="sp-row-info">
         {info.map((v, i) => <span key={i} className="sp-info">{v}</span>)}
       </div>
-      <button className="sp-cast" title="наложить" onClick={cast}>
+      <button className="sp-cast" title="наложить" onClick={e => onCast(e, s, useLevel, up)}>
         <CastIcon />
       </button>
     </div>
   );
+}
+
+/* +1 кость урона за каждый уровень «улучшения» */
+export function upcastDice(dice, up) {
+  if (!up || up <= 0) return dice;
+  const m = String(dice).match(/^(\d*)([dкк])(\d+)$/i);
+  if (!m) return dice;
+  return `${(+m[1] || 1) + up}${m[2]}${m[3]}`;
 }
 
 /* ================= Карточка заклинания ================= */
@@ -251,7 +335,9 @@ function SpellModal({ spell, dc, atk, onClose, onToggle, prepared }) {
           {s.comp && s.comp.length ? <div><span>Компоненты:</span> {s.comp.map(compName).join(", ")}</div> : null}
           {s.mat ? <div><span>Материальный компонент:</span> {s.mat}</div> : null}
           {s.dur ? <div><span>Длительность:</span> {s.dur}</div> : null}
-          {s.mode === "save" ? <div><span>Сложность спасброска:</span> {dc}</div> : null}
+          {s.mode === "save" ? (
+            <div><span>Спасбросок:</span> {s.saveAbility ? ABIL_RU[s.saveAbility] : "—"} · <span>Сложность:</span> <b>{dc}</b></div>
+          ) : null}
           {s.mode === "attack" ? <div><span>Бонус атаки:</span> {atk >= 0 ? "+" + atk : atk}</div> : null}
           {s.dmg && s.dmg.length ? <div><span>Урон:</span> {s.dmg.map(x => `${x.d} ${x.t}`).join(" + ")}</div> : null}
         </div>

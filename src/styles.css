@@ -291,6 +291,18 @@ img{display:block}
   margin-bottom:10px;display:flex;flex-direction:column;gap:6px}
 .sp-cast-set-row{display:flex;gap:10px}
 .sp-cast-set-row .pop-field{flex:1;margin-bottom:0}
+.sp-slots-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:6px;margin-bottom:6px}
+.sp-slots-grid .pop-field{margin-bottom:0;text-align:center}
+.sp-slots-grid input{text-align:center;padding:4px 2px}
+/* выбор ячейки радио-кнопками */
+.sp-slot-choose{margin:6px 0 10px}
+.sp-radios{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.sp-radio{display:inline-flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border2);
+  border-radius:20px;padding:3px 12px;font-size:12px;font-weight:800;cursor:pointer;color:var(--dim)}
+.sp-radio.on{border-color:var(--accent);background:rgba(66,99,235,.16);color:var(--text)}
+.sp-radio input{accent-color:var(--accent);cursor:pointer}
+.sp-radio-cnt{font-size:10px;color:var(--purple2);font-weight:700}
+.sp-badge.up{background:rgba(139,92,246,.2);color:var(--purple2)}
 .sp-btn.on{background:var(--purple);border-color:var(--purple);color:#fff}
 .sp-group{margin-bottom:14px}
 .sp-group-head{display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border2);
