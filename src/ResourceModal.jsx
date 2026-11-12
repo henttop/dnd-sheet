@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-
 /* Модалка ресурса — по образцу longstoryshort.app */
 export default function ResourceModal({ resource, onChange, onDelete, onClose }) {
   const r = resource || {};

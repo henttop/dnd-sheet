@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { save } from "./store.js";
 import { levelOf, profOf, PROF_BY_LEVEL, XP } from "./helpers.js";
+import ImageCropper from "./ImageCropper.jsx";
 
 /* ================= Меню под аватаром (как на сайте) ================= */
 export function AvatarMenu({ c, onSave, onSettings, onPortrait }) {
@@ -152,6 +153,7 @@ export function SettingsDrawer({ c, onSave, onClose, onOpenWizard, ui, setUi }) 
 /* ================= Панель «Сменить портрет» ================= */
 export function PortraitDrawer({ c, onSave, onClose }) {
   const [err, setErr] = useState("");
+  const [cropSrc, setCropSrc] = useState(null);
   const fileRef = useRef(null);
   const url = c.data.avatar?.jpeg || "";
 
@@ -161,7 +163,8 @@ export function PortraitDrawer({ c, onSave, onClose }) {
     if (f.size > 3 * 1024 * 1024) { setErr("Файл больше 3 МБ"); return; }
     if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { setErr("Нужен jpg (или png/webp)"); return; }
     const r = new FileReader();
-    r.onload = () => { c.data.avatar = { jpeg: r.result }; onSave(); onClose(); };
+    // открываем обрезку под квадрат
+    r.onload = () => setCropSrc(r.result);
     r.readAsDataURL(f);
   };
 
@@ -178,7 +181,7 @@ export function PortraitDrawer({ c, onSave, onClose }) {
         <button className="f-btn primary" onClick={() => fileRef.current?.click()}>Загрузить изображение</button>
       </div>
       <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }}
-        onChange={e => upload(e.target.files[0])} />
+        onChange={e => { upload(e.target.files[0]); e.target.value = ""; }} />
       <div className="f-sep2" />
       <div className="f-label">ССЫЛКА НА ИЗОБРАЖЕНИЕ</div>
       <input className="f-input" placeholder="https://…" defaultValue={url.startsWith("http") ? url : ""}
@@ -186,6 +189,14 @@ export function PortraitDrawer({ c, onSave, onClose }) {
           if (e.key === "Enter" && e.target.value) { c.data.avatar = { jpeg: e.target.value }; onSave(); onClose(); }
         }} />
       <div className="f-hint">Вставьте прямую ссылку на картинку и нажмите Enter</div>
+
+      {cropSrc ? (
+        <ImageCropper
+          src={cropSrc}
+          onClose={() => setCropSrc(null)}
+          onApply={dataUrl => { c.data.avatar = { jpeg: dataUrl }; onSave(); setCropSrc(null); onClose(); }}
+        />
+      ) : null}
     </Drawer>
   );
 }
