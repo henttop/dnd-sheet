@@ -544,6 +544,19 @@ img{display:block}
 .rt .spoiler[open] .spoiler-chev{transform:rotate(90deg)}
 .rt .spoiler-body{padding:0 10px 8px 26px}
 
+/* ===== Внутренние уведомления ===== */
+.toast-wrap{position:fixed;top:16px;right:16px;z-index:300;display:flex;flex-direction:column;
+  gap:8px;max-width:360px;pointer-events:none}
+.toast{display:flex;align-items:flex-start;gap:10px;background:var(--card2);border:1px solid var(--border2);
+  border-left:3px solid var(--accent);border-radius:10px;padding:10px 12px;font-size:12.5px;font-weight:600;
+  box-shadow:0 10px 30px rgba(0,0,0,.55);pointer-events:auto;animation:toast-in .2s ease-out}
+.toast-ok{border-left-color:#40c057}
+.toast-err{border-left-color:#fa5252}
+.toast span{flex:1}
+.toast-x{color:var(--dim);font-size:15px;line-height:1;padding:0 2px}
+.toast-x:hover{color:var(--text)}
+@keyframes toast-in{from{transform:translateX(18px);opacity:0}to{transform:none;opacity:1}}
+
 /* ===== Обрезка изображения под квадрат ===== */
 .crop-modal{width:min(680px,100%);text-align:left}
 .crop-actions{display:flex;gap:10px;margin:6px 0 14px}

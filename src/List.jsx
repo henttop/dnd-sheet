@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { characters, importCharacters, exportCharacters, blankCharacter, addCharacter, removeCharacter, duplicateCharacter } from "./store.js";
 import { hp } from "./helpers.js";
 import { RollHost } from "./ui.jsx";
+import { toast } from "./toast.jsx";
 
 export default function List({ open }) {
   const [menu, setMenu] = useState(false);
@@ -14,9 +15,9 @@ export default function List({ open }) {
     try {
       const r = importCharacters(JSON.parse(t));
       rerender();
-      alert(`Загружено: добавлено ${r.added}, обновлено ${r.replaced}. Всего персонажей: ${r.total}`);
+      toast(`Загружено: добавлено ${r.added}, обновлено ${r.replaced}. Всего персонажей: ${r.total}`, "ok");
     } catch (err) {
-      alert("Не удалось прочитать файл: " + err.message);
+      toast("Не удалось прочитать файл: " + err.message, "err");
     }
   };
   const onDrop = (e) => {
