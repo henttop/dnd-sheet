@@ -10,14 +10,23 @@ export default function List({ open }) {
   const [, force] = useState(0);
   const rerender = () => force(x => x + 1);
 
+  const loadText = (t) => {
+    try {
+      const r = importCharacters(JSON.parse(t));
+      rerender();
+      alert(`Загружено: добавлено ${r.added}, обновлено ${r.replaced}. Всего персонажей: ${r.total}`);
+    } catch (err) {
+      alert("Не удалось прочитать файл: " + err.message);
+    }
+  };
   const onDrop = (e) => {
     e.preventDefault(); setDrag(false);
     const f = e.dataTransfer.files[0];
-    if (f) f.text().then(t => { try { importCharacters(JSON.parse(t)); rerender(); } catch (err) { alert("Не удалось прочитать файл: " + err.message); } });
+    if (f) f.text().then(loadText);
   };
   const pickFile = () => {
     const inp = document.createElement("input"); inp.type = "file"; inp.accept = ".json";
-    inp.onchange = () => inp.files[0] && inp.files[0].text().then(t => { try { importCharacters(JSON.parse(t)); rerender(); } catch (err) { alert("Не удалось прочитать файл: " + err.message); } });
+    inp.onchange = () => inp.files[0] && inp.files[0].text().then(loadText);
     inp.click();
   };
   const doExport = () => {

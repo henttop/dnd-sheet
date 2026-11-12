@@ -32,9 +32,30 @@ export function reset() {
   characters = charactersRaw.map(unpack);
 }
 
-export function importCharacters(arr) {
-  characters = arr.map(unpack);
+/* сигнатура персонажа — чтобы при импорте не плодить дубли */
+function charKey(c) {
+  const d = c.data || {};
+  const i = d.info || {};
+  return [d.name?.value || "", i.level?.value || "", i.race?.value || "", i.charClass?.value || ""].join("|");
+}
+
+export function importCharacters(input) {
+  // принимаем и массив персонажей (экспорт списка), и одного персонажа (экспорт карточки)
+  const arr = Array.isArray(input)
+    ? input
+    : (input && typeof input === "object" ? [input] : []);
+  if (!arr.length) throw new Error("В файле нет ни одного персонажа");
+  const incoming = arr.map(unpack);
+  // как на сайте: персонажи с такими же именем/уровнем/классом заменяются, новые — добавляются
+  let added = 0, replaced = 0;
+  for (const c of incoming) {
+    const key = charKey(c);
+    const idx = characters.findIndex(x => charKey(x) === key);
+    if (idx >= 0) { characters[idx] = c; replaced++; }
+    else { characters.push(c); added++; }
+  }
   save();
+  return { added, replaced, total: characters.length };
 }
 
 export function exportCharacters() {
