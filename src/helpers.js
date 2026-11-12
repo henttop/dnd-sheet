@@ -69,6 +69,23 @@ export function saveProf(c, st) { return c.data.saves?.[st]?.isProf ? 1 : 0; }
 export function saveBonus(c, st) { return statMod(c, st) + profOf(c) * saveProf(c, st); }
 export function passive(c, id) { return 10 + skillBonus(c, id); }
 
+/* Заклинательная характеристика, Сл спасброска и бонус атаки.
+   В LSS: spellsInfo.base.code — характеристика, spellsInfo.save.customModifier —
+   добавка к Сл, spellsInfo.mod.customModifier — добавка к бонусу атаки. */
+export function spellCasting(c) {
+  const d = c.data;
+  const si = (d.spellsInfo ||= {});
+  si.base = si.base || { name: 'base', value: '', code: 'int' };
+  si.save = si.save || { name: 'save', value: '', customModifier: null };
+  si.mod = si.mod || { name: 'mod', value: '', customModifier: null };
+  const abil = si.base.code || 'int';
+  const m = statMod(c, abil);
+  const prof = profOf(c);
+  const saveCustom = parseInt(si.save.customModifier, 10) || 0;
+  const modCustom = parseInt(si.mod.customModifier, 10) || 0;
+  return { abil, mod: m, prof, saveCustom, modCustom, dc: 8 + prof + m + saveCustom, atk: prof + m + modCustom };
+}
+
 export function docOf(c, key) { return c.data?.text?.[key]?.value?.data || null; }
 export function setDoc(c, key, doc) {
   if (!c.data.text) c.data.text = {};

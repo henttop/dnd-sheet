@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { SPELL_BY_ID, SPELL_BY_SLUG } from "./store.js";
 import { Popover } from "./ui.jsx";
-import { statMod, profOf, levelOf, XP } from "./helpers.js";
+import { statMod, profOf, levelOf, XP, spellCasting } from "./helpers.js";
+import { SpellFilters, emptyFilters, spellMatches, filterSummary } from "./SpellFilters.jsx";
 import { rollDiceExpr } from "./dice.js";
 
 const SCHOOL_RU = {
@@ -22,15 +23,16 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
   const book = (c.spells && c.spells.book) || [];
   const slots = d.spells || {};
 
-  const prof = profOf(c);
-  const abil = (d.spellsInfo && d.spellsInfo.base && d.spellsInfo.base.code) || "int";
-  const abilMod = statMod(c, abil);
-  const dc = 8 + prof + abilMod;
-  const atk = prof + abilMod;
+  const cast = spellCasting(c);
+  const abil = cast.abil, abilMod = cast.mod;
+  const dc = cast.dc, atk = cast.atk;
 
   const [filter, setFilter] = useState("all");     // all | 0 | 1 | 2 ... | conc
   const [modal, setModal] = useState(null);         // {id}
   const [prep, setPrep] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState(emptyFilters());
+  const [showCast, setShowCast] = useState(false);
 
   const spells = useMemo(() => {
     return prepared.map(id => {
@@ -47,10 +49,11 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
   }, [spells]);
 
   const shown = spells.filter(s => {
-    if (filter === "all") return true;
-    if (filter === "conc") return s.conc;
-    if (filter === "other") return s.level === "?";
-    return String(s.level) === String(filter);
+    if (filter === "all") { /* без быстрого фильтра */ }
+    else if (filter === "conc") { if (!s.conc) return false; }
+    else if (filter === "other") { if (s.level !== "?") return false; }
+    else if (String(s.level) !== String(filter)) return false;
+    return spellMatches(s, filters);
   });
 
   const groups = [];
@@ -81,18 +84,58 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
     <>
       <div className="sp-head">
         {ui.showDC === false ? null : (
-          <div className="sp-stat"><b>{dc}</b><small>СПАСБРОСОК {ABIL_RU[abil]}</small></div>
+          <div className="sp-stat" title="Сложность спасброска = 8 + бонус мастерства + модификатор заклинательной характеристики">
+            <b>{dc}</b><small>СПАСБРОСОК {ABIL_RU[abil]}</small>
+          </div>
         )}
         {ui.showAtk === false ? null : (
-          <div className="sp-stat" onClick={() => window.__rollD20("Атака заклинанием", atk)}>
+          <div className="sp-stat" title="Бонус атаки заклинанием = бонус мастерства + модификатор заклинательной характеристики"
+            onClick={() => window.__rollD20("Атака заклинанием", atk)}>
             <b>{atk >= 0 ? "+" + atk : atk}</b><small>АТАКА</small>
           </div>
         )}
-        <div className="sp-stat"><small>ХАРАКТЕРИСТИКА</small><b>{ABIL_RU[abil]}</b></div>
+        <div className="sp-stat" title="Заклинательная характеристика"><small>ХАРАКТЕРИСТИКА</small><b>{ABIL_RU[abil]}</b></div>
         <div className="sp-head-btns">
+          <button className={"sp-btn" + (showCast ? " on" : "")} onClick={() => setShowCast(v => !v)}
+            title="настройки заклинаний">⚙ Настройки заклинаний</button>
           <button className="sp-btn" onClick={() => setPrep(true)}>Подготовить заклинания</button>
         </div>
       </div>
+
+      {showCast ? (
+        <div className="sp-cast-set">
+          <div className="f-label">ЗАКЛИНАТЕЛЬНАЯ ХАРАКТЕРИСТИКА</div>
+          <select className="f-input" value={abil} onChange={e => {
+            const d = c.data;
+            d.spellsInfo = d.spellsInfo || {};
+            d.spellsInfo.base = d.spellsInfo.base || { name: "base", value: "" };
+            d.spellsInfo.base.code = e.target.value;
+            onSave();
+          }}>
+            <option value="int">Интеллект</option>
+            <option value="wis">Мудрость</option>
+            <option value="cha">Харизма</option>
+          </select>
+          <div className="sp-cast-set-row">
+            <label className="pop-field">Сл спасброска
+              <input type="number" className="edit-in" defaultValue={cast.saveCustom}
+                onKeyDown={e => { if (e.key === "Enter") { c.data.spellsInfo.save.customModifier = +e.target.value || 0; onSave(); } }}
+                onBlur={e => { c.data.spellsInfo.save.customModifier = +e.target.value || 0; onSave(); }} />
+            </label>
+            <label className="pop-field">Бонус атаки
+              <input type="number" className="edit-in" defaultValue={cast.modCustom}
+                onKeyDown={e => { if (e.key === "Enter") { c.data.spellsInfo.mod.customModifier = +e.target.value || 0; onSave(); } }}
+                onBlur={e => { c.data.spellsInfo.mod.customModifier = +e.target.value || 0; onSave(); }} />
+            </label>
+          </div>
+          <div className="f-hint">
+            Сл = 8 + {cast.prof} (бонус мастерства) + {cast.mod >= 0 ? "+" + cast.mod : cast.mod} ({ABIL_RU[abil]})
+            {cast.saveCustom ? ` + ${cast.saveCustom} (своё)` : ""} = <b>{dc}</b><br />
+            Атака = {cast.prof} + {cast.mod >= 0 ? "+" + cast.mod : cast.mod}
+            {cast.modCustom ? ` + ${cast.modCustom} (своё)` : ""} = <b>{atk >= 0 ? "+" + atk : atk}</b>
+          </div>
+        </div>
+      ) : null}
 
       <div className="sp-filters">
         <button className={"sp-filter" + (filter === "all" ? " on" : "")} onClick={() => setFilter("all")}>Все</button>
@@ -103,6 +146,13 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
         <button className={"sp-filter" + (filter === "conc" ? " on" : "")} onClick={() => setFilter("conc")}>К</button>
         {spells.some(s => s.level === "?") ? (
           <button className={"sp-filter" + (filter === "other" ? " on" : "")} onClick={() => setFilter("other")}>?</button>
+        ) : null}
+        <button className={"sp-filter gear" + (showFilters ? " on" : "")} onClick={() => setShowFilters(v => !v)}
+          title="фильтры как на dnd.su">☰ фильтры</button>
+        {showFilters ? (
+          <div className="sp-filters-panel">
+            <SpellFilters value={filters} onChange={setFilters} levels={levels} />
+          </div>
         ) : null}
       </div>
 
@@ -225,6 +275,7 @@ function SpellModal({ spell, dc, atk, onClose, onToggle, prepared }) {
 function PrepareModal({ c, onSave, onClose }) {
   const [q, setQ] = useState("");
   const [lv, setLv] = useState("all");
+  const [filters, setFilters] = useState(emptyFilters());
   const prepared = (c.spells && c.spells.prepared) || [];
   const book = (c.spells && c.spells.book) || [];
 
@@ -243,7 +294,7 @@ function PrepareModal({ c, onSave, onClose }) {
     if (clsKey && s.classes && s.classes.length && !s.classes.includes(clsKey)) return false;
     if (lv !== "all" && String(s.level) !== lv) return false;
     if (q && !s.name.toLowerCase().includes(q.toLowerCase())) return false;
-    return true;
+    return spellMatches(s, filters);
   }).sort((a, b) => a.level - b.level || a.name.localeCompare(b.name, "ru"));
 
   const toggle = (id) => {
@@ -267,6 +318,7 @@ function PrepareModal({ c, onSave, onClose }) {
             {levels.map(l => <option key={l} value={l}>{l === 0 ? "Заговоры" : l + "-й уровень"}</option>)}
           </select>
         </div>
+        <SpellFilters value={filters} onChange={setFilters} levels={levels} showLevels={false} />
         <div className="sp-prep-list">
           {list.map(s => (
             <label key={s.id} className={"sp-prep-item" + (prepared.includes(s.id) ? " on" : "")}>
