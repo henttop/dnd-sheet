@@ -1,7 +1,7 @@
 ﻿import React, { useState, useRef } from "react";
 import { characters, save } from "./store.js";
 import { SPELL_BY_ID, SPELL_BY_SLUG } from "./store.js";
-import { RollHost, Editable, Popover, ProfPopover, DieIcon, CreateModal } from "./ui.jsx";
+import { RollHost, Editable, Popover, ProfPopover, DieIcon, CreateModal, useAnchorPos } from "./ui.jsx";
 import SpellsTab from "./Spells.jsx";
 import WeaponModal, { weaponBonus, damageInfo } from "./WeaponModal.jsx";
 import { AvatarMenu, SettingsDrawer, PortraitDrawer } from "./panels.jsx";
@@ -135,13 +135,15 @@ function XpEdit({ c, xpVal, xpNext, onSave }) {
 
 function LevelChip({ c, lvl, onSave }) {
   const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const pos = useAnchorPos(open, ref, { dx: 0, dy: 8, width: 180 });
   return (
     <span style={{ position: "relative" }}>
-      <span className="lvl-chip" onClick={() => setOpen(!open)} title="уровень и опыт">
+      <span className="lvl-chip" ref={ref} onClick={() => setOpen(!open)} title="уровень и опыт">
         <span className="lvl-num">{lvl}</span> УРОВЕНЬ
       </span>
-      {open ? (
-        <Popover onClose={() => setOpen(false)} style={{ left: 0, top: 28, minWidth: 180 }}>
+      {open && pos ? (
+        <Popover onClose={() => setOpen(false)} style={{ left: pos.left, top: pos.top, minWidth: 180 }}>
           <div className="pop-title">Уровень и опыт</div>
           <label className="pop-field">Уровень
             <input type="number" min="1" max="20" className="edit-in" defaultValue={lvl}
@@ -162,18 +164,20 @@ function LevelChip({ c, lvl, onSave }) {
 /* ===== КД (щит) ===== */
 function AcVital({ c, onSave }) {
   const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const pos = useAnchorPos(open, ref, { dx: -70, dy: 8, width: 190 });
   const v = c.data.vitality ||= {};
   return (
     <div style={{ position: "relative" }}>
-      <div className="vital" onClick={() => setOpen(!open)} title="КД и щит">
+      <div className="vital" ref={ref} onClick={() => setOpen(!open)} title="КД и щит">
         <svg className="icon ac-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
           <path d="M12 2l9 5v6c0 5-4 8-9 9-5-1-9-4-9-9V7l9-5z" />
           {v.shield?.value ? <path d="M9.5 12l2 2 3.5-3.5" stroke="var(--cyan)" /> : <text x="12" y="15" textAnchor="middle" fontSize="7" stroke="none" fill="currentColor">?</text>}
         </svg>
         <div><div className="v-main">{v.ac?.value ?? "—"}</div><div className="v-sub">КД</div></div>
       </div>
-      {open ? (
-        <Popover onClose={() => setOpen(false)} style={{ left: -40, top: 46, minWidth: 190 }}>
+      {open && pos ? (
+        <Popover onClose={() => setOpen(false)} style={{ left: pos.left, top: pos.top, minWidth: 190 }}>
           <div className="pop-title">КД и щит</div>
           <label className="pop-field">КД
             <input type="number" className="edit-in" defaultValue={v.ac?.value ?? 10}
@@ -194,13 +198,15 @@ function AcVital({ c, onSave }) {
 /* ===== Монеты ===== */
 function GoldPill({ c, onSave }) {
   const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const pos = useAnchorPos(open, ref, { dx: -110, dy: 8, width: 230, align: "right" });
   const d = c.data.coins ||= { gp: { value: 0 }, sp: { value: 0 }, cp: { value: 0 }, pp: { value: 0 }, ep: { value: 0 } };
   const NOM = [["pp", "ПМ"], ["gp", "ЗМ"], ["ep", "ЭМ"], ["sp", "СМ"], ["cp", "ММ"]];
   return (
     <div style={{ position: "relative" }}>
-      <div className="gold-pill" onClick={() => setOpen(!open)} title="монеты">🪙 {coinsTotal(c)}</div>
-      {open ? (
-        <Popover onClose={() => { setOpen(false); onSave(); }} style={{ right: 0, top: 36 }}>
+      <div className="gold-pill" ref={ref} onClick={() => setOpen(!open)} title="монеты">🪙 {coinsTotal(c)}</div>
+      {open && pos ? (
+        <Popover onClose={() => { setOpen(false); onSave(); }} style={{ left: pos.left, top: pos.top }}>
           <div className="pop-title">Монеты</div>
           <div className="coins-grid">
             {NOM.map(([k, label]) => (
@@ -220,17 +226,19 @@ function GoldPill({ c, onSave }) {
 /* ===== HP ===== */
 function HpBox({ c, onSave }) {
   const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const pos = useAnchorPos(open, ref, { dx: -60, dy: 8, width: 250, align: "right" });
   const v = c.data.vitality ||= {};
   const h = hp(c);
   const setHp = (val) => { v["hp-current"] = { value: Math.max(0, Math.min(h.max, val)) }; onSave(); };
   const low = h.cur < h.max * .34;
   return (
     <div style={{ position: "relative" }}>
-      <div className={"hp-box" + (low ? " low" : "")} onClick={() => setOpen(!open)} title="хиты">
+      <div className={"hp-box" + (low ? " low" : "")} ref={ref} onClick={() => setOpen(!open)} title="хиты">
         <HeartIcon /> {h.cur}/{h.max}{h.temp ? <span className="hp-temp">+{h.temp}</span> : ""}
       </div>
-      {open ? (
-        <Popover onClose={() => setOpen(false)} style={{ right: 0, top: 46, minWidth: 250 }}>
+      {open && pos ? (
+        <Popover onClose={() => setOpen(false)} style={{ left: pos.left, top: pos.top, minWidth: 250 }}>
           <div className="pop-title">Хиты</div>
           <div className="hp-row">
             <button onClick={() => setHp(h.cur - 5)}>−5</button>
@@ -288,16 +296,20 @@ function SubVitals({ c, onSave }) {
   const conds = d.conditions ||= [];
   const [condOpen, setCondOpen] = useState(false);
   const [initOpen, setInitOpen] = useState(false);
+  const initRef = useRef(null);
+  const condRef = useRef(null);
+  const initPos = useAnchorPos(initOpen, initRef, { dx: 0, dy: 8, width: 200 });
+  const condPos = useAnchorPos(condOpen, condRef, { dx: 0, dy: 8, width: 240 });
   return (
     <div className="subvitals">
       <div style={{ position: "relative" }}>
-        <div className="subvital" title="клик — бросок; правый клик — правка"
+        <div className="subvital" ref={initRef} title="клик — бросок; правый клик — правка"
           onClick={e => window.__rollD20("Инициатива", initBonus, "")}
           onContextMenu={e => { e.preventDefault(); setInitOpen(true); }}>
           <div className="sv-v">{signed(initBonus)}</div><div className="sv-l">Инициатива</div>
         </div>
-        {initOpen ? (
-          <Popover onClose={() => { setInitOpen(false); onSave(); }} style={{ left: 0, top: 44 }}>
+        {initOpen && initPos ? (
+          <Popover onClose={() => { setInitOpen(false); onSave(); }} style={{ left: initPos.left, top: initPos.top }}>
             <div className="pop-title">Бонус инициативы</div>
             <input type="number" className="edit-in" autoFocus defaultValue={initCustom}
               onKeyDown={e => { if (e.key === "Enter") { v.initiative = { value: +e.target.value || 0 }; onSave(); setInitOpen(false); } }}
@@ -314,10 +326,10 @@ function SubVitals({ c, onSave }) {
         onContextMenu={e => { e.preventDefault(); d.exhaustion = 0; onSave(); }}>
         <div className="sv-v">{+d.exhaustion || 0}</div><div className="sv-l">Истощение</div>
       </div>
-      <div className="cond-box" style={{ position: "relative" }} onClick={() => setCondOpen(!condOpen)}>
+      <div className="cond-box" ref={condRef} style={{ position: "relative" }} onClick={() => setCondOpen(!condOpen)}>
         {conds.length ? conds.map(k => <span className="chip" key={k}>{CONDITIONS_RU[k] || k}</span>) : "— Эффекты и состояния"}
-        {condOpen ? (
-          <Popover onClose={() => { setCondOpen(false); onSave(); }} style={{ left: 0, top: 40, maxHeight: 320, overflow: "auto", minWidth: 230 }}>
+        {condOpen && condPos ? (
+          <Popover onClose={() => { setCondOpen(false); onSave(); }} style={{ left: condPos.left, top: condPos.top, maxHeight: 320, overflow: "auto", minWidth: 230 }}>
             <div className="pop-title">Состояния</div>
             {Object.entries(CONDITIONS_RU).map(([k, label]) => (
               <label key={k} className="prof-opt">

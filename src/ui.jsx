@@ -239,6 +239,31 @@ export function Popover({ onClose, children, style }) {
   return <div className="popover" ref={ref} style={style}>{children}</div>;
 }
 
+/* Позиция поповера относительно элемента-триггера (экра��ные координаты) */
+export function useAnchorPos(open, ref, opts = {}) {
+  const { dx = 0, dy = 8, width = 200, align = "left" } = opts;
+  const [pos, setPos] = useState(null);
+  useEffect(() => {
+    if (!open) { setPos(null); return; }
+    const update = () => {
+      const el = ref.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      let left = align === "right" ? r.right - width : align === "center" ? r.left + r.width / 2 - width / 2 : r.left;
+      left += dx;
+      const top = r.bottom + dy;
+      // не даём вылезти за экран
+      left = Math.max(8, Math.min(left, window.innerWidth - width - 8));
+      setPos({ left, top });
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => { window.removeEventListener("resize", update); window.removeEventListener("scroll", update, true); };
+  }, [open, dx, dy, width, align]);
+  return pos;
+}
+
 /* ===== Радио-поповер владения ===== */
 export function ProfPopover({ anchor, value, onChange, onClose, withCustom, customValue, onCustom, title }) {
   if (!anchor) return null;
