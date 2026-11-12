@@ -409,9 +409,12 @@ img{display:block}
   border:1px solid var(--border2);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.6);padding:10px}
 .tower-x{position:absolute;top:2px;right:8px;color:var(--dim);font-size:15px}
 .tower-dice{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;padding-top:4px}
-.tower-die{position:relative;width:34px;height:34px;border-radius:8px;background:var(--card);
-  border:1px solid var(--border2);color:var(--dim);display:flex;align-items:center;justify-content:center}
+.tower-die{position:relative;width:38px;height:44px;border-radius:8px;background:var(--card);
+  border:1px solid var(--border2);color:var(--dim);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:1px;padding-top:2px}
+.tower-faces{font-size:9px;font-weight:800;color:var(--dim2);line-height:1}
 .tower-die:hover{border-color:var(--purple);color:var(--text)}
+.tower-die:hover .tower-faces{color:var(--purple2)}
 .tower-badge{position:absolute;top:-5px;right:-5px;background:var(--purple);color:#fff;
   font-size:9px;font-weight:800;border-radius:10px;min-width:15px;height:15px;line-height:15px}
 .tower-row{display:flex;align-items:center;gap:6px;justify-content:center}

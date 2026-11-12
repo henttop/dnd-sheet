@@ -106,8 +106,9 @@ export function DiceTower() {
           <button className="tower-x" onClick={() => setOpen(false)}>×</button>
           <div className="tower-dice">
             {DICE.map(f => (
-              <button key={f} className="tower-die" title={"d" + f} onClick={() => setPool(p => [...p, f])}>
+              <button key={f} className="tower-die" title={`d${f} — ${f} граней`} onClick={() => setPool(p => [...p, f])}>
                 <DieShape faces={f} />
+                <span className="tower-faces">{f}</span>
                 {pool.filter(x => x === f).length ? <span className="tower-badge">{pool.filter(x => x === f).length}</span> : null}
               </button>
             ))}
