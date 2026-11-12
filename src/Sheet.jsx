@@ -607,6 +607,12 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
 
   const updateSeg = (i, patch) => setSegs(l => l.map((sg, k) => (k === i ? { ...sg, ...patch } : sg)));
   const removeSeg = (i) => setSegs(l => l.filter((_, k) => k !== i));
+  // снять спойлер, но оставить его текст обычным абзацем
+  const unwrapSeg = (i) => setSegs(l => l.flatMap((sg, k) => {
+    if (k !== i || sg.type !== "spoiler") return [sg];
+    const text = [sg.summary, sg.body].filter(Boolean).join("\n");
+    return [{ type: "text", text }];
+  }));
   const addSpoiler = () => setSegs(l => [...l, { type: "spoiler", summary: "Спойлер", body: "" }]);
 
   // вставка текста/маркера в активное текстовое поле
@@ -661,6 +667,7 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
       {edit ? (
         <>
           <div className="rt-editor-blocks">
+            <div className="rt-editor-segs">
             {segs.map((sg, i) => (
               sg.type === "spoiler" ? (
                 <div className="ed-spoiler" key={i}>
@@ -672,8 +679,10 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
                   </button>
                   <input className="ed-spoiler-title" value={sg.summary} placeholder="Заголовок спойлера"
                     onChange={e => updateSeg(i, { summary: e.target.value })} />
-                  <button className="ed-spoiler-del" title="удалить спойлер"
-                    onClick={() => removeSeg(i)}>×</button>
+                  <button className="ed-spoiler-unwrap" title="убрать спойлер (текст останется)"
+                    onClick={() => unwrapSeg(i)}>×</button>
+                  <button className="ed-spoiler-del" title="удалить блок вместе с текстом"
+                    onClick={() => removeSeg(i)}>🗑</button>
                   <textarea className="ed-spoiler-body" rows={3} value={sg.body} placeholder="Скрытый текст"
                     onChange={e => updateSeg(i, { body: e.target.value })} />
                 </div>
@@ -695,6 +704,7 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
                 />
               )
             ))}
+            </div>
             <InsertBar onFormat={onFormat} onInsert={onInsert} />
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>

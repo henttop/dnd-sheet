@@ -537,6 +537,7 @@ img{display:block}
 
 /* ===== Структурный редактор блока (как в редакторе LSS) ===== */
 .rt-editor-blocks{display:flex;gap:10px;align-items:flex-start}
+.rt-editor-segs{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
 .rt-editor-blocks .insert-bar{flex:none}
 .rt-edit-line{flex:1;min-height:34px;resize:none;overflow:hidden}
 .ed-spoiler{flex:1;display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px;
@@ -548,9 +549,12 @@ img{display:block}
 .ed-spoiler-title{flex:1;min-width:120px;background:#272e43;border:1px solid var(--border2);border-radius:6px;
   color:rgba(255,255,255,.92);font-size:12px;font-weight:600;padding:4px 8px}
 .ed-spoiler-title:focus{outline:none;border-color:var(--accent)}
-.ed-spoiler-del{background:transparent;border:none;color:var(--dim);font-size:16px;line-height:1;
+.ed-spoiler-del{background:transparent;border:none;color:var(--dim);font-size:14px;line-height:1;
   cursor:pointer;padding:2px 4px;height:26px}
 .ed-spoiler-del:hover{color:var(--red)}
+.ed-spoiler-unwrap{background:transparent;border:none;color:var(--dim);font-size:16px;line-height:1;
+  cursor:pointer;padding:2px 4px;height:26px}
+.ed-spoiler-unwrap:hover{color:var(--gold)}
 .ed-spoiler-body{flex:1 1 100%;margin-top:4px}
 
 /* ===== Спойлер (как на LSS) ===== */
