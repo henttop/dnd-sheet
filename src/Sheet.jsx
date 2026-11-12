@@ -3,6 +3,7 @@ import { characters, save } from "./store.js";
 import { SPELL_BY_ID, SPELL_BY_SLUG } from "./store.js";
 import { RollHost, Editable, Popover, ProfPopover, DieIcon, CreateModal } from "./ui.jsx";
 import SpellsTab from "./Spells.jsx";
+import WeaponModal from "./WeaponModal.jsx";
 import { AvatarMenu, SettingsDrawer, PortraitDrawer } from "./panels.jsx";
 import { getUi, setUi } from "./uistore.js";
 import { Avatar } from "./List.jsx";
@@ -462,27 +463,83 @@ function AttacksTab({ c, onSave }) {
   const d = c.data;
   if (!d.weaponsList) d.weaponsList = [];
   const ws = d.weaponsList;
+  const [editIdx, setEditIdx] = useState(null);
+
+  const addRow = () => {
+    ws.push({ id: "weapon-" + Date.now(), name: { value: "" }, mod: { value: "+2" }, dmg: { value: "" } });
+    onSave();
+  };
+  const removeLast = () => {
+    if (ws.length > 1) ws.pop();
+    onSave();
+  };
+  const removeRow = (i) => {
+    ws.splice(i, 1);
+    setEditIdx(null);
+    onSave();
+  };
+
   return (
     <>
       <div className="panel">
         <table className="att-table">
-          <thead><tr><th>НАЗВАНИЕ</th><th>БОНУС</th><th>УРОН / ВИД</th><th /></tr></thead>
+          <thead>
+            <tr>
+              <th>НАЗВАНИЕ</th>
+              <th>БОНУС</th>
+              <th>УРОН / ВИД</th>
+              <th className="att-tools">
+                <button className="att-plus" title="добавить атаку" onClick={addRow}>+</button>
+                <button className="att-minus" title="убрать последнюю" onClick={removeLast}>−</button>
+              </th>
+            </tr>
+          </thead>
           <tbody>
             {ws.map((w, i) => (
-              w.name?.value || w.dmg?.value ? (
-                <tr key={w.id || i}>
-                  <td className="atk-name"><Editable value={w.name?.value || ""} onSave={v => { w.name.value = v; onSave(); }} /></td>
-                  <td><span className="atk-mod"><Editable value={w.mod?.value ?? "+0"} onSave={v => { w.mod.value = v; onSave(); }} width={44} /><button className="mini-roll" title="бросок атаки" onClick={() => window.__rollD20(`Атака: ${w.name?.value}`, parseNum(w.mod?.value), "")}>🎲</button></span></td>
-                  <td><span className="atk-mod"><Editable value={w.dmg?.value || ""} onSave={v => { w.dmg.value = v; onSave(); }} width={120} /><button className="mini-roll" title="бросок урона" onClick={() => window.__rollExpr(`Урон: ${w.name?.value}`, (w.dmg?.value || "").match(/[-+\dккdККd]+/)?.[0] || w.dmg?.value)}>🎲</button></span></td>
-                  <td><button className="row-del" title="удалить" onClick={() => { ws.splice(i, 1); onSave(); }}>−</button></td>
-                </tr>
-              ) : null
+              <tr key={w.id || i}>
+                <td className="atk-name">
+                  <button className={"atk-name-btn" + (w.name?.value ? "" : " empty")}
+                    title="настроить оружие"
+                    onClick={() => setEditIdx(i)}>
+                    {w.name?.value || "настроить"}
+                  </button>
+                </td>
+                <td>
+                  <span className="atk-mod">
+                    <button className="atk-val" title="бросок атаки"
+                      onClick={() => window.__rollD20(`Атака: ${w.name?.value || "оружие"}`, parseNum(w.mod?.value), "")}>
+                      {w.mod?.value ?? "+0"}
+                    </button>
+                  </span>
+                </td>
+                <td>
+                  <span className="atk-mod">
+                    <button className="atk-val wide" title="бросок урона"
+                      onClick={() => {
+                        const expr = (w.dmg?.value || "").match(/[-+\dкКdD]+/)?.[0];
+                        if (expr) window.__rollExpr(`Урон: ${w.name?.value || "оружие"}`, expr);
+                      }}>
+                      {w.dmg?.value || "—"}
+                    </button>
+                  </span>
+                </td>
+                <td>
+                  <button className="row-del" title="удалить" onClick={() => removeRow(i)}>−</button>
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>
-        <button className="add-row" onClick={() => { ws.push({ id: "weapon-" + Date.now(), name: { value: "" }, mod: { value: "+0" }, dmg: { value: "" } }); onSave(); }}>+ добавить атаку</button>
       </div>
       <RtBlock c={c} title="Атаки и заклинания" blockKey="attacks" onSave={onSave} />
+      {editIdx != null && ws[editIdx] ? (
+        <WeaponModal
+          weapon={ws[editIdx]}
+          onChange={(nw) => { ws[editIdx] = nw; onSave(); }}
+          onDelete={() => removeRow(editIdx)}
+          onClose={() => setEditIdx(null)}
+        />
+      ) : null}
     </>
   );
 }

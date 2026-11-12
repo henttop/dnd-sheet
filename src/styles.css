@@ -178,6 +178,18 @@ img{display:block}
   padding:4px 6px;border-bottom:1px solid var(--border)}
 .att-table td{padding:5px 6px;border-bottom:1px solid var(--border)}
 .att-table .atk-name{font-weight:600}
+.att-tools{text-align:right;white-space:nowrap}
+.att-plus,.att-minus{width:22px;height:22px;border:1px solid var(--border2);border-radius:6px;
+  font-weight:800;color:var(--dim);margin-left:4px}
+.att-plus:hover{border-color:var(--accent);color:var(--text)}
+.att-minus:hover{border-color:var(--red);color:var(--red)}
+.atk-name-btn{font-weight:600;font-size:13px;text-align:left}
+.atk-name-btn.empty{color:var(--dim2);font-style:italic;font-weight:500}
+.atk-name-btn:hover{color:var(--accent2)}
+.atk-val{background:var(--card2);border:1px solid var(--border2);border-radius:7px;padding:2px 12px;
+  font-weight:800;min-width:48px}
+.atk-val.wide{min-width:120px;text-align:left;font-weight:600}
+.atk-val:hover{border-color:var(--accent)}
 .atk-mod{display:inline-flex;align-items:center;gap:4px}
 .mini-roll{opacity:.6;font-size:13px}
 .mini-roll:hover{opacity:1}
