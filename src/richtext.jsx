@@ -137,6 +137,58 @@ function parseInline(text) {
   return out;
 }
 
+/* ---------- Разбор документа на редактируемые сегменты ---------- */
+export function docToSegments(doc) {
+  const segs = [];
+  for (const node of doc?.content || []) {
+    if (node.type === "spoiler") {
+      const sum = ((node.content || []).find(x => x.type === "spoilerSummary")?.content || [])
+        .map(t => t.text || "").join("");
+      const body = ((node.content || []).find(x => x.type === "spoilerContent")?.content || [])
+        .map(p => inlineToText(p.content || [])).join("\n");
+      segs.push({ type: "spoiler", summary: sum, body });
+    } else if (node.type === "divider") {
+      segs.push({ type: "text", text: "——" });
+    } else if (node.type === "bulletList" || node.type === "orderedList") {
+      const lines = [];
+      const walk = (n, prefix) => {
+        if (n.type === "listItem") {
+          const t = inlineToText(n.content?.[0]?.content || []);
+          lines.push(prefix + t);
+          (n.content || []).slice(1).forEach(k => walk(k, prefix + "  "));
+        }
+      };
+      (node.content || []).forEach((li, i) => walk(li, node.type === "orderedList" ? `${i + 1}. ` : "- "));
+      segs.push({ type: "text", text: lines.join("\n") });
+    } else {
+      segs.push({ type: "text", text: inlineToText(node.content || []) });
+    }
+  }
+  return segs.length ? segs : [{ type: "text", text: "" }];
+}
+
+export function segmentsToDoc(segs) {
+  const content = [];
+  for (const seg of segs) {
+    if (seg.type === "spoiler") {
+      content.push({
+        type: "spoiler",
+        content: [
+          { type: "spoilerSummary", content: [{ type: "text", text: seg.summary || "" }] },
+          { type: "spoilerContent", content: [{ type: "paragraph", content: parseInline(seg.body || "") }] },
+        ],
+      });
+      continue;
+    }
+    const t = (seg.text || "").trim();
+    if (!t) continue;
+    if (t === "——") { content.push({ type: "divider" }); continue; }
+    content.push(...textToDoc(seg.text).content);
+  }
+  if (!content.length) content.push({ type: "paragraph", content: [] });
+  return { type: "doc", content };
+}
+
 /* ---------- Сериализация inline-узлов в текст ---------- */
 function inlineToText(children) {
   return (children || []).map(ch => {

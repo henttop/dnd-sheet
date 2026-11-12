@@ -7,7 +7,7 @@ import WeaponModal, { weaponBonus, damageInfo } from "./WeaponModal.jsx";
 import { AvatarMenu, SettingsDrawer, PortraitDrawer } from "./panels.jsx";
 import { getUi, setUi } from "./uistore.js";
 import { Avatar } from "./List.jsx";
-import { renderDoc, docToText, textToDoc, wrapSelection, insertAtCursor } from "./richtext.jsx";
+import { renderDoc, docToText, textToDoc, wrapSelection, insertAtCursor, docToSegments, segmentsToDoc } from "./richtext.jsx";
 import TextMenu from "./TextMenu.jsx";
 import InsertBar from "./InsertBar.jsx";
 import ResourceModal from "./ResourceModal.jsx";
@@ -596,32 +596,22 @@ function TextTab({ c, onSave, blocks }) {
 
 function RtBlock({ c, title, blockKey, onSave, compact }) {
   const [edit, setEdit] = useState(false);
-  const [draft, setDraft] = useState("");
+  const [segs, setSegs] = useState([]);
   const [menu, setMenu] = useState(null);
-  const [resModal, setResModal] = useState(null);   // {id} — редактирование ресурса
+  const [resModal, setResModal] = useState(null);
   const taRef = useRef(null);
   const doc = docOf(c, blockKey);
   const resources = Object.values(c.data.resources || {});
 
-  const startEdit = () => { setDraft(docToText(doc)); setEdit(true); };
+  const startEdit = () => { setSegs(docToSegments(doc)); setEdit(true); };
 
-  // запоминаем выделение — при клике на кнопку textarea теряет фокус и selection сбрасывается
-  const selRef = useRef({ start: 0, end: 0 });
-  const captureSel = () => {
-    const ta = taRef.current;
-    if (ta) selRef.current = { start: ta.selectionStart ?? 0, end: ta.selectionEnd ?? 0 };
-  };
-  const selRange = () => {
-    const ta = taRef.current;
-    const live = ta ? { start: ta.selectionStart ?? 0, end: ta.selectionEnd ?? 0 } : null;
-    const saved = selRef.current;
-    if (live && live.end > live.start) return live;
-    if (saved.end > saved.start) return saved;
-    return live || saved;
-  };
+  const updateSeg = (i, patch) => setSegs(l => l.map((sg, k) => (k === i ? { ...sg, ...patch } : sg)));
+  const removeSeg = (i) => setSegs(l => l.filter((_, k) => k !== i));
+  const addSpoiler = () => setSegs(l => [...l, { type: "spoiler", summary: "Спойлер", body: "" }]);
 
-  const applyText = (next, pos) => {
-    setDraft(next);
+  // вставка текста/маркера в активное текстовое поле
+  const applyText = (i, next, pos) => {
+    setSegs(l => l.map((sg, k) => (k === i ? { ...sg, text: next } : sg)));
     requestAnimationFrame(() => {
       const ta = taRef.current;
       if (!ta) return;
@@ -634,41 +624,23 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
     const ta = taRef.current;
     if (!ta) return;
     const r = wrapSelection(ta, mark, mark);
-    applyText(r.next, r.pos);
-  };
-
-  const insertResource = (res) => {
-    const ta = taRef.current;
-    const id = res.id;
-    const marker = `{{${id}::${res.name}}}`;
-    if (!ta) { applyText(draft + " " + marker, null); return; }
-    const r = insertAtCursor(ta, marker);
-    applyText(r.next, r.pos);
+    applyText(ta.dataset.idx, r.next, r.pos);
   };
 
   const onInsert = (kind, res) => {
     const ta = taRef.current;
+    if (kind === "spoiler") { addSpoiler(); return; }
     if (!ta) return;
-    if (kind === "roll") { const r = insertAtCursor(ta, "[[1d6]]"); applyText(r.next, r.pos); return; }
-    if (kind === "spoiler") {
-      const r = wrapSelection(ta, "||Спойлер||", "||");
-      applyText(r.next, r.pos);
-      return;
-    }
     if (kind === "resource") {
-      if (res) { insertResource(res); return; }
-      // новый ресурс
-      const id = "resource-" + Date.now();
-      const nr = { id, name: "настроить", current: 0, max: 0, formula: "", isShortRest: false, isLongRest: false, notes: { value: "" } };
-      c.data.resources = c.data.resources || {};
-      c.data.resources[id] = nr;
-      insertResource(nr);
-      onSave();
-      setResModal({ id, created: true });
+      const id = res.id;
+      const marker = `{{${id}::${res.name}}}`;
+      const r = insertAtCursor(ta, marker);
+      applyText(ta.dataset.idx, r.next, r.pos);
       return;
     }
-    if (kind === "divider") { const r = insertAtCursor(ta, "\n——\n"); applyText(r.next, r.pos); return; }
-    if (kind === "list") { const r = insertAtCursor(ta, "\n- "); applyText(r.next, r.pos); return; }
+    const ins = kind === "roll" ? "[[1d6]]" : kind === "divider" ? "\n——\n" : "\n- ";
+    const r = insertAtCursor(ta, ins);
+    applyText(ta.dataset.idx, r.next, r.pos);
   };
 
   const onResourceChange = (id, patch) => {
@@ -688,26 +660,45 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
       </h4>
       {edit ? (
         <>
-          <div className="rt-editor">
-            <textarea
-              ref={taRef}
-              className="rt-edit"
-              rows={compact ? 6 : 12}
-              value={draft}
-              onChange={e => setDraft(e.target.value)}
-              onSelect={captureSel}
-              onKeyUp={captureSel}
-              onMouseUp={captureSel}
-              onContextMenu={e => {
-                e.preventDefault();
-                captureSel();
-                setMenu({ x: e.clientX, y: e.clientY });
-              }}
-            />
+          <div className="rt-editor-blocks">
+            {segs.map((sg, i) => (
+              sg.type === "spoiler" ? (
+                <div className="ed-spoiler" key={i}>
+                  <button type="button" className="ed-spoiler-chev" title="развернуть/свернуть"
+                    onClick={() => updateSeg(i, { open: !sg.open })}>
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                      <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+                    </svg>
+                  </button>
+                  <input className="ed-spoiler-title" value={sg.summary} placeholder="Заголовок спойлера"
+                    onChange={e => updateSeg(i, { summary: e.target.value })} />
+                  <button className="ed-spoiler-del" title="удалить спойлер"
+                    onClick={() => removeSeg(i)}>×</button>
+                  <textarea className="ed-spoiler-body" rows={3} value={sg.body} placeholder="Скрытый текст"
+                    onChange={e => updateSeg(i, { body: e.target.value })} />
+                </div>
+              ) : (
+                <textarea
+                  key={i}
+                  ref={el => { if (el && el === taRef.current) { } }}
+                  data-idx={i}
+                  className="rt-edit rt-edit-line"
+                  rows={Math.max(1, (sg.text || "").split("\n").length)}
+                  value={sg.text}
+                  onFocus={e => { taRef.current = e.target; }}
+                  onChange={e => updateSeg(i, { text: e.target.value })}
+                  onContextMenu={e => {
+                    e.preventDefault();
+                    taRef.current = e.target;
+                    setMenu({ x: e.clientX, y: e.clientY });
+                  }}
+                />
+              )
+            ))}
             <InsertBar onFormat={onFormat} onInsert={onInsert} />
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
-            <button className="save-btn" onClick={() => { setDoc(c, blockKey, textToDoc(draft)); onSave(); setEdit(false); }}>Сохранить</button>
+            <button className="save-btn" onClick={() => { setDoc(c, blockKey, segmentsToDoc(segs)); onSave(); setEdit(false); }}>Сохранить</button>
             <span className="hint">{RT_HINT}</span>
           </div>
           {menu ? (
@@ -727,7 +718,6 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
           onDelete={() => {
             delete c.data.resources[resModal.id];
             setResModal(null);
-            setDraft(draft.split(`{{${resModal.id}::`).join("{{"));
             onSave();
           }}
           onClose={() => setResModal(null)}
