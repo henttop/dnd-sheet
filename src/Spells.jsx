@@ -275,13 +275,14 @@ function SpellModal({ spell, dc, atk, onClose, onToggle, prepared }) {
 function PrepareModal({ c, onSave, onClose }) {
   const [q, setQ] = useState("");
   const [lv, setLv] = useState("all");
-  const [filters, setFilters] = useState(emptyFilters());
   const prepared = (c.spells && c.spells.prepared) || [];
   const book = (c.spells && c.spells.book) || [];
 
   const cls = (c.data.info && c.data.info.charClass && c.data.info.charClass.value) || "";
   const clsKey = Object.keys(CLASS_RU).find(k => CLASS_RU[k] === cls.toLowerCase())
     || Object.keys(CLASS_RU).find(k => cls.toLowerCase().includes(CLASS_RU[k]));
+  // по умолчанию — класс персонажа, но можно выбрать любые
+  const [filters, setFilters] = useState(() => ({ ...emptyFilters(), classes: clsKey ? [clsKey] : [] }));
 
   const pool = useMemo(() => {
     const all = [...SPELL_BY_ID.values(), ...SPELL_BY_SLUG.values()];
@@ -291,7 +292,6 @@ function PrepareModal({ c, onSave, onClose }) {
   }, []);
 
   const list = pool.filter(s => {
-    if (clsKey && s.classes && s.classes.length && !s.classes.includes(clsKey)) return false;
     if (lv !== "all" && String(s.level) !== lv) return false;
     if (q && !s.name.toLowerCase().includes(q.toLowerCase())) return false;
     return spellMatches(s, filters);
@@ -316,6 +316,11 @@ function PrepareModal({ c, onSave, onClose }) {
           <select className="f-input" value={lv} onChange={e => setLv(e.target.value)}>
             <option value="all">Все уровни</option>
             {levels.map(l => <option key={l} value={l}>{l === 0 ? "Заговоры" : l + "-й уровень"}</option>)}
+          </select>
+          <select className="f-input" value={(filters.classes || []).length === 1 ? filters.classes[0] : ""}
+            onChange={e => setFilters({ ...filters, classes: e.target.value ? [e.target.value] : [] })}>
+            <option value="">{filters.classes && filters.classes.length > 1 ? `Выбрано: ${filters.classes.length}` : "Все классы"}</option>
+            {Object.entries(CLASS_RU).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </div>
         <SpellFilters value={filters} onChange={setFilters} levels={levels} showLevels={false} />

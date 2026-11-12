@@ -19,8 +19,15 @@ export const DMG_TYPES = [
   "молнией", "холодом", "ядом", "психическим", "кислотой", "звуком",
 ];
 
+export const CLASSES = [
+  ["artificer", "изобретатель"], ["bard", "бард"], ["barbarian", "варвар"], ["cleric", "жрец"],
+  ["druid", "друид"], ["fighter", "воин"], ["monk", "монах"], ["paladin", "паладин"],
+  ["ranger", "следопыт"], ["rogue", "плут"], ["sorcerer", "чародей"], ["warlock", "колдун"],
+  ["wizard", "волшебник"],
+];
+
 export const emptyFilters = () => ({
-  levels: [], school: "", comps: [], conc: false, ritual: false, castTime: "", dmgType: "",
+  levels: [], school: "", comps: [], conc: false, ritual: false, castTime: "", dmgType: "", classes: [],
 });
 
 const COMP_RU = { v: "В", s: "С", m: "М" };
@@ -40,6 +47,10 @@ export function castTimeOf(spell) {
 export function spellMatches(spell, f) {
   if (!f) return true;
   if (f.levels.length && !f.levels.includes(String(spell.level))) return false;
+  if (f.classes && f.classes.length) {
+    const own = spell.classes || [];
+    if (!f.classes.some(c => own.includes(c))) return false;
+  }
   if (f.school && spell.school !== f.school) return false;
   if (f.comps.length) {
     const have = spell.comp || [];
@@ -58,6 +69,7 @@ export function spellMatches(spell, f) {
 export function filterSummary(f) {
   const parts = [];
   if (f.levels.length) parts.push(f.levels.length === 1 ? `${f.levels[0]} ур.` : "уровни");
+  if (f.classes && f.classes.length) parts.push(f.classes.map(c => (CLASSES.find(x => x[0] === c) || [c, c])[1]).join(", "));
   if (f.school) parts.push(f.school);
   if (f.comps.length) parts.push(f.comps.map(c => COMP_RU[c] || c).join(""));
   if (f.conc) parts.push("конц.");
@@ -67,9 +79,13 @@ export function filterSummary(f) {
   return parts.filter(Boolean).join(" · ");
 }
 
-export function SpellFilters({ value, onChange, levels, showLevels = true }) {
+export function SpellFilters({ value, onChange, levels, showLevels = true, showClasses = true }) {
   const f = value;
   const set = (patch) => onChange({ ...f, ...patch });
+  const toggleClass = (c) => {
+    const has = (f.classes || []).includes(c);
+    set({ classes: has ? f.classes.filter(x => x !== c) : [...(f.classes || []), c] });
+  };
   const toggleLevel = (lv) => {
     const key = String(lv);
     const has = f.levels.includes(key);
@@ -100,6 +116,18 @@ export function SpellFilters({ value, onChange, levels, showLevels = true }) {
           {SCHOOLS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
+
+      {showClasses ? (
+        <div className="sp-frow">
+          <span className="sp-flabel">Класс</span>
+          <div className="sp-fchips">
+            {CLASSES.map(([id, label]) => (
+              <button key={id} className={"sp-fchip" + ((f.classes || []).includes(id) ? " on" : "")}
+                onClick={() => toggleClass(id)}>{label}</button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="sp-frow">
         <span className="sp-flabel">Компоненты</span>
