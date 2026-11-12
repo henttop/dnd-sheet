@@ -26,9 +26,10 @@ export function RollHost() {
       const res = rollDiceExpr(expr);
       if (res) {
         const extra = mod || 0;
+        const diceLine = res.raw.length > 1 ? res.raw.join("+") + (extra ? (extra >= 0 ? "+" : "−") + Math.abs(extra) : "") : "";
         window.__roll(title, res.total + extra,
-          [res.raw.join(" + "), extra ? `${extra >= 0 ? "+" : "−"}${Math.abs(extra)}${modLabel ? " (" + modLabel + ")" : ""}` : ""].filter(Boolean).join(" "),
-          { isDmg: true });
+          [diceLine || res.raw.join(" + "), extra && res.raw.length <= 1 ? `${extra >= 0 ? "+" : "−"}${Math.abs(extra)}${modLabel ? " (" + modLabel + ")" : ""}` : ""].filter(Boolean).join(" "),
+          { isDmg: true, modLabel });
       }
     };
     // бросок урона заклинания (как карточка в журнале кубиков у LSS)
@@ -40,8 +41,9 @@ export function RollHost() {
   }, []);
   if (!state) return null;
   const mood = ui.critColors === false ? "" : (state.crit ? " crit" : state.fail ? " fail" : "");
-  // карточка броска заклинания (журнал кубиков)
+  // карточка броска заклинания (журнал кубиков у LSS)
   if (state.spell) {
+    const allDice = (state.rolls || []).flatMap(r => (r.parts && r.parts.length ? r.parts : [r.value]));
     return (
       <div className="roll-pop spell-pop">
         <button className="rp-close" onClick={() => setState(null)}>×</button>
@@ -58,6 +60,7 @@ export function RollHost() {
           </div>
           <div className="rp-total">{state.total}</div>
         </div>
+        {allDice.length > 1 ? <div className="rp-roll-line">{allDice.join("+")}</div> : null}
       </div>
     );
   }
