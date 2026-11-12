@@ -172,6 +172,41 @@ img{display:block}
 .tab:hover{color:var(--text)}
 .tabpane{min-height:300px}
 
+/* ===== Модалка оружия (по образцу LSS) ===== */
+.wpn-modal{width:min(560px,100%);max-width:560px;text-align:left;padding:22px 20px 18px}
+.wpn-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px}
+.wpn-head-text{flex:1;min-width:0}
+.wpn-title{font-size:21px;font-weight:900;letter-spacing:.5px}
+.wpn-dmg{color:var(--red);font-size:13px;font-weight:700;margin-top:2px}
+.wpn-range{color:var(--dim);font-size:12px;margin-top:2px}
+.wpn-atk{width:72px;height:72px;border-radius:50%;border:1px solid var(--border2);background:var(--card2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none;cursor:pointer}
+.wpn-atk:hover{border-color:var(--accent)}
+.wpn-atk-v{font-size:21px;font-weight:900}
+.wpn-atk-l{font-size:9px;font-weight:800;letter-spacing:.6px;color:var(--dim);margin-top:2px}
+.wpn-block{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.wpn-block-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.wpn-block-head span{font-size:10px;font-weight:800;letter-spacing:.6px;color:var(--dim)}
+.wpn-add{background:var(--card2);border:1px solid var(--border2);border-radius:6px;padding:2px 10px;
+  font-size:11px;font-weight:700;color:var(--dim)}
+.wpn-add:hover{border-color:var(--accent);color:var(--text)}
+.wpn-radios{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.wpn-radio{display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--border2);
+  border-radius:9px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer}
+.wpn-radio.on{border-color:var(--accent);background:rgba(66,99,235,.14)}
+.wpn-radio input{accent-color:var(--accent)}
+.wpn-sub-label{font-size:10px;font-weight:800;letter-spacing:.6px;color:var(--dim);margin:0 0 4px}
+.wpn-dmg-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:10px}
+.wpn-dmg-input{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border2);
+  border-radius:9px;padding:4px 8px}
+.wpn-dmg-input .edit-in{flex:1;background:transparent;border:none;padding:2px 0}
+.wpn-dmg-input.err{border-color:var(--red)}
+.wpn-dice{font-size:13px;opacity:.7}
+.wpn-err-badge{background:var(--red);color:#fff;font-size:9px;font-weight:800;border-radius:4px;padding:1px 5px}
+.wpn-bonus-row{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:var(--dim)}
+.wpn-foot{display:flex;justify-content:flex-end;margin-top:4px}
+.wpn-foot .f-btn{flex:none;padding:7px 18px}
+
 /* ===== Атаки ===== */
 .att-table{width:100%;border-collapse:collapse}
 .att-table th{font-size:10px;color:var(--dim);text-align:left;font-weight:800;letter-spacing:.4px;

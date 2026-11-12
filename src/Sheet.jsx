@@ -3,7 +3,7 @@ import { characters, save } from "./store.js";
 import { SPELL_BY_ID, SPELL_BY_SLUG } from "./store.js";
 import { RollHost, Editable, Popover, ProfPopover, DieIcon, CreateModal } from "./ui.jsx";
 import SpellsTab from "./Spells.jsx";
-import WeaponModal from "./WeaponModal.jsx";
+import WeaponModal, { weaponBonus } from "./WeaponModal.jsx";
 import { AvatarMenu, SettingsDrawer, PortraitDrawer } from "./panels.jsx";
 import { getUi, setUi } from "./uistore.js";
 import { Avatar } from "./List.jsx";
@@ -507,8 +507,8 @@ function AttacksTab({ c, onSave }) {
                 <td>
                   <span className="atk-mod">
                     <button className="atk-val" title="бросок атаки"
-                      onClick={() => window.__rollD20(`Атака: ${w.name?.value || "оружие"}`, parseNum(w.mod?.value), "")}>
-                      {w.mod?.value ?? "+0"}
+                      onClick={() => window.__rollD20(`Атака: ${w.name?.value || "оружие"}`, weaponBonus(c, w), "")}>
+                      {fmtMod(weaponBonus(c, w))}
                     </button>
                   </span>
                 </td>
@@ -534,6 +534,7 @@ function AttacksTab({ c, onSave }) {
       <RtBlock c={c} title="Атаки и заклинания" blockKey="attacks" onSave={onSave} />
       {editIdx != null && ws[editIdx] ? (
         <WeaponModal
+          c={c}
           weapon={ws[editIdx]}
           onChange={(nw) => { ws[editIdx] = nw; onSave(); }}
           onDelete={() => removeRow(editIdx)}
@@ -543,6 +544,8 @@ function AttacksTab({ c, onSave }) {
     </>
   );
 }
+
+const fmtMod = (n) => (n >= 0 ? "+" + n : "−" + Math.abs(n));
 
 function TextTab({ c, onSave, blocks }) {
   return blocks.map(([title, key]) => <RtBlock key={key} c={c} title={title} blockKey={key} onSave={onSave} />);
