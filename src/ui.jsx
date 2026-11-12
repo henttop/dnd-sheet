@@ -2,17 +2,21 @@ import React, { useEffect, useRef, useState } from "react";
 import { rollDiceExpr, d20, signed } from "./dice.js";
 import { getUi, subscribeUi } from "./uistore.js";
 
-/* ================= Всплывающий результат броска (как в LSS: слева внизу) ================= */
+/* ================= Всплывающие результаты броска (стопка слева внизу) ================= */
 export function RollHost() {
-  const [state, setState] = useState(null);
+  const [list, setList] = useState([]);
   const [ui, setUiState] = useState(getUi());
   useEffect(() => subscribeUi(setUiState), []);
+
+  // новый попап не заменяет старый, а кладётся в стопку; старые уходят по таймеру
+  const push = (entry) => {
+    const id = Date.now() + Math.random();
+    setList(l => [...l, { ...entry, id }].slice(-8));
+    setTimeout(() => setList(l => l.filter(x => x.id !== id)), 5000);
+  };
+
   useEffect(() => {
-    window.__roll = (title, total, mods, opts = {}) => {
-      setState({ title, total, mods, ...opts });
-      clearTimeout(window.__rollT);
-      window.__rollT = setTimeout(() => setState(null), 5000);
-    };
+    window.__roll = (title, total, mods, opts = {}) => push({ title, total, mods, ...opts });
     // бросок к20: total = кубик + бонус
     window.__rollD20 = (title, bonus, mods = "") => {
       const d = d20();
@@ -35,69 +39,80 @@ export function RollHost() {
     };
     // бросок урона заклинания (как карточка в журнале кубиков у LSS)
     window.__rollSpell = (name, total, dmgType, rolls) => {
-      setState({ title: name, total, kind: "урон", sub: dmgType, rolls: rolls || [], spell: true });
-      clearTimeout(window.__rollT);
-      window.__rollT = setTimeout(() => setState(null), 5000);
+      push({ title: name, total, kind: "урон", sub: dmgType, rolls: rolls || [], spell: true });
     };
   }, []);
-  if (!state) return null;
-  const mood = ui.critColors === false ? "" : (state.crit ? " crit" : state.fail ? " fail" : "");
+
+  if (!list.length) return null;
+  return (
+    <div className="roll-stack">
+      {list.map(st => (
+        <RollCard key={st.id} st={st} ui={ui} onClose={() => setList(l => l.filter(x => x.id !== st.id))} />
+      ))}
+    </div>
+  );
+}
+
+function RollCard({ st, ui, onClose }) {
+  const mood = ui.critColors === false ? "" : (st.crit ? " crit" : st.fail ? " fail" : "");
+  const allDice = (st.rolls || []).flatMap(r => (r.parts && r.parts.length ? r.parts : [r.value]));
+
   // карточка броска заклинания (журнал кубиков у LSS)
-  if (state.spell) {
-    const allDice = (state.rolls || []).flatMap(r => (r.parts && r.parts.length ? r.parts : [r.value]));
+  if (st.spell) {
     return (
-      <div className="roll-pop spell-pop">
-        <button className="rp-close" onClick={() => setState(null)}>×</button>
-        <div className="rp-title">{state.title}</div>
-        <div className="rp-sub">{state.kind}{state.sub ? " · " + state.sub : ""}</div>
+      <div className={"roll-pop spell-pop" + mood}>
+        <button className="rp-close" onClick={onClose}>×</button>
+        <div className="rp-title">{st.title}</div>
+        <div className="rp-sub">{st.kind}{st.sub ? " · " + st.sub : ""}</div>
         <div className="rp-body">
           <div className="rp-glyphs">
-            {(state.rolls || []).map((r, i) => (
+            {(st.rolls || []).map((r, i) => (
               <span className="rp-glyph" key={i}>
                 <DieShape faces={r.faces || 20} size={26} />
                 <span className="rp-glyph-n">{r.value}</span>
               </span>
             ))}
           </div>
-          <div className="rp-total">{state.total}</div>
+          <div className={"rp-total" + mood}>{st.total}</div>
         </div>
         {allDice.length > 1 ? <div className="rp-roll-line">{allDice.join("+")}</div> : null}
       </div>
     );
   }
+
   // бросок нескольких кубиков (дайсница) — показываем каждый своим кубиком
-  if (state.rolls && state.rolls.length) {
-    const allDice = state.rolls.flatMap(r => (r.parts && r.parts.length ? r.parts : [r.value]));
+  if (st.rolls && st.rolls.length) {
     return (
       <div className={"roll-pop" + mood}>
-        <button className="rp-close" onClick={() => setState(null)}>×</button>
-        <div className="rp-title">{state.title}</div>
+        <button className="rp-close" onClick={onClose}>×</button>
+        <div className="rp-title">{st.title}</div>
         <div className="rp-body">
           <div className="rp-glyphs">
-            {state.rolls.map((r, i) => (
+            {st.rolls.map((r, i) => (
               <span className="rp-glyph" key={i}>
                 <DieShape faces={r.faces || 20} size={26} />
                 <span className="rp-glyph-n">{r.value}</span>
               </span>
             ))}
           </div>
-          <div className={"rp-total" + mood}>{state.total}</div>
+          <div className={"rp-total" + mood}>{st.total}</div>
         </div>
         {allDice.length > 1 ? <div className="rp-roll-line">{allDice.join("+")}</div> : null}
       </div>
     );
   }
+
   return (
     <div className={"roll-pop" + mood}>
-      <button className="rp-close" onClick={() => setState(null)}>×</button>
-      <div className="rp-title">{state.title}</div>
+      <button className="rp-close" onClick={onClose}>×</button>
+      <div className="rp-title">{st.title}</div>
       <div className="rp-body">
         <div className={"rp-die" + mood}>
-          {state.faces ? <DieShape faces={state.faces} size={32} /> : <><DieIcon size={34} />{state.die != null ? <span className="rp-die-n">{state.die}</span> : null}</>}
+          {st.faces ? <DieShape faces={st.faces} size={32} /> : <><DieIcon size={34} />{st.die != null ? <span className="rp-die-n">{st.die}</span> : null}</>}
         </div>
-        <div className={"rp-total" + mood}>{state.total}</div>
+        <div className={"rp-total" + mood}>{st.total}</div>
       </div>
-      {state.mods && ui.rollDetails !== false ? <div className="rp-details">{state.mods}</div> : null}
+      {st.mods && ui.rollDetails !== false ? <div className="rp-details">{st.mods}</div> : null}
     </div>
   );
 }
