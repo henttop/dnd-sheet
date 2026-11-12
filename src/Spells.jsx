@@ -52,10 +52,11 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
 
   const shown = spells.filter(s => {
     if (castLevel !== null && s.level !== "?" && s.level > castLevel) return false;
-    if (filter === "all") { /* без быстрого фильтра */ }
+    if (filter === "save") { if (s.mode !== "save") return false; }
+    else if (filter === "attack") { if (s.mode !== "attack") return false; }
     else if (filter === "conc") { if (!s.conc) return false; }
     else if (filter === "other") { if (s.level !== "?") return false; }
-    else if (String(s.level) !== String(filter)) return false;
+    else if (filter !== "all" && String(s.level) !== String(filter)) return false;
     return spellMatches(s, filters);
   });
 
@@ -226,7 +227,12 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
           <button key={lv} className={"sp-filter" + (String(filter) === String(lv) ? " on" : "")}
             onClick={() => setFilter(lv)}>{lv}</button>
         ))}
-        <button className={"sp-filter" + (filter === "conc" ? " on" : "")} onClick={() => setFilter("conc")}>К</button>
+        <button className={"sp-filter" + (filter === "conc" ? " on" : "")} onClick={() => setFilter(filter === "conc" ? "all" : "conc")}
+          title="заклинания с концентрацией">К</button>
+        <button className={"sp-filter" + (filter === "save" ? " on" : "")} onClick={() => setFilter(filter === "save" ? "all" : "save")}
+          title="заклинания, требующие спасброска">С</button>
+        <button className={"sp-filter" + (filter === "attack" ? " on" : "")} onClick={() => setFilter(filter === "attack" ? "all" : "attack")}
+          title="заклинания с броском атаки">А</button>
         {spells.some(s => s.level === "?") ? (
           <button className={"sp-filter" + (filter === "other" ? " on" : "")} onClick={() => setFilter("other")}>?</button>
         ) : null}
@@ -285,7 +291,15 @@ function SpellRow({ spell, dc, atk, onOpen, castLevel, onCast }) {
   const info = [];
   info.push(s.shortTime || "—");
   info.push(s.range || "—");
-  info.push(s.mode === "save" ? `Сл ${dc}` : s.mode === "attack" ? `Лоб ${atk}` : "—");
+  info.push(
+    s.mode === "save"
+      ? <span className="sp-save" title={`Спасбросок ${s.saveAbility ? ABIL_RU[s.saveAbility] : ""} · сложность ${dc}`}>
+          Сл {dc}{s.saveAbility ? " " + ABIL_RU[s.saveAbility] : ""}
+        </span>
+      : s.mode === "attack"
+        ? <span className="sp-atk" title={`Бонус атаки ${atk}`}>Лоб {atk}</span>
+        : "—"
+  );
   info.push(dmgText);
 
   return (

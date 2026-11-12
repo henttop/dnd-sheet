@@ -28,6 +28,7 @@ export const CLASSES = [
 
 export const emptyFilters = () => ({
   levels: [], school: "", comps: [], conc: false, ritual: false, castTime: "", dmgType: "", classes: [],
+  save: false, attack: false,
 });
 
 const COMP_RU = { v: "В", s: "С", m: "М" };
@@ -58,6 +59,8 @@ export function spellMatches(spell, f) {
   }
   if (f.conc && !spell.conc) return false;
   if (f.ritual && !spell.ritual) return false;
+  if (f.save && spell.mode !== "save") return false;
+  if (f.attack && spell.mode !== "attack") return false;
   if (f.castTime && castTimeOf(spell) !== f.castTime) return false;
   if (f.dmgType) {
     const types = (spell.dmg || []).map(d => d.t);
@@ -144,6 +147,10 @@ export function SpellFilters({ value, onChange, levels, showLevels = true, showC
         <div className="sp-fchips">
           <button className={"sp-fchip" + (f.conc ? " on" : "")} onClick={() => set({ conc: !f.conc })}>Концентрация</button>
           <button className={"sp-fchip" + (f.ritual ? " on" : "")} onClick={() => set({ ritual: !f.ritual })}>Ритуал</button>
+          <button className={"sp-fchip" + (f.save ? " on" : "")} onClick={() => set({ save: !f.save })}
+            title="заклинания, требующие спасброска">Требуют спасброска</button>
+          <button className={"sp-fchip" + (f.attack ? " on" : "")} onClick={() => set({ attack: !f.attack })}
+            title="заклинания с броском атаки">Атака заклинанием</button>
         </div>
       </div>
 
