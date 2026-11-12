@@ -54,10 +54,24 @@ function Node({ n, ctx = {} }) {
       const name = live ? (live.name || "ресурс") : (a.name || "ресурс");
       const cur = live ? (live.current ?? 0) : (a.current ?? 0);
       const mx = live ? (live.resolvedMax ?? live.max ?? 0) : (a.max ?? 0);
+      const val = mx > 0 ? `${cur}/${mx}` : cur;
+      if (!ctx.editable) {
+        // в листе ресурс — просто строка, правится только в режиме правки
+        return (
+          <span className="sheet-resource sheet-resource_static" data-id={a.id}>
+            <span className="sheet-resource__block-name">
+              <span className="sheet-resource__label">{name}</span>
+            </span>
+            <span className="sheet-resource__block-controls">
+              <span className="sheet-resource__label">{val}</span>
+            </span>
+          </span>
+        );
+      }
       const step = (d) => {
         if (!a.id || !ctx.onResource) return;
         let next = (cur ?? 0) + d;
-        if (mx > 0) next = Math.min(next, mx);   // текущее не может быть больше максимума
+        if (mx > 0) next = Math.min(next, mx);
         next = Math.max(0, next);
         ctx.onResource(a.id, { current: next });
       };
@@ -71,7 +85,7 @@ function Node({ n, ctx = {} }) {
           <span className="sheet-resource__block-controls">
             <button type="button" className="sheet-resource__button" data-type="decrement"
               onClick={e => { e.stopPropagation(); step(-1); }}>−</button>
-            <span className="sheet-resource__label">{mx > 0 ? `${cur}/${mx}` : cur}</span>
+            <span className="sheet-resource__label">{val}</span>
             <button type="button" className="sheet-resource__button" data-type="increment"
               onClick={e => { e.stopPropagation(); step(1); }}>+</button>
           </span>
@@ -406,7 +420,7 @@ function collectParagraphs(container) {
 }
 
 /* документ → HTML для редактора (спойлеры встроены в общий текстовый слой) */
-export function docToEditorHtml(doc) {
+export function docToEditorHtml(doc, ctx = {}) {
   const parts = [];
   for (const node of doc?.content || []) {
     if (node.type === "spoiler") {
@@ -422,6 +436,18 @@ export function docToEditorHtml(doc) {
         `<button type="button" class="ed-sp-unwrap" contenteditable="false" title="убрать спойлер (текст останется)">×</button>` +
         `<button type="button" class="ed-sp-trash" contenteditable="false" title="удалить блок с текстом">🗑</button>` +
         `</div><div class="ed-sp-body" contenteditable="true">${body}</div></div>`
+      );
+    } else if (node.type === "resource") {
+      const a = node.attrs || {};
+      const live = a.id && ctx.resources ? ctx.resources[a.id] : null;
+      const nm = live ? (live.name || "ресурс") : (a.name || "ресурс");
+      const cv = live ? (live.current ?? 0) : (a.current ?? 0);
+      const mx = live ? (live.resolvedMax ?? live.max ?? 0) : (a.max ?? 0);
+      parts.push(
+        '<div class="ed-res-row" data-res="' + (a.id || "") + '" contenteditable="false">'
+        + '<span class="ed-res-name">' + nm + '</span>'
+        + '<span class="ed-res-val">' + (mx > 0 ? cv + "/" + mx : cv) + '</span>'
+        + '</div>'
       );
     } else if (node.type === "divider") {
       parts.push(`<hr class="ed-divider">`);
@@ -464,6 +490,11 @@ export function editorToDoc(root) {
           { type: "spoilerContent", content: bodyContent.length ? bodyContent : [{ type: "paragraph", content: [] }] },
         ],
       });
+      continue;
+    }
+    if (node.classList?.contains("ed-res-row")) {
+      flush();
+      content.push({ type: "resource", attrs: { id: node.dataset.res || "", textName: "" } });
       continue;
     }
     if (tag === "hr") { flush(); content.push({ type: "divider" }); continue; }

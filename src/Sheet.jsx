@@ -606,7 +606,7 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
   useEffect(() => {
     if (!edit || !richRef.current) return;
     if (richRef.current.dataset.filled === "1") return;
-    richRef.current.innerHTML = docToEditorHtml(doc);
+    richRef.current.innerHTML = docToEditorHtml(doc, { resources: c.data.resources || {} });
     richRef.current.dataset.filled = "1";
   }, [edit, doc]);
 
@@ -692,6 +692,12 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
     const el = e.target;
     const root = richRef.current;
     if (!root) return;
+    const resChip = el.closest?.(".ed-res-row") || el.closest?.(".ed-res");
+    if (resChip && resChip.dataset.res) {
+      e.preventDefault();
+      setResModal({ id: resChip.dataset.res });
+      return;
+    }
     const chev = el.closest?.(".ed-sp-chev");
     if (chev) {
       e.preventDefault();

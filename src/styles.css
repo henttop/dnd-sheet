@@ -694,9 +694,11 @@ img{display:block}
 .rt-rich .ed-sp-body p{margin:0 0 4px}
 
 /* ===== Ресурс в тексте (как на LSS) ===== */
-.sheet-resource{display:inline-flex;align-items:stretch;gap:2px;vertical-align:middle;margin:0 2px}
-.sheet-resource__block-name{background:rgb(39,46,67);color:rgba(255,255,255,.9);font-size:13px;
-  padding:2px 6px;border-radius:3px;cursor:pointer;user-select:none;display:inline-flex;align-items:center}
+.sheet-resource{display:flex;align-items:stretch;gap:2px;width:100%;margin:4px 0}
+.sheet-resource__block-name{flex:1;background:rgb(39,46,67);color:rgba(255,255,255,.9);font-size:13px;
+  padding:3px 8px;border-radius:3px;cursor:pointer;user-select:none;display:flex;align-items:center}
+.sheet-resource_static .sheet-resource__block-name{cursor:default}
+.sheet-resource_static .sheet-resource__block-controls{padding:3px 8px}
 .sheet-resource__block-name:hover{background:#2f3750}
 .sheet-resource__block-controls{background:rgb(39,46,67);color:rgba(255,255,255,.9);font-size:13px;
   padding:0 4px;border-radius:3px;display:inline-flex;align-items:center;gap:4px}
@@ -705,3 +707,11 @@ img{display:block}
   justify-content:center;cursor:pointer;padding:0}
 .sheet-resource__button:hover{background:#3a4470;border-color:var(--accent2)}
 .sheet-resource__label{font-size:13px;color:rgba(255,255,255,.9)}
+
+/* ===== Ресурс-блок в редакторе ===== */
+.rt-rich .ed-res-row{display:flex;align-items:center;gap:6px;margin:6px 0;background:rgb(39,46,67);
+  border-radius:3px;padding:3px 8px;cursor:pointer}
+.rt-rich .ed-res-row:hover{background:#2f3750}
+.rt-rich .ed-res-name{flex:1;font-size:13px;color:rgba(255,255,255,.92)}
+.rt-rich .ed-res-val{font-size:13px;color:rgba(255,255,255,.9);background:rgb(40,51,81);
+  border:1px solid rgb(96,107,133);border-radius:3px;padding:0 6px}
