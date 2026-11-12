@@ -167,19 +167,38 @@ function AcVital({ c, onSave }) {
   const ref = useRef(null);
   const pos = useAnchorPos(open, ref, { dx: -70, dy: 8, width: 190 });
   const v = c.data.vitality ||= {};
+  const base = v.ac?.value;
+  const shield = !!v.shield?.value;
+  const total = (base ?? 0) + (shield ? 2 : 0);
+  const toggleShield = (e) => {
+    e.stopPropagation();
+    v.shield = { value: !shield };
+    onSave();
+  };
   return (
     <div style={{ position: "relative" }}>
       <div className="vital" ref={ref} onClick={() => setOpen(!open)} title="КД и щит">
-        <svg className="icon ac-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+        <svg className={"icon ac-shield" + (shield ? " on" : "")} viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="1.6" onClick={toggleShield} style={{ cursor: "pointer" }}>
           <path d="M12 2l9 5v6c0 5-4 8-9 9-5-1-9-4-9-9V7l9-5z" />
-          {v.shield?.value ? <path d="M9.5 12l2 2 3.5-3.5" stroke="var(--cyan)" /> : <text x="12" y="15" textAnchor="middle" fontSize="7" stroke="none" fill="currentColor">?</text>}
+          {shield ? <path d="M9.5 12l2 2 3.5-3.5" stroke="var(--cyan)" /> : <text x="12" y="15" textAnchor="middle" fontSize="7" stroke="none" fill="currentColor">?</text>}
         </svg>
-        <div><div className="v-main">{v.ac?.value ?? "—"}</div><div className="v-sub">КД</div></div>
+        <div>
+          <div className="v-main">
+            {shield && base != null ? (
+              <>
+                <span className="ac-old">{base}</span>
+                <span className="ac-new">{total}</span>
+              </>
+            ) : (base ?? "—")}
+          </div>
+          <div className="v-sub">КД</div>
+        </div>
       </div>
       {open && pos ? (
         <Popover onClose={() => setOpen(false)} style={{ left: pos.left, top: pos.top, minWidth: 190 }}>
           <div className="pop-title">КД и щит</div>
-          <label className="pop-field">КД
+          <label className="pop-field">КД (без щита)
             <input type="number" className="edit-in" defaultValue={v.ac?.value ?? 10}
               onKeyDown={e => { if (e.key === "Enter") { v.ac = { value: +e.target.value || 0 }; onSave(); setOpen(false); } }}
               onBlur={e => { v.ac = { value: +e.target.value || 0 }; onSave(); }} />
@@ -189,6 +208,11 @@ function AcVital({ c, onSave }) {
               onChange={e => { v.shield = { value: e.target.checked }; onSave(); }} />
             <span>Щит (+2 КД)</span>
           </label>
+          {shield && base != null ? (
+            <div className="f-hint" style={{ marginTop: 6 }}>
+              Итоговое КД: <b>{base}</b> + 2 = <b>{total}</b>
+            </div>
+          ) : null}
         </Popover>
       ) : null}
     </div>

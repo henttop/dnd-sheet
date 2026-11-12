@@ -96,6 +96,11 @@ img{display:block}
 .vital .v-main{font-size:22px;font-weight:800;transition:color .15s}
 .vital .v-sub{font-size:10px;color:var(--dim);font-weight:700;letter-spacing:.4px}
 .vital .icon{width:32px;height:32px;color:var(--dim2)}
+.vital .ac-shield.on{color:var(--cyan)}
+.vital .ac-shield:hover{color:var(--cyan);filter:brightness(1.2)}
+/* КД с щитом: старое значение приглушено и зачёркнуто, новое — ярко */
+.ac-old{opacity:.38;text-decoration:line-through;margin-right:5px;font-weight:700}
+.ac-new{color:var(--cyan);font-weight:900}
 .vital .ac-shield{width:32px;height:32px}
 .hp-box{border:1.5px solid var(--green);border-radius:10px;padding:6px 14px;font-size:18px;
   font-weight:800;color:var(--green);cursor:pointer;user-select:none;min-width:96px;text-align:center;
