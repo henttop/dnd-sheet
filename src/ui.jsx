@@ -22,9 +22,14 @@ export function RollHost() {
       if (mods) parts.push(mods);
       window.__roll(title, d + bonus, parts.join(" + "), { die: d, crit: d === 20, fail: d === 1 });
     };
-    window.__rollExpr = (title, expr) => {
+    window.__rollExpr = (title, expr, mod, modLabel) => {
       const res = rollDiceExpr(expr);
-      if (res) window.__roll(title, res.total, res.raw.join(" + "), { isDmg: true });
+      if (res) {
+        const extra = mod || 0;
+        window.__roll(title, res.total + extra,
+          [res.raw.join(" + "), extra ? `${extra >= 0 ? "+" : "−"}${Math.abs(extra)}${modLabel ? " (" + modLabel + ")" : ""}` : ""].filter(Boolean).join(" "),
+          { isDmg: true });
+      }
     };
     // бросок урона заклинания (как карточка в журнале кубиков у LSS)
     window.__rollSpell = (name, total, dmgType, rolls) => {

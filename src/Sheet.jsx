@@ -3,7 +3,7 @@ import { characters, save } from "./store.js";
 import { SPELL_BY_ID, SPELL_BY_SLUG } from "./store.js";
 import { RollHost, Editable, Popover, ProfPopover, DieIcon, CreateModal } from "./ui.jsx";
 import SpellsTab from "./Spells.jsx";
-import WeaponModal, { weaponBonus } from "./WeaponModal.jsx";
+import WeaponModal, { weaponBonus, damageInfo } from "./WeaponModal.jsx";
 import { AvatarMenu, SettingsDrawer, PortraitDrawer } from "./panels.jsx";
 import { getUi, setUi } from "./uistore.js";
 import { Avatar } from "./List.jsx";
@@ -519,10 +519,12 @@ function AttacksTab({ c, onSave }) {
                   <span className="atk-mod">
                     <button className="atk-val wide" title="бросок урона"
                       onClick={() => {
-                        const expr = (w.dmg?.value || "").match(/[-+\dкКdD]+/)?.[0];
-                        if (expr) window.__rollExpr(`Урон: ${w.name?.value || "оружие"}`, expr);
+                        const info = damageInfo(w.dmg?.value, statMod(c, w.ability || "str"));
+                        if (info.ok) window.__rollExpr(`Урон: ${w.name?.value || "оружие"}`, info.dice, info.abil, STAT_NAMES[w.ability || "str"]);
                       }}>
                       {w.dmg?.value || "—"}
+                      {w.dmg?.value && damageInfo(w.dmg?.value, statMod(c, w.ability || "str")).abil
+                        ? <span className="atk-dmg-mod">+{damageInfo(w.dmg?.value, statMod(c, w.ability || "str")).abil}</span> : null}
                     </button>
                   </span>
                 </td>

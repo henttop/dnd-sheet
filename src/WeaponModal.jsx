@@ -16,7 +16,7 @@ const DMG_TYPES = ["", "дробящий", "рубящий", "колющий", "
 export function parseDmg(text) {
   const s = String(text || "").trim();
   const m = s.match(/^([-+]?\d*[dкк]\d+)\s*(.*)$/i);
-  if (!m) return { dice: "", type: "", min: 0, max: 0, avg: 0, ok: false };
+  if (!m) return { dice: "", type: "", min: 0, max: 0, avg: 0, ok: false, hasMod: false, mod: 0 };
   const dice = m[1];
   const type = (m[2] || "").trim();
   const dm = dice.match(/(\d*)[dкк](\d+)/i);
@@ -25,7 +25,26 @@ export function parseDmg(text) {
   const min = n;
   const max = n * faces;
   const avg = Math.round((min + max) / 2);
-  return { dice, type, min, max, avg, ok: true };
+  // явный модификатор в строке урона (например «1d6+2») — тогда характеристику не добавляем
+  const hasMod = /[+-]\s*\d+\s*$/.test(type) || /[+-]\s*\d+\s*$/.test(dice);
+  const modM = type.match(/([+-])\s*(\d+)\s*$/);
+  const mod = modM ? (modM[1] === "-" ? -1 : 1) * (+modM[2]) : 0;
+  return { dice, type, min, max, avg, ok: true, hasMod, mod };
+}
+
+/* полный урон: кости + модификатор характеристики (если модификатор не задан явно) */
+export function damageInfo(text, abilMod = 0) {
+  const d = parseDmg(text);
+  if (!d.ok) return { ...d, total: 0, abil: 0 };
+  const abil = d.hasMod ? 0 : abilMod;
+  return {
+    ...d,
+    abil,
+    min: d.min + abil,
+    max: d.max + abil,
+    avg: Math.round(d.avg + abil),
+    total: d.avg + abil,
+  };
 }
 
 export function weaponBonus(c, w) {
@@ -49,7 +68,8 @@ export default function WeaponModal({ c, weapon, onChange, onDelete, onClose }) 
     return () => document.removeEventListener("keydown", key);
   }, [onClose]);
 
-  const dmg = useMemo(() => parseDmg(weapon.dmg?.value), [weapon.dmg?.value]);
+  const dmg = useMemo(() => damageInfo(weapon.dmg?.value, statMod(c, weapon.ability || "str")),
+    [weapon.dmg?.value, weapon.ability, c]);
   const ability = weapon.ability || "str";
   const isProf = !!weapon.isProf;
   const bonus = weaponBonus(c, weapon);
@@ -87,7 +107,7 @@ export default function WeaponModal({ c, weapon, onChange, onDelete, onClose }) 
         <div className="wpn-head">
           <div className="wpn-head-text">
             <div className="wpn-title">{(weapon.name?.value || "БЕЗ НАЗВАНИЯ").toUpperCase()}</div>
-            {weapon.dmg?.value ? <div className="wpn-dmg">{weapon.dmg.value}</div> : null}
+            {weapon.dmg?.value ? <div className="wpn-dmg">{weapon.dmg.value}{dmg.abil ? ` + ${dmg.abil}` : ""}</div> : null}
             {dmg.ok ? <div className="wpn-range">Урон: {dmg.min}–{dmg.max} (→{dmg.avg})</div> : null}
           </div>
           <button className="wpn-atk" title="бросок атаки"
@@ -160,6 +180,11 @@ export default function WeaponModal({ c, weapon, onChange, onDelete, onClose }) 
                 onChange={e => { setExtraDmg(e.target.value); patch({ extraDamage: e.target.value }); }} />
             </div>
           ) : null}
+          <div className="f-hint" style={{ marginTop: 8 }}>
+            {dmg.ok
+              ? `Урон: ${dmg.min}–${dmg.max} (→${dmg.avg})` + (dmg.abil ? ` = кости ${dmg.min - dmg.abil}–${dmg.max - dmg.abil} + ${dmg.abil} (${ABILITIES.find(a => a[0] === ability)?.[1] || ability})` : "")
+              : "Укажите кости урона, например 1d6"}
+          </div>
         </div>
 
         <div className="wpn-block">
