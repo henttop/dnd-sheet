@@ -86,7 +86,7 @@ function Inline({ t, ctx = {} }) {
 }
 
 /* ---------- Разбор инлайновых маркеров в текст ---------- */
-const INLINE_RE = /(\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|`[^`]+`|\*[^*\n]+\*|\{\{[^}]+\}\}|\[\[[^\]]+\]\]|\[[^\]]+\]\([^)]+\))/g;
+const INLINE_RE = /(\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|`[^`]+`|\*[^*\n]+\*|\{\{[^}]+\}\}?|\[\[[^\]]+\]\]|\[[^\]]+\]\([^)]+\))/g;
 
 function parseInline(text) {
   const out = [];
@@ -102,7 +102,7 @@ function parseInline(text) {
     else if (tok.startsWith("~~")) push(tok.slice(2, -2), mark("strike"));
     else if (tok.startsWith("`")) push(tok.slice(1, -1), mark("code"));
     else if (tok.startsWith("{{")) {
-      const raw = tok.slice(2, -2).trim();
+      const raw = tok.slice(2, -1).replace(/\}$/, "").trim();
       const sep = raw.indexOf("::");
       const id = sep >= 0 ? raw.slice(0, sep) : "";
       const name = sep >= 0 ? raw.slice(sep + 2) : raw;
@@ -124,26 +124,52 @@ function parseInline(text) {
   return out;
 }
 
+/* ---------- Сериализация inline-узлов в текст ---------- */
+function inlineToText(children) {
+  return (children || []).map(ch => {
+    if (ch.type === "text") {
+      let t = ch.text ?? "";
+      const marks = ch.marks || [];
+      const link = marks.find(m => m.type === "link");
+      if (marks.some(m => m.type === "bold")) t = `**${t}**`;
+      if (marks.some(m => m.type === "italic")) t = `*${t}*`;
+      if (marks.some(m => m.type === "underline")) t = `__${t}__`;
+      if (marks.some(m => m.type === "strike")) t = `~~${t}~~`;
+      if (marks.some(m => m.type === "code")) t = `\`${t}\``;
+      if (link) t = `[${t}](${link.attrs?.href || ""})`;
+      return t;
+    }
+    if (ch.type === "resource") {
+      const a = ch.attrs || {};
+      return `{{${a.id || ""}${a.id ? "::" : ""}${a.name || ""}}}`;
+    }
+    if (ch.type === "roller") return `[[${ch.attrs?.expr || ch.attrs?.formula || ""}]]`;
+    if (ch.type === "formula") return `\`${ch.attrs?.formula || ch.attrs?.expr || ""}\``;
+    return flatText(ch);
+  }).join("");
+}
+
 /* ---------- Конвертация plain text ↔ doc ---------- */
 export function docToText(doc) {
   if (!doc || !doc.content) return "";
   const lines = [];
   const walk = (n, prefix = "") => {
     switch (n.type) {
-      case "paragraph": lines.push(prefix + flatText(n)); break;
-      case "heading": lines.push(prefix + flatText(n)); break;
+      case "paragraph": lines.push(prefix + inlineToText(n.content)); break;
+      case "heading": lines.push(prefix + inlineToText(n.content)); break;
       case "bulletList": case "taskList": (n.content || []).forEach(li => walk(li, prefix + "- ")); break;
       case "orderedList": (n.content || []).forEach((li, i) => walk(li, prefix + `${i + 1}. `)); break;
       case "listItem": (n.content || []).forEach(k => walk(k, prefix)); break;
       case "divider": lines.push(prefix + "——"); break;
       case "spoiler": {
         const sum = (n.content || []).filter(x => x.type === "spoilerSummary").map(flatText).join("");
-        const body = (n.content || []).filter(x => x.type === "spoilerContent").map(flatText).join(" ");
+        const body = (n.content || []).filter(x => x.type === "spoilerContent")
+          .map(x => (x.content || []).map(p => inlineToText(p.content || [p])).join("\n")).join("\n");
         lines.push(prefix + `||${sum}||${body}||`);
         break;
       }
       case "roller": lines.push(prefix + `[[${n.attrs?.expr || n.attrs?.formula || ""}]]`); break;
-      case "resource": lines.push(prefix + `{{${n.attrs?.id || ""}${n.attrs?.id ? "::" : ""}${n.attrs?.name || ""}}`); break;
+      case "resource": lines.push(prefix + `{{${n.attrs?.id || ""}${n.attrs?.id ? "::" : ""}${n.attrs?.name || ""}}}`); break;
       case "text": if (n.text) lines.push(prefix + n.text); break;
       default: { const t = flatText(n); if (t) lines.push(prefix + t); }
     }
