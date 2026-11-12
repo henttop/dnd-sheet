@@ -637,15 +637,23 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
       + '<span class="ed-sp-title" contenteditable="true">Спойлер</span>'
       + '<button type="button" class="ed-sp-unwrap" contenteditable="false">×</button>'
       + '<button type="button" class="ed-sp-trash" contenteditable="false">🗑</button>'
-      + '</div><div class="ed-sp-body" contenteditable="true"><p><br></p></div></div><p><br></p>';
+      + '</div><div class="ed-sp-body" contenteditable="true"><p>содержимое спойлера</p></div></div><p><br></p>';
     document.execCommand("insertHTML", false, html);
   };
 
   const insertResource = (res) => {
     richRef.current?.focus();
-    const html = res
-      ? '<span class="ed-res" data-res="' + res.id + '" contenteditable="false">📦 ' + res.name + '</span>'
-      : '<span class="ed-res" contenteditable="false">📦 ресурс</span>';
+    let r = res;
+    if (!r) {
+      // новый ресурс персонажа — сразу открываем его настройки
+      const id = "resource-" + Date.now();
+      r = { id, name: "настроить", current: 0, max: 0, formula: "", isShortRest: false, isLongRest: false, notes: { value: "" } };
+      c.data.resources = c.data.resources || {};
+      c.data.resources[id] = r;
+      onSave();
+      setResModal({ id });
+    }
+    const html = '<span class="ed-res" data-res="' + r.id + '" contenteditable="false">📦 ' + r.name + '</span>';
     document.execCommand("insertHTML", false, html);
   };
 
@@ -722,7 +730,11 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
     onSave();
   };
 
-  const resCtx = { resources: c.data.resources || {}, onResource: onResourceChange };
+  const resCtx = {
+    resources: c.data.resources || {},
+    onResource: onResourceChange,
+    onResourceOpen: (id) => setResModal({ id }),
+  };
 
   return (
     <div className="panel">

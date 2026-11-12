@@ -4,11 +4,11 @@ export default function ResourceModal({ resource, onChange, onDelete, onClose })
   const r = resource || {};
   const [name, setName] = useState(r.name || "");
   const [current, setCurrent] = useState(r.current ?? 0);
-  const [max, setMax] = useState(r.max ?? 0);
-  const [formula, setFormula] = useState(r.formula || "");
+  const [max, setMax] = useState(r.max ?? r.resolvedMax ?? 0);
+  const [formula, setFormula] = useState(r.maxExpr || r.formula || "");
   const [shortRest, setShortRest] = useState(!!r.isShortRest);
   const [longRest, setLongRest] = useState(!!r.isLongRest);
-  const [notes, setNotes] = useState(r.notes?.value || "");
+  const [notes, setNotes] = useState(typeof r.notes === "string" ? r.notes : (r.notes?.value || ""));
   const [showNotes, setShowNotes] = useState(!!r.showNotes);
 
   useEffect(() => {
@@ -17,15 +17,24 @@ export default function ResourceModal({ resource, onChange, onDelete, onClose })
     return () => document.removeEventListener("keydown", key);
   }, [onClose]);
 
-  const commit = (patch) => onChange({
-    ...r,
-    id: r.id || "resource-" + Date.now(),
-    name, current, max, formula,
-    isShortRest: shortRest, isLongRest: longRest,
-    notes: { value: notes },
-    showNotes,
-    ...patch,
-  });
+  const commit = (patch) => {
+    const isFormula = /[^\d\s.]/.test(formula);
+    const next = {
+      ...r,
+      id: r.id || "resource-" + Date.now(),
+      name, current,
+      max: isFormula ? (r.max ?? 0) : (parseInt(max, 10) || 0),
+      isShortRest: shortRest, isLongRest: longRest,
+      showNotes,
+      ...patch,
+    };
+    if (isFormula) next.maxExpr = formula;
+    else delete next.maxExpr;
+    // заметки храним строкой — так же, как в LSS
+    if (typeof r.notes === "object" && r.notes !== null) next.notes = { value: notes };
+    else next.notes = notes;
+    onChange(next);
+  };
 
   return (
     <div className="modal-back" onMouseDown={onClose}>

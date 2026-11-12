@@ -535,59 +535,7 @@ img{display:block}
   font-weight:800;color:var(--dim);line-height:1;padding:0}
 .res-btn:hover{border-color:var(--accent);color:var(--text)}
 
-/* ===== Структурный редактор блока (как в редакторе LSS) ===== */
-/* ===== Единый текстовый слой редактора (спойлеры встроены внутрь) ===== */
-.rt-editor-blocks{display:flex;gap:10px;align-items:flex-start}
-.rt-editor-blocks .insert-bar{flex:none}
-.rt-rich{flex:1;min-width:0;background:var(--card2);border:1px solid var(--border2);border-radius:10px;
-  padding:10px 12px;min-height:120px;line-height:1.55;font-size:13px;outline:none}
-.rt-rich:focus{border-color:var(--accent)}
-.rt-rich p{margin:0 0 6px}
-.rt-rich p:last-child{margin-bottom:0}
-.rt-rich ul,.rt-rich ol{margin:4px 0 6px 20px;padding:0}
-.rt-rich li{margin:2px 0}
-.rt-rich code{background:var(--card);border-radius:4px;padding:0 4px;font-size:12px}
-.rt-rich hr.ed-divider{border:none;border-top:1px solid var(--border2);margin:10px 0}
-.rt-rich .ed-res{background:var(--card);border:1px solid var(--purple2);border-radius:5px;
-  padding:0 6px;font-size:12px;font-weight:700;color:var(--purple2);white-space:nowrap}
-.rt-rich .ed-roller{background:var(--accent);color:#fff;border-radius:5px;padding:0 6px;font-size:12px;font-weight:700}
-.rt-rich .ed-sp{display:block;margin:8px 0;border-left:2px solid var(--purple2);
-  background:rgba(139,92,246,.07);border-radius:0 8px 8px 0;padding:4px 8px 6px}
-.rt-rich .ed-sp.open{background:rgba(139,92,246,.14)}
-.rt-rich .ed-sp-head{display:flex;align-items:center;gap:6px}
-.rt-rich .ed-sp-chev{background:transparent;border:none;color:rgba(255,255,255,.75);cursor:pointer;padding:0;
-  font-size:16px;line-height:1;width:18px}
-.rt-rich .ed-sp.open .ed-sp-chev{transform:rotate(90deg)}
-.rt-rich .ed-sp-title{flex:1;min-width:60px;background:#272e43;border-radius:5px;color:rgba(255,255,255,.92);
-  font-size:12px;font-weight:600;padding:3px 8px;outline:none}
-.rt-rich .ed-sp-title:focus{background:#2f3750}
-.rt-rich .ed-sp-unwrap,.rt-rich .ed-sp-trash{background:transparent;border:none;cursor:pointer;
-  color:var(--dim);font-size:13px;line-height:1;padding:2px 3px}
-.rt-rich .ed-sp-unwrap:hover{color:var(--gold)}
-.rt-rich .ed-sp-trash:hover{color:var(--red)}
-.rt-rich .ed-sp-body{margin-top:4px;padding-left:4px}
-.rt-rich .ed-sp-body p{margin:0 0 4px}
 
-display:flex;gap:10px;align-items:flex-start}
-.rt-editor-segs{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
-.rt-editor-blocks .insert-bar{flex:none}
-.rt-edit-line{flex:1;min-height:34px;resize:none;overflow:hidden}
-.ed-spoiler{flex:1;display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px;
-  background:rgba(0,0,0,.14);border:1px solid var(--border);border-radius:8px;padding:6px 8px;margin-bottom:4px}
-.ed-spoiler-chev{background:transparent;border:none;color:rgba(255,255,255,.8);cursor:pointer;padding:2px;
-  display:flex;align-items:center;height:26px}
-.ed-spoiler-chev svg{transition:transform .15s}
-.ed-spoiler-chev:hover{color:var(--purple2)}
-.ed-spoiler-title{flex:1;min-width:120px;background:#272e43;border:1px solid var(--border2);border-radius:6px;
-  color:rgba(255,255,255,.92);font-size:12px;font-weight:600;padding:4px 8px}
-.ed-spoiler-title:focus{outline:none;border-color:var(--accent)}
-.ed-spoiler-del{background:transparent;border:none;color:var(--dim);font-size:14px;line-height:1;
-  cursor:pointer;padding:2px 4px;height:26px}
-.ed-spoiler-del:hover{color:var(--red)}
-.ed-spoiler-unwrap{background:transparent;border:none;color:var(--dim);font-size:16px;line-height:1;
-  cursor:pointer;padding:2px 4px;height:26px}
-.ed-spoiler-unwrap:hover{color:var(--gold)}
-.ed-spoiler-body{flex:1 1 100%;margin-top:4px}
 
 /* ===== Спойлер (как на LSS) ===== */
 .sheet-spoiler{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;margin:6px 0}
@@ -712,3 +660,48 @@ display:flex;gap:10px;align-items:flex-start}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
 ::-webkit-scrollbar-track{background:transparent}
+
+/* ===== Редактор блока: единый текстовый слой со встроенными спойлерами ===== */
+.rt-editor-blocks{display:flex;gap:10px;align-items:flex-start}
+.rt-editor-blocks .insert-bar{flex:none}
+.rt-rich{flex:1;min-width:0;background:var(--card2);border:1px solid var(--border2);border-radius:10px;
+  padding:10px 12px;min-height:120px;line-height:1.55;font-size:13px;outline:none}
+.rt-rich:focus{border-color:var(--accent)}
+.rt-rich p{margin:0 0 6px}
+.rt-rich p:last-child{margin-bottom:0}
+.rt-rich ul,.rt-rich ol{margin:4px 0 6px 20px;padding:0}
+.rt-rich li{margin:2px 0}
+.rt-rich code{background:var(--card);border-radius:4px;padding:0 4px;font-size:12px}
+.rt-rich hr.ed-divider{border:none;border-top:1px solid var(--border2);margin:10px 0}
+.rt-rich .ed-res{background:var(--card);border:1px solid var(--purple2);border-radius:5px;
+  padding:0 6px;font-size:12px;font-weight:700;color:var(--purple2);white-space:nowrap}
+.rt-rich .ed-roller{background:var(--accent);color:#fff;border-radius:5px;padding:0 6px;font-size:12px;font-weight:700}
+.rt-rich .ed-sp{display:block;margin:8px 0;border-left:2px solid var(--purple2);
+  background:rgba(139,92,246,.07);border-radius:0 8px 8px 0;padding:4px 8px 6px}
+.rt-rich .ed-sp.open{background:rgba(139,92,246,.14)}
+.rt-rich .ed-sp-head{display:flex;align-items:center;gap:6px}
+.rt-rich .ed-sp-chev{background:transparent;border:none;color:rgba(255,255,255,.75);cursor:pointer;padding:0;
+  font-size:16px;line-height:1;width:18px}
+.rt-rich .ed-sp.open .ed-sp-chev{transform:rotate(90deg)}
+.rt-rich .ed-sp-title{flex:1;min-width:60px;background:#272e43;border-radius:5px;color:rgba(255,255,255,.92);
+  font-size:12px;font-weight:600;padding:3px 8px;outline:none}
+.rt-rich .ed-sp-title:focus{background:#2f3750}
+.rt-rich .ed-sp-unwrap,.rt-rich .ed-sp-trash{background:transparent;border:none;cursor:pointer;
+  color:var(--dim);font-size:13px;line-height:1;padding:2px 3px}
+.rt-rich .ed-sp-unwrap:hover{color:var(--gold)}
+.rt-rich .ed-sp-trash:hover{color:var(--red)}
+.rt-rich .ed-sp-body{margin-top:4px;padding-left:4px}
+.rt-rich .ed-sp-body p{margin:0 0 4px}
+
+/* ===== Ресурс в тексте (как на LSS) ===== */
+.sheet-resource{display:inline-flex;align-items:stretch;gap:2px;vertical-align:middle;margin:0 2px}
+.sheet-resource__block-name{background:rgb(39,46,67);color:rgba(255,255,255,.9);font-size:13px;
+  padding:2px 6px;border-radius:3px;cursor:pointer;user-select:none;display:inline-flex;align-items:center}
+.sheet-resource__block-name:hover{background:#2f3750}
+.sheet-resource__block-controls{background:rgb(39,46,67);color:rgba(255,255,255,.9);font-size:13px;
+  padding:0 4px;border-radius:3px;display:inline-flex;align-items:center;gap:4px}
+.sheet-resource__button{background:rgb(40,51,81);border:1px solid rgb(96,107,133);color:rgba(255,255,255,.9);
+  width:20px;height:20px;border-radius:3px;font-size:14px;line-height:1;display:flex;align-items:center;
+  justify-content:center;cursor:pointer;padding:0}
+.sheet-resource__button:hover{background:#3a4470;border-color:var(--accent2)}
+.sheet-resource__label{font-size:13px;color:rgba(255,255,255,.9)}

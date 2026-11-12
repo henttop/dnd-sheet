@@ -51,19 +51,26 @@ function Node({ n, ctx = {} }) {
     case "resource": {
       const a = n.attrs || {};
       const live = a.id && ctx.resources ? ctx.resources[a.id] : null;
-      const name = live ? live.name : (a.name || "ресурс");
+      const name = live ? (live.name || "ресурс") : (a.name || "ресурс");
       const cur = live ? (live.current ?? 0) : (a.current ?? 0);
-      const mx = live ? (live.max ?? 0) : (a.max ?? 0);
       const step = (d) => {
         if (!a.id || !ctx.onResource) return;
         ctx.onResource(a.id, { current: Math.max(0, (cur ?? 0) + d) });
       };
       return (
-        <span className="res-chip" title={name}>
-          <span className="res-chip-name">{name}</span>
-          <button className="res-btn" onClick={e => { e.stopPropagation(); step(-1); }}>−</button>
-          <span className="res-chip-val">{cur}</span>
-          <button className="res-btn" onClick={e => { e.stopPropagation(); step(1); }}>+</button>
+        <span className="sheet-resource" data-id={a.id}>
+          <span className="sheet-resource__block-name" role="button" tabIndex={0}
+            title="настроить ресурс"
+            onClick={e => { e.stopPropagation(); if (a.id && ctx.onResourceOpen) ctx.onResourceOpen(a.id); }}>
+            <span className="sheet-resource__label">{name}</span>
+          </span>
+          <span className="sheet-resource__block-controls">
+            <button type="button" className="sheet-resource__button" data-type="decrement"
+              onClick={e => { e.stopPropagation(); step(-1); }}>−</button>
+            <span className="sheet-resource__label">{cur}</span>
+            <button type="button" className="sheet-resource__button" data-type="increment"
+              onClick={e => { e.stopPropagation(); step(1); }}>+</button>
+          </span>
         </span>
       );
     }
