@@ -171,11 +171,13 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
           </div>
           <div className="f-label f-sep">ЯЧЕЙКИ ЗАКЛИНАНИЙ ПО УРОВНЯМ</div>
           <div className="sp-slots-head">
-            <span>уровень</span><span>всего</span><span>использовано</span>
+            <span>уровень</span><span>всего</span><span>доступно</span>
           </div>
           <div className="sp-slots-grid">
             {SLOT_LEVELS.map(lv => {
               const s = slots["slots-" + lv] || { value: 0, filled: 0 };
+              const total = s.value ?? 0;
+              const avail = Math.max(0, total - (s.filled ?? 0));
               const setVal = (patch) => {
                 const d = c.data;
                 d.spells = d.spells || {};
@@ -188,17 +190,20 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
                 <div key={lv} className="sp-slot-cell">
                   <div className="f-label">{lv}-й</div>
                   <input type="number" min="0" className="edit-in" title="всего ячеек этого уровня"
-                    value={s.value ?? 0}
+                    value={total}
                     onChange={e => setVal({ value: Math.max(0, +e.target.value || 0) })} />
-                  <input type="number" min="0" className="edit-in" title="сколько ячеек уже потрачено"
-                    value={s.filled ?? 0}
-                    onChange={e => setVal({ filled: Math.max(0, +e.target.value || 0) })} />
+                  <input type="number" min="0" className="edit-in" title="сколько ячеек доступно сейчас"
+                    value={avail}
+                    onChange={e => {
+                      const want = Math.max(0, +e.target.value || 0);
+                      setVal({ filled: Math.max(0, total - want) });
+                    }} />
                 </div>
               );
             })}
           </div>
-          <div className="f-hint">Слева — уровень, по центру сколько ячеек всего, справа сколько уже
-            потрачено (текущее количество = «всего» − «использовано»). Можно править вручную.</div>
+          <div className="f-hint">Слева — уровень, по центру сколько ячеек всего, справа сколько
+            доступно **сейчас** (можно править вручную; при наложении значение уменьшается на 1).</div>
         </div>
       ) : null}
 
