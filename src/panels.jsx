@@ -43,12 +43,27 @@ export function AvatarMenu({ c, onSave, onSettings, onPortrait }) {
 
 export function AvatarImg({ c, cls = "ava-img" }) {
   const url = c.data.avatar?.jpeg || c.data.avatar?.webp || c.data.avatar?.png || null;
-  if (url) return <img className={cls} src={url} alt="" onError={e => { e.target.style.display = "none"; }} />;
-  return (
-    <div className={cls + " ava-empty"}>
-      <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M12 12a4 4 0 100-8 4 4 0 000 8zm0 2c-4 0-8 2-8 5v3h16v-3c0-3-4-5-8-5z" /></svg>
-    </div>
-  );
+  const crop = c.data.avatar?.crop;
+  if (!url) {
+    return (
+      <div className={cls + " ava-empty"}>
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M12 12a4 4 0 100-8 4 4 0 000 8zm0 2c-4 0-8 2-8 5v3h16v-3c0-3-4-5-8-5z" /></svg>
+      </div>
+    );
+  }
+  // обрезанный по квадрату портрет: храним выбранную область и показываем её
+  if (crop && crop.natW) {
+    const s = crop.w / crop.natW;
+    return (
+      <div className={cls + " portrait-crop"}>
+        <img src={url} alt="" style={{
+          position: "absolute", width: crop.natW * s, height: crop.natH * s,
+          left: -crop.x * s, top: -crop.y * s, maxWidth: "none",
+        }} />
+      </div>
+    );
+  }
+  return <img className={cls} src={url} alt="" onError={e => { e.target.style.display = "none"; }} />;
 }
 
 /* ================= Панель «Настройки» ================= */
@@ -164,8 +179,25 @@ export function PortraitDrawer({ c, onSave, onClose }) {
     if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { setErr("Нужен jpg (или png/webp)"); return; }
     const r = new FileReader();
     // открываем обрезку под квадрат
-    r.onload = () => setCropSrc(r.result);
+    r.onload = () => setCropSrc({ src: r.result, remote: null });
     r.readAsDataURL(f);
+  };
+
+  // картинка по ссылке: пробуем забрать её (нужен CORS), иначе обрезаем «на глаз» и храним область
+  const fromUrl = async (link) => {
+    setErr("");
+    const u = (link || "").trim();
+    if (!u) return;
+    try {
+      const res = await fetch(u, { mode: "cors" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const blob = await res.blob();
+      const objUrl = URL.createObjectURL(blob);
+      setCropSrc({ src: objUrl, remote: u });
+    } catch (e) {
+      // сервер не даёт обработать картинку — всё равно покажем обрезку, сохраним только область
+      setCropSrc({ src: u, remote: u });
+    }
   };
 
   return (
@@ -184,17 +216,31 @@ export function PortraitDrawer({ c, onSave, onClose }) {
         onChange={e => { upload(e.target.files[0]); e.target.value = ""; }} />
       <div className="f-sep2" />
       <div className="f-label">ССЫЛКА НА ИЗОБРАЖЕНИЕ</div>
-      <input className="f-input" placeholder="https://…" defaultValue={url.startsWith("http") ? url : ""}
-        onKeyDown={e => {
-          if (e.key === "Enter" && e.target.value) { c.data.avatar = { jpeg: e.target.value }; onSave(); onClose(); }
-        }} />
-      <div className="f-hint">Вставьте прямую ссылку на картинку и нажмите Enter</div>
+      <div className="pt-url-row">
+        <input className="f-input" placeholder="https://…" defaultValue={url.startsWith("http") ? url : ""}
+          onKeyDown={e => { if (e.key === "Enter") fromUrl(e.target.value); }} />
+        <button className="f-btn primary" onClick={() => {
+          const inp = document.querySelector(".pt-url-row input");
+          fromUrl(inp.value);
+        }}>Загрузить</button>
+      </div>
+      <div className="f-hint">Вставьте прямую ссылку на картинку и нажмите Enter — она тоже откроется на обрезку</div>
 
       {cropSrc ? (
         <ImageCropper
-          src={cropSrc}
+          src={cropSrc.src}
           onClose={() => setCropSrc(null)}
-          onApply={dataUrl => { c.data.avatar = { jpeg: dataUrl }; onSave(); setCropSrc(null); onClose(); }}
+          onApply={(dataUrl, rect) => {
+            if (dataUrl) {
+              c.data.avatar = { jpeg: dataUrl };
+            } else {
+              // пиксели недоступны (чужой домен) — сохраняем ссылку и выбранную область
+              c.data.avatar = { ...(c.data.avatar || {}), jpeg: cropSrc.remote, crop: rect };
+            }
+            onSave();
+            setCropSrc(null);
+            onClose();
+          }}
         />
       ) : null}
     </Drawer>
