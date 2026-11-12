@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 // Рендер tiptap-документа и конвертация doc ↔ plain text.
 // Поддерживаются маркеры:
 //   **жирный**  *курсив*  __подчёркнутый__  ~~зачёркнутый~~  `код`
@@ -40,12 +40,7 @@ function Node({ n, ctx = {} }) {
     case "spoiler": {
       const sum = kids.filter(x => x.type === "spoilerSummary").map(x => (x.content || []).map(k => k.type === "text" ? inlineText(k) : null));
       const body = kids.filter(x => x.type === "spoilerContent").map((k, i) => <Node key={i} n={k} ctx={ctx} />);
-      return (
-        <details className="spoiler">
-          <summary><span className="spoiler-chev">›</span>{sum.length ? sum : "Спойлер"}</summary>
-          <div className="spoiler-body">{body}</div>
-        </details>
-      );
+      return <Spoiler summary={sum.length ? sum : "Спойлер"}>{body}</Spoiler>;
     }
     case "text": return <Inline t={n} ctx={ctx} />;
     case "roller": {
@@ -83,6 +78,24 @@ function Node({ n, ctx = {} }) {
 function Inline({ t, ctx = {} }) {
   if (t.type === "text") return inlineText(t);
   return <Node n={t} ctx={ctx} />;
+}
+
+/* Спойлер как на LSS: шеврон + тёмная плашка с названием, тело раскрывается по клику */
+function Spoiler({ summary, children }) {
+  const [open, setOpen] = useState(false);
+  const toggle = (e) => { e.stopPropagation(); setOpen(o => !o); };
+  return (
+    <div className={"sheet-spoiler" + (open ? " open" : "")}>
+      <button type="button" className="sp-toggle" aria-expanded={open}
+        aria-label={open ? "Свернуть" : "Развернуть"} onClick={toggle}>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+          <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+        </svg>
+      </button>
+      <div className="sp-summary" onClick={toggle}>{summary}</div>
+      {open ? <div className="sp-body">{children}</div> : null}
+    </div>
+  );
 }
 
 /* ---------- Разбор инлайновых маркеров в текст ---------- */
