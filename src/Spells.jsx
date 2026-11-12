@@ -170,26 +170,35 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
             {cast.modCustom ? ` + ${cast.modCustom} (своё)` : ""} = <b>{atk >= 0 ? "+" + atk : atk}</b>
           </div>
           <div className="f-label f-sep">ЯЧЕЙКИ ЗАКЛИНАНИЙ ПО УРОВНЯМ</div>
-          <div className="sp-slots-grid">
-            {SLOT_LEVELS.map(lv => (
-              <label key={lv} className="pop-field" style={{ marginBottom: 0 }}>
-                {lv}-й
-                <input type="number" min="0" className="edit-in"
-                  value={slots["slots-" + lv]?.value ?? 0}
-                  onChange={e => {
-                    const d = c.data;
-                    d.spells = d.spells || {};
-                    const key = "slots-" + lv;
-                    const cur = d.spells[key] || { value: 0, filled: 0 };
-                    d.spells[key] = { ...cur, value: Math.max(0, +e.target.value || 0) };
-                    onSave();
-                  }} />
-              </label>
-            ))}
+          <div className="sp-slots-head">
+            <span>уровень</span><span>всего</span><span>использовано</span>
           </div>
-          <div className="f-hint">Сколько ячеек каждого уровня есть у персонажа. В меню заклинаний
-            их можно выбрать радио-кнопками — выбранной ячейкой накладывается заклинание
-            (при наложении ячейкой выше уровня заклинания кубики урона растут).</div>
+          <div className="sp-slots-grid">
+            {SLOT_LEVELS.map(lv => {
+              const s = slots["slots-" + lv] || { value: 0, filled: 0 };
+              const setVal = (patch) => {
+                const d = c.data;
+                d.spells = d.spells || {};
+                const key = "slots-" + lv;
+                const cur = d.spells[key] || { value: 0, filled: 0 };
+                d.spells[key] = { ...cur, ...patch };
+                onSave();
+              };
+              return (
+                <div key={lv} className="sp-slot-cell">
+                  <div className="f-label">{lv}-й</div>
+                  <input type="number" min="0" className="edit-in" title="всего ячеек этого уровня"
+                    value={s.value ?? 0}
+                    onChange={e => setVal({ value: Math.max(0, +e.target.value || 0) })} />
+                  <input type="number" min="0" className="edit-in" title="сколько ячеек уже потрачено"
+                    value={s.filled ?? 0}
+                    onChange={e => setVal({ filled: Math.max(0, +e.target.value || 0) })} />
+                </div>
+              );
+            })}
+          </div>
+          <div className="f-hint">Слева — уровень, по центру сколько ячеек всего, справа сколько уже
+            потрачено (текущее количество = «всего» − «использовано»). Можно править вручную.</div>
         </div>
       ) : null}
 

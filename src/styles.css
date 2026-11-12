@@ -294,6 +294,11 @@ img{display:block}
 .sp-slots-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:6px;margin-bottom:6px}
 .sp-slots-grid .pop-field{margin-bottom:0;text-align:center}
 .sp-slots-grid input{text-align:center;padding:4px 2px}
+.sp-slot-cell{display:flex;flex-direction:column;gap:3px}
+.sp-slot-cell .f-label{margin:0;text-align:center}
+.sp-slot-cell input{width:100%;text-align:center;padding:3px 2px;font-size:12px}
+.sp-slots-head{display:grid;grid-template-columns:repeat(9,1fr);gap:6px;margin-bottom:2px}
+.sp-slots-head span{grid-column:1/-1;font-size:9px;color:var(--dim2);text-align:center;display:none}
 /* выбор ячейки радио-кнопками */
 .sp-slot-choose{margin:6px 0 10px}
 .sp-radios{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
