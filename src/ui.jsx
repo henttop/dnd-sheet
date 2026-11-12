@@ -27,9 +27,10 @@ export function RollHost() {
       if (res) {
         const extra = mod || 0;
         const diceLine = res.raw.length > 1 ? res.raw.join("+") + (extra ? (extra >= 0 ? "+" : "−") + Math.abs(extra) : "") : "";
+        const faces = +(String(expr).match(/[dкк](\d+)/i)?.[1] || 20);
         window.__roll(title, res.total + extra,
           [diceLine || res.raw.join(" + "), extra && res.raw.length <= 1 ? `${extra >= 0 ? "+" : "−"}${Math.abs(extra)}${modLabel ? " (" + modLabel + ")" : ""}` : ""].filter(Boolean).join(" "),
-          { isDmg: true, modLabel });
+          { isDmg: true, modLabel, faces });
       }
     };
     // бросок урона заклинания (как карточка в журнале кубиков у LSS)
@@ -53,12 +54,34 @@ export function RollHost() {
           <div className="rp-glyphs">
             {(state.rolls || []).map((r, i) => (
               <span className="rp-glyph" key={i}>
-                <DieIcon size={26} />
+                <DieShape faces={r.faces || 20} size={26} />
                 <span className="rp-glyph-n">{r.value}</span>
               </span>
             ))}
           </div>
           <div className="rp-total">{state.total}</div>
+        </div>
+        {allDice.length > 1 ? <div className="rp-roll-line">{allDice.join("+")}</div> : null}
+      </div>
+    );
+  }
+  // бросок нескольких кубиков (дайсница) — показываем каждый своим кубиком
+  if (state.rolls && state.rolls.length) {
+    const allDice = state.rolls.flatMap(r => (r.parts && r.parts.length ? r.parts : [r.value]));
+    return (
+      <div className={"roll-pop" + mood}>
+        <button className="rp-close" onClick={() => setState(null)}>×</button>
+        <div className="rp-title">{state.title}</div>
+        <div className="rp-body">
+          <div className="rp-glyphs">
+            {state.rolls.map((r, i) => (
+              <span className="rp-glyph" key={i}>
+                <DieShape faces={r.faces || 20} size={26} />
+                <span className="rp-glyph-n">{r.value}</span>
+              </span>
+            ))}
+          </div>
+          <div className={"rp-total" + mood}>{state.total}</div>
         </div>
         {allDice.length > 1 ? <div className="rp-roll-line">{allDice.join("+")}</div> : null}
       </div>
@@ -70,7 +93,7 @@ export function RollHost() {
       <div className="rp-title">{state.title}</div>
       <div className="rp-body">
         <div className={"rp-die" + mood}>
-          {state.isDmg ? <span className="rp-dmg-icon">🎲</span> : <><DieIcon size={34} />{state.die != null ? <span className="rp-die-n">{state.die}</span> : null}</>}
+          {state.faces ? <DieShape faces={state.faces} size={32} /> : <><DieIcon size={34} />{state.die != null ? <span className="rp-die-n">{state.die}</span> : null}</>}
         </div>
         <div className={"rp-total" + mood}>{state.total}</div>
       </div>
@@ -94,9 +117,9 @@ export function DiceTower() {
   const [pool, setPool] = useState([]); // массив граней: [20,6,6]
   const roll = () => {
     if (!pool.length) return;
-    const parts = pool.map(f => { const r = 1 + Math.floor(Math.random() * f); return { f, r }; });
-    const total = parts.reduce((s, p) => s + p.r, 0);
-    window.__roll("Дайсница", total, parts.map(p => `к${p.f}: ${p.r}`).join(" + "), { die: pool.length });
+    const rolls = pool.map(f => { const r = 1 + Math.floor(Math.random() * f); return { faces: f, value: r }; });
+    const total = rolls.reduce((s, p) => s + p.value, 0);
+    window.__roll("Дайсница", total, rolls.map(p => `к${p.faces}: ${p.value}`).join(" + "), { rolls });
   };
   const DICE = [2, 4, 6, 8, 10, 12, 20, 100];
   return (
@@ -128,7 +151,7 @@ export function DiceTower() {
   );
 }
 
-function DieShape({ faces }) {
+function DieShape({ faces, size = 24 }) {
   const icons = {
     2: <circle cx="13" cy="13" r="9" />,
     4: <path d="M13 3l10 18H3z" />,
@@ -139,7 +162,7 @@ function DieShape({ faces }) {
     20: <path d="M13 2l10 7v9l-10 7-10-7V9z" />,
     100: <path d="M13 2l10 7-4 16H7L3 9z" />,
   };
-  return <svg width="24" height="24" viewBox="0 0 26 26" fill="none" stroke="currentColor" strokeWidth="1.4">{icons[faces]}</svg>;
+  return <svg width={size} height={size} viewBox="0 0 26 26" fill="none" stroke="currentColor" strokeWidth="1.4">{icons[faces] || icons[20]}</svg>;
 }
 
 /* ================= Инлайн-редактирование значения ================= */
