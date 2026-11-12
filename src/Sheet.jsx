@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { characters, save } from "./store.js";
 import { SPELL_BY_ID, SPELL_BY_SLUG } from "./store.js";
 import { RollHost, Editable, Popover, ProfPopover, DieIcon, CreateModal } from "./ui.jsx";
+import SpellsTab from "./Spells.jsx";
 import { AvatarMenu, SettingsDrawer, PortraitDrawer } from "./panels.jsx";
 import { getUi, setUi } from "./uistore.js";
 import { Avatar } from "./List.jsx";
@@ -533,72 +534,4 @@ function GearTab({ c, onSave }) {
       <RtBlock c={c} title="Сокровища" blockKey="treasure" onSave={onSave} />
     </>
   );
-}
-
-/* ================= Заклинания ================= */
-function SpellsTab({ c, onSave, ui = {} }) {
-  const d = c.data, si = d.spellsInfo || {};
-  const prof = profOf(c);
-  const abil = si.base?.code || "int";
-  const abilMod = statMod(c, abil);
-  const dc = 8 + prof + abilMod, atk = prof + abilMod;
-  const ABIL_RU = { int: "ИНТ", wis: "МУД", cha: "ХАР", str: "СИЛ", dex: "ЛОВ", con: "ТЕЛ" };
-  const ids = [...(c.spells?.prepared || []), ...(c.spells?.book || [])];
-  const spells = ids.map(id => {
-    const s = SPELL_BY_ID.get(id) || SPELL_BY_SLUG.get(id);
-    return s ? { id, name: s.name, level: s.level ?? "?" } : { id, name: "Заклинание (нет в справочнике)", level: "?" };
-  }).sort((a, b) => (a.level === "?" ? 99 : a.level) - (b.level === "?" ? 99 : b.level) || a.name.localeCompare(b.name, "ru"));
-
-  const slots = d.spells || {};
-  const lvlKeys = Object.keys(slots).filter(k => k.startsWith("slots-")).sort((a, b) => +a.replace(/\D/g, "") - +b.replace(/\D/g, ""));
-
-  return (
-    <>
-      <div className="spell-head">
-        {ui.showDC === false ? null : (
-          <div className="dc-box">{dc}<small>СПАСБРОСОК {ABIL_RU[abil]}</small></div>
-        )}
-        {ui.showAtk === false ? null : (
-          <div className="dc-box" onClick={() => window.__rollD20("Атака заклинанием", atk)}>{signed(atk)}<small>АТАКА</small></div>
-        )}
-        <div className="dc-box"><small>ХАРАКТЕРИСТИКА</small>{ABIL_RU[abil]}</div>
-      </div>
-      {lvlKeys.map(k => (
-        <div className="slot-pills" key={k}>
-          <span className="slot-lvl"><Editable value={slots[k].value || 0} onSave={x => { slots[k].value = Math.max(0, +x || 0); onSave(); }} width={22} /> ур.</span>
-          {Array.from({ length: slots[k].value || 0 }, (_, i) => (
-            <button key={i}
-              className={"slot-pill" + (i < (slots[k].filled || 0) ? " used" : "")}
-              title="клик — потратить/вернуть"
-              onClick={() => {
-                const filled = slots[k].filled || 0;
-                slots[k].filled = i < filled ? i : i + 1;
-                onSave();
-              }} />
-          ))}
-        </div>
-      ))}
-      {Object.entries(groupBy(spells)).map(([g, list]) => (
-        <div className="spell-group" key={g}>
-          <h4>{g}</h4>
-          {list.map(s => (
-            <div className="spell-row" key={s.id} title={s.id}>
-              <div>
-                <div className="sp-name">{s.name}</div>
-                <div className="sp-sub">{s.level === 0 ? "заговор" : s.level === "?" ? "—" : `${s.level}-й уровень`}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ))}
-    </>
-  );
-}
-function groupBy(spells) {
-  const g = {};
-  spells.forEach(s => {
-    const key = s.level === 0 ? "Заговоры" : s.level === "?" ? "Прочее" : `${s.level}-й уровень`;
-    (g[key] ||= []).push(s);
-  });
-  return g;
 }

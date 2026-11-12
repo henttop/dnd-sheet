@@ -26,9 +26,36 @@ export function RollHost() {
       const res = rollDiceExpr(expr);
       if (res) window.__roll(title, res.total, res.raw.join(" + "), { isDmg: true });
     };
+    // бросок урона заклинания (как карточка в журнале кубиков у LSS)
+    window.__rollSpell = (name, total, dmgType, rolls) => {
+      setState({ title: name, total, kind: "урон", sub: dmgType, rolls: rolls || [], spell: true });
+      clearTimeout(window.__rollT);
+      window.__rollT = setTimeout(() => setState(null), 5000);
+    };
   }, []);
   if (!state) return null;
   const mood = ui.critColors === false ? "" : (state.crit ? " crit" : state.fail ? " fail" : "");
+  // карточка броска заклинания (журнал кубиков)
+  if (state.spell) {
+    return (
+      <div className="roll-pop spell-pop">
+        <button className="rp-close" onClick={() => setState(null)}>×</button>
+        <div className="rp-title">{state.title}</div>
+        <div className="rp-sub">{state.kind}{state.sub ? " · " + state.sub : ""}</div>
+        <div className="rp-body">
+          <div className="rp-glyphs">
+            {(state.rolls || []).map((r, i) => (
+              <span className="rp-glyph" key={i}>
+                <DieIcon size={26} />
+                <span className="rp-glyph-n">{r.value}</span>
+              </span>
+            ))}
+          </div>
+          <div className="rp-total">{state.total}</div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={"roll-pop" + mood}>
       <button className="rp-close" onClick={() => setState(null)}>×</button>
