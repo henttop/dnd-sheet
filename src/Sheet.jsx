@@ -753,8 +753,8 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
           ) : null}
         </>
       ) : (
-        <div className="rt" onClick={startEdit} title="клик — править">
-          {renderDoc(doc, resCtx) || <span className="hint">— (клик, чтобы вписать)</span>}
+        <div className="rt" title="правь кнопкой «правка» сверху">
+          {renderDoc(doc, resCtx) || <span className="hint">— (нажми «правка», чтобы вписать)</span>}
         </div>
       )}
       {resModal && c.data.resources[resModal.id] ? (
