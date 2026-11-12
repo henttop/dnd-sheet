@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+﻿import React, { useState, useRef } from "react";
 import { characters, save } from "./store.js";
 import { SPELL_BY_ID, SPELL_BY_SLUG } from "./store.js";
 import { RollHost, Editable, Popover, ProfPopover, DieIcon, CreateModal } from "./ui.jsx";
@@ -7,7 +7,10 @@ import WeaponModal, { weaponBonus } from "./WeaponModal.jsx";
 import { AvatarMenu, SettingsDrawer, PortraitDrawer } from "./panels.jsx";
 import { getUi, setUi } from "./uistore.js";
 import { Avatar } from "./List.jsx";
-import { renderDoc, docToText, textToDoc } from "./richtext.jsx";
+import { renderDoc, docToText, textToDoc, wrapSelection, insertAtCursor } from "./richtext.jsx";
+import TextMenu from "./TextMenu.jsx";
+import InsertBar from "./InsertBar.jsx";
+import ResourceModal from "./ResourceModal.jsx";
 import {
   SKILLS, STAT_NAMES, XP, CONDITIONS_RU, SIZES, TABS,
   hp, profOf, coinsTotal, statMod, skillProf, skillCustom, skillBonus,
@@ -547,6 +550,8 @@ function AttacksTab({ c, onSave }) {
 
 const fmtMod = (n) => (n >= 0 ? "+" + n : "−" + Math.abs(n));
 
+const RT_HINT = "ПКМ — меню: спойлер, ресурс, бросок · **жирный**, *курсив*, ||спойлер||, {{ресурс}}, [[1d6]]";
+
 function TextTab({ c, onSave, blocks }) {
   return blocks.map(([title, key]) => <RtBlock key={key} c={c} title={title} blockKey={key} onSave={onSave} />);
 }
@@ -554,26 +559,142 @@ function TextTab({ c, onSave, blocks }) {
 function RtBlock({ c, title, blockKey, onSave, compact }) {
   const [edit, setEdit] = useState(false);
   const [draft, setDraft] = useState("");
+  const [menu, setMenu] = useState(null);
+  const [resModal, setResModal] = useState(null);   // {id} — редактирование ресурса
+  const taRef = useRef(null);
   const doc = docOf(c, blockKey);
+  const resources = Object.values(c.data.resources || {});
+
+  const startEdit = () => { setDraft(docToText(doc)); setEdit(true); };
+
+  // запоминаем выделение — при клике на кнопку textarea теряет фокус и selection сбрасывается
+  const selRef = useRef({ start: 0, end: 0 });
+  const captureSel = () => {
+    const ta = taRef.current;
+    if (ta) selRef.current = { start: ta.selectionStart ?? 0, end: ta.selectionEnd ?? 0 };
+  };
+  const selRange = () => {
+    const ta = taRef.current;
+    const live = ta ? { start: ta.selectionStart ?? 0, end: ta.selectionEnd ?? 0 } : null;
+    const saved = selRef.current;
+    if (live && live.end > live.start) return live;
+    if (saved.end > saved.start) return saved;
+    return live || saved;
+  };
+
+  const applyText = (next, pos) => {
+    setDraft(next);
+    requestAnimationFrame(() => {
+      const ta = taRef.current;
+      if (!ta) return;
+      ta.focus();
+      if (pos != null) ta.setSelectionRange(pos, pos);
+    });
+  };
+
+  const onFormat = (mark) => {
+    const ta = taRef.current;
+    if (!ta) return;
+    const r = wrapSelection(ta, mark, mark);
+    applyText(r.next, r.pos);
+  };
+
+  const insertResource = (res) => {
+    const ta = taRef.current;
+    const id = res.id;
+    const marker = `{{${id}::${res.name}}}`;
+    if (!ta) { applyText(draft + " " + marker, null); return; }
+    const r = insertAtCursor(ta, marker);
+    applyText(r.next, r.pos);
+  };
+
+  const onInsert = (kind, res) => {
+    const ta = taRef.current;
+    if (!ta) return;
+    if (kind === "roll") { const r = insertAtCursor(ta, "[[1d6]]"); applyText(r.next, r.pos); return; }
+    if (kind === "spoiler") {
+      const r = wrapSelection(ta, "||Спойлер||", "||");
+      applyText(r.next, r.pos);
+      return;
+    }
+    if (kind === "resource") {
+      if (res) { insertResource(res); return; }
+      // новый ресурс
+      const id = "resource-" + Date.now();
+      const nr = { id, name: "настроить", current: 0, max: 0, formula: "", isShortRest: false, isLongRest: false, notes: { value: "" } };
+      c.data.resources = c.data.resources || {};
+      c.data.resources[id] = nr;
+      insertResource(nr);
+      onSave();
+      setResModal({ id, created: true });
+      return;
+    }
+    if (kind === "divider") { const r = insertAtCursor(ta, "\n——\n"); applyText(r.next, r.pos); return; }
+    if (kind === "list") { const r = insertAtCursor(ta, "\n- "); applyText(r.next, r.pos); return; }
+  };
+
+  const onResourceChange = (id, patch) => {
+    const rs = c.data.resources || {};
+    if (!rs[id]) return;
+    rs[id] = { ...rs[id], ...patch };
+    onSave();
+  };
+
+  const resCtx = { resources: c.data.resources || {}, onResource: onResourceChange };
+
   return (
     <div className="panel">
       <h4 style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span>{title.toUpperCase()}</span>
-        <button className="edit-toggle" onClick={() => { setDraft(docToText(doc)); setEdit(!edit); }}>{edit ? "отмена" : "правка"}</button>
+        <button className="edit-toggle" onClick={() => { if (edit) setEdit(false); else startEdit(); }}>{edit ? "отмена" : "правка"}</button>
       </h4>
       {edit ? (
         <>
-          <textarea className="rt-edit" value={draft} rows={compact ? 5 : 10} onChange={e => setDraft(e.target.value)} />
-          <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "center" }}>
-            <button className="save-btn" onClick={() => { setDoc(c, blockKey, textToDoc(draft)); onSave(); setEdit(false); }}>Сохранить</button>
-            <span className="hint">«- » = список; «——» = разделитель</span>
+          <div className="rt-editor">
+            <textarea
+              ref={taRef}
+              className="rt-edit"
+              rows={compact ? 6 : 12}
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onSelect={captureSel}
+              onKeyUp={captureSel}
+              onMouseUp={captureSel}
+              onContextMenu={e => {
+                e.preventDefault();
+                captureSel();
+                setMenu({ x: e.clientX, y: e.clientY });
+              }}
+            />
+            <InsertBar onFormat={onFormat} onInsert={onInsert} />
           </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
+            <button className="save-btn" onClick={() => { setDoc(c, blockKey, textToDoc(draft)); onSave(); setEdit(false); }}>Сохранить</button>
+            <span className="hint">{RT_HINT}</span>
+          </div>
+          {menu ? (
+            <TextMenu x={menu.x} y={menu.y} resources={resources}
+              onClose={() => setMenu(null)} onFormat={onFormat} onInsert={onInsert} />
+          ) : null}
         </>
       ) : (
-        <div className="rt" onClick={() => { setDraft(docToText(doc)); setEdit(true); }} title="клик — править">
-          {renderDoc(doc) || <span className="hint">— (клик, чтобы вписать)</span>}
+        <div className="rt" onClick={startEdit} title="клик — править">
+          {renderDoc(doc, resCtx) || <span className="hint">— (клик, чтобы вписать)</span>}
         </div>
       )}
+      {resModal && c.data.resources[resModal.id] ? (
+        <ResourceModal
+          resource={c.data.resources[resModal.id]}
+          onChange={(nr) => onResourceChange(resModal.id, nr)}
+          onDelete={() => {
+            delete c.data.resources[resModal.id];
+            setResModal(null);
+            setDraft(draft.split(`{{${resModal.id}::`).join("{{"));
+            onSave();
+          }}
+          onClose={() => setResModal(null)}
+        />
+      ) : null}
     </div>
   );
 }

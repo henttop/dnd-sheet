@@ -474,6 +474,67 @@ img{display:block}
 .pt-preview img{width:100%;height:100%;object-fit:cover}
 .pt-empty{color:var(--dim2);font-size:12px}
 
+/* ===== Редактор текста: вертикальные кнопки вставки ===== */
+.rt-editor{display:flex;gap:8px;align-items:stretch}
+.rt-editor .rt-edit{flex:1}
+.insert-bar{display:flex;flex-direction:column;gap:4px}
+.insert-btn{width:26px;min-height:74px;border:1px solid var(--border2);border-radius:6px;background:var(--card2);
+  display:flex;align-items:center;justify-content:center;padding:0}
+.insert-btn span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:9.5px;font-weight:800;
+  letter-spacing:.5px;color:var(--dim);white-space:nowrap}
+.insert-btn:hover{border-color:var(--accent)}
+.insert-btn:hover span{color:var(--text)}
+
+/* ===== Ресурс в тексте (чип со счётчиком) ===== */
+.res-chip{display:inline-flex;align-items:center;gap:5px;background:var(--card2);border:1px solid var(--purple2);
+  border-radius:6px;padding:1px 4px 1px 8px;font-size:12px;font-weight:800;color:var(--purple2);vertical-align:middle}
+.res-chip-name{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.res-chip-val{color:var(--text);font-size:12px;min-width:16px;text-align:center}
+.res-btn{width:18px;height:18px;border:1px solid var(--border2);border-radius:4px;font-size:11px;
+  font-weight:800;color:var(--dim);line-height:1;padding:0}
+.res-btn:hover{border-color:var(--accent);color:var(--text)}
+
+/* ===== Спойлер-строка ===== */
+.rt .spoiler{border:1px solid var(--border2);border-radius:8px;padding:0;margin:6px 0;background:var(--card2)}
+.rt .spoiler summary{cursor:pointer;font-weight:800;padding:7px 10px;display:flex;align-items:center;gap:8px;
+  color:var(--text);list-style:none}
+.rt .spoiler summary::-webkit-details-marker{display:none}
+.rt .spoiler-chev{display:inline-block;transition:transform .15s;color:var(--dim);font-size:16px}
+.rt .spoiler[open] .spoiler-chev{transform:rotate(90deg)}
+.rt .spoiler-body{padding:0 10px 8px 26px}
+
+/* ===== Модалка ресурса ===== */
+.res-modal{width:min(460px,100%);text-align:left}
+.res-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.res-title{font-size:20px;font-weight:900;letter-spacing:.5px}
+.res-restore-tag{display:inline-block;margin-top:6px;background:rgba(34,184,207,.16);color:var(--cyan);
+  border:1px solid var(--cyan);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:800;letter-spacing:.5px}
+.res-circle{width:66px;height:66px;border-radius:50%;border:1px solid var(--border2);background:var(--card2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none}
+.res-circle-v{font-size:20px;font-weight:900}
+.res-circle-l{font-size:8px;font-weight:800;letter-spacing:.5px;color:var(--dim);margin-top:2px}
+.res-block{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.res-label{font-size:10px;font-weight:800;letter-spacing:.6px;color:var(--dim);margin:0 0 4px}
+.res-values{display:grid;grid-template-columns:120px 1fr;gap:10px;align-items:end}
+.res-foot{display:flex;justify-content:flex-end}
+.res-foot .f-btn{flex:none;padding:7px 18px}
+
+/* ===== Контекстное меню редактора (ПКМ) ===== */
+.ctx-menu{position:fixed;z-index:220;background:var(--card2);border:1px solid var(--border2);
+  border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.6);padding:6px;min-width:210px}
+.ctx-group{border-bottom:1px solid var(--border);padding-bottom:4px;margin-bottom:4px}
+.ctx-group:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.ctx-group-title{font-size:9px;font-weight:800;letter-spacing:.6px;color:var(--dim);padding:4px 8px 2px}
+.ctx-item{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;
+  padding:5px 9px;border-radius:6px;font-size:12.5px;font-weight:600}
+.ctx-item:hover{background:var(--accent);color:#fff}
+.ctx-sub{font-size:10px;color:var(--dim);font-weight:700}
+.ctx-item:hover .ctx-sub{color:rgba(255,255,255,.8)}
+.ctx-res{max-height:180px;overflow:auto}
+.rt .res-chip{border-color:var(--purple2);color:var(--purple2);font-weight:800}
+.rt details{border-color:var(--border2)}
+.rt summary{color:var(--purple2)}
+
 /* ===== Модалка «Создание персонажа» ===== */
 .modal-back{position:fixed;inset:0;z-index:200;background:rgba(6,8,20,.72);display:flex;
   align-items:center;justify-content:center;padding:20px}
