@@ -33,10 +33,11 @@ export default function List({ open }) {
     a.download = `${c.data.name?.value || "Безымянный персонаж"}.json`; a.click();
   };
   const createNew = () => {
-    const i = addCharacter(blankCharacter());
+    addCharacter(blankCharacter());
     rerender();
-    open(i, true);
   };
+
+  const [delIdx, setDelIdx] = useState(null);
 
   return (
     <div className="list-wrap">
@@ -67,9 +68,7 @@ export default function List({ open }) {
                 <div className="cc-pop" onClick={e => e.stopPropagation()}>
                   <button onClick={() => { duplicateCharacter(i); setCardMenu(null); rerender(); }}>Копировать</button>
                   <button onClick={() => { exportOne(i); setCardMenu(null); }}>Скачать .json</button>
-                  <button className="danger" onClick={() => {
-                    if (confirm(`Удалить «${c.data.name?.value || "Безымянный персонаж"}»?`)) { removeCharacter(i); setCardMenu(null); rerender(); }
-                  }}>Удалить</button>
+                  <button className="ctx-item danger" onClick={() => { setDelIdx(i); setCardMenu(null); }}>Удалить</button>
                 </div>
               ) : null}
             </div>
@@ -83,6 +82,23 @@ export default function List({ open }) {
         onDrop={onDrop}>
         Перетащите сюда файл экспорта .json, чтобы загрузить других персонажей
       </div>
+
+      {delIdx != null && characters[delIdx] ? (
+        <div className="modal-back" onMouseDown={() => setDelIdx(null)}>
+          <div className="modal del-modal" onMouseDown={e => e.stopPropagation()}>
+            <button className="modal-x" onClick={() => setDelIdx(null)}>×</button>
+            <h3 className="modal-title">УДАЛИТЬ ПЕРСОНАЖА?</h3>
+            <p className="modal-text">
+              «{characters[delIdx].data.name?.value || "Безымянный персонаж"}» будет удалён из списка.
+              Отменить это будет нельзя.
+            </p>
+            <div className="f-btns">
+              <button className="f-btn" onClick={() => setDelIdx(null)}>Отмена</button>
+              <button className="f-btn danger" onClick={() => { removeCharacter(delIdx); setDelIdx(null); rerender(); }}>Удалить</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <RollHost />
     </div>
   );
