@@ -228,6 +228,19 @@ export function CreateModal({ onClose }) {
   );
 }
 
+/* ===== Переключатель-кнопка (вместо чекбоксов) ===== */
+export function Toggle({ checked, onChange, label, title }) {
+  return (
+    <button type="button" title={title || label}
+      className={"tg" + (checked ? " on" : "")}
+      aria-pressed={!!checked}
+      onClick={e => { e.stopPropagation(); onChange(!checked); }}>
+      <span className="tg-box">{checked ? "✓" : ""}</span>
+      <span className="tg-label">{label}</span>
+    </button>
+  );
+}
+
 /* ===== Поповер ===== */
 export function Popover({ onClose, children, style }) {
   const ref = useRef(null);

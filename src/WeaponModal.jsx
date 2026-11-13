@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { statMod, profOf } from "./helpers.js";
+import { Toggle } from "./ui.jsx";
 import { rollDiceExpr } from "./dice.js";
 
 /* Модалка настройки оружия — по образцу longstoryshort.app (?modal=weapon) */
@@ -192,10 +193,8 @@ export default function WeaponModal({ c, weapon, onChange, onDelete, onClose }) 
           <textarea className="rt-edit" rows={4} value={notes} placeholder="Заметки к оружию"
             onChange={e => { setNotes(e.target.value); patch({ notes: { value: e.target.value } }); }} />
           <div className="wpn-sub-label">ЗАМЕТКИ</div>
-          <label className="f-check">
-            <input type="checkbox" checked={showNotes} onChange={e => { setShowNotes(e.target.checked); patch({ showNotes: e.target.checked }); }} />
-            <span>Отображать заметки</span>
-          </label>
+          <Toggle checked={showNotes} label="Отображать заметки"
+            onChange={v => { setShowNotes(v); patch({ showNotes: v }); }} />
         </div>
 
         <div className="wpn-foot">

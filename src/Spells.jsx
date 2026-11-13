@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { SPELL_BY_ID, SPELL_BY_SLUG } from "./store.js";
-import { Popover } from "./ui.jsx";
+import { Popover, Toggle } from "./ui.jsx";
 import { statMod, profOf, levelOf, XP, spellCasting } from "./helpers.js";
 import { SpellFilters, emptyFilters, spellMatches, filterSummary } from "./SpellFilters.jsx";
 import { rollDiceExpr } from "./dice.js";
@@ -440,12 +440,13 @@ function PrepareModal({ c, onSave, onClose }) {
         <SpellFilters value={filters} onChange={setFilters} levels={levels} showLevels={false} />
         <div className="sp-prep-list">
           {list.map(s => (
-            <label key={s.id} className={"sp-prep-item" + (prepared.includes(s.id) ? " on" : "")}>
-              <input type="checkbox" checked={prepared.includes(s.id)} onChange={() => toggle(s.id)} />
+            <button key={s.id} className={"sp-prep-item" + (prepared.includes(s.id) ? " on" : "")}
+              onClick={() => toggle(s.id)}>
+              <span className="tg-box">{prepared.includes(s.id) ? "✓" : ""}</span>
               <span className="sp-prep-name">{s.name}</span>
               <span className="sp-prep-lv">{s.level === 0 ? "заг" : s.level}</span>
               {s.conc ? <span className="sp-badge" title="Концентрация">К</span> : null}
-            </label>
+            </button>
           ))}
           {!list.length ? <div className="hint">Ничего не найдено</div> : null}
         </div>

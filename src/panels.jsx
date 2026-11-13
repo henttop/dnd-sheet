@@ -2,6 +2,7 @@
 import { save } from "./store.js";
 import { levelOf, profOf, PROF_BY_LEVEL, XP } from "./helpers.js";
 import ImageCropper from "./ImageCropper.jsx";
+import { Toggle } from "./ui.jsx";
 
 /* ================= Меню под аватаром (как на сайте) ================= */
 export function AvatarMenu({ c, onSave, onSettings, onPortrait }) {
@@ -297,10 +298,7 @@ function Tile({ label, value, chip, onChip, onChange }) {
 
 function Check({ label, checked, onChange }) {
   return (
-    <label className="f-check">
-      <input type="checkbox" checked={!!checked} onChange={e => onChange(e.target.checked)} />
-      <span>{label}</span>
-    </label>
+    <Toggle checked={!!checked} label={label} onChange={onChange} />
   );
 }
 

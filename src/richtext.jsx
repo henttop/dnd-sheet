@@ -8,6 +8,23 @@ import React, { useState } from "react";
 //   ——                                          — разделитель
 //   "- " в начале строки                       — маркированный список
 
+/* Блок ресурса — такой же, как спойлер (интерфейс правки — только в режиме редактирования) */
+export function resourceBlockHtml(id, name, current, max) {
+  const val = max > 0 ? current + "/" + max : current;
+  return `<span class="ed-sp ed-sp-res" data-sp="1" data-res="${escHtml(id || "")}" contenteditable="false">`
+    + `<span class="ed-sp-head">`
+    + `<span class="ed-sp-icon">📦</span>`
+    + `<span class="ed-sp-title" contenteditable="true">${escHtml(name || "ресурс")}</span>`
+    + `<span class="ed-sp-count">`
+    + `<button type="button" class="sheet-resource__button" data-type="decrement" contenteditable="false">−</button>`
+    + `<span class="sheet-resource__label">${escHtml(String(val))}</span>`
+    + `<button type="button" class="sheet-resource__button" data-type="increment" contenteditable="false">+</button>`
+    + `</span>`
+    + `<button type="button" class="ed-sp-unwrap" contenteditable="false" title="убрать ресурс из текста">×</button>`
+    + `<button type="button" class="ed-sp-trash" contenteditable="false" title="удалить ресурс">🗑</button>`
+    + `</span></span>`;
+}
+
 export function renderDoc(doc, ctx = {}) {
   if (!doc || !doc.content) return null;
   return <>{doc.content.map((n, i) => <Node key={i} n={n} ctx={ctx} />)}</>;
@@ -64,18 +81,27 @@ function Node({ n, ctx = {} }) {
         ctx.onResource(a.id, { current: next });
       };
       return (
-        <span className="sheet-resource" data-id={a.id}>
-          <span className="sheet-resource__block-name" role="button" tabIndex={0}
-            title="настроить ресурс"
-            onClick={e => { e.stopPropagation(); if (a.id && ctx.onResourceOpen) ctx.onResourceOpen(a.id); }}>
-            <span className="sheet-resource__label">{name}</span>
-          </span>
-          <span className="sheet-resource__block-controls">
-            <button type="button" className="sheet-resource__button" data-type="decrement"
-              onClick={e => { e.stopPropagation(); step(-1); }}>−</button>
-            <span className="sheet-resource__label">{val}</span>
-            <button type="button" className="sheet-resource__button" data-type="increment"
-              onClick={e => { e.stopPropagation(); step(1); }}>+</button>
+        <span className={"ed-sp ed-sp-res" + (ctx.editable ? " editable" : "")} data-id={a.id}>
+          <span className="ed-sp-head">
+            <span className="ed-sp-icon">📦</span>
+            <span className="ed-sp-title" role="button" tabIndex={0}
+              title="настроить ресурс"
+              onClick={e => { e.stopPropagation(); if (a.id && ctx.onResourceOpen) ctx.onResourceOpen(a.id); }}>
+              {name}
+            </span>
+            <span className="ed-sp-count">
+              <button type="button" className="sheet-resource__button" data-type="decrement"
+                onClick={e => { e.stopPropagation(); step(-1); }}>−</button>
+              <span className="sheet-resource__label">{val}</span>
+              <button type="button" className="sheet-resource__button" data-type="increment"
+                onClick={e => { e.stopPropagation(); step(1); }}>+</button>
+            </span>
+            {ctx.editable ? (
+              <>
+                <button type="button" className="ed-sp-unwrap" title="убрать ресурс из текста">×</button>
+                <button type="button" className="ed-sp-trash" title="удалить ресурс">🗑</button>
+              </>
+            ) : null}
           </span>
         </span>
       );
@@ -224,7 +250,7 @@ function inlineToText(children) {
     }
     if (ch.type === "resource") {
       const a = ch.attrs || {};
-      return `{{${a.id || ""}${a.id ? "::" : ""}${a.name || ""}}}`;
+      return resourceBlockHtml(a.id, a.name, a.current ?? 0, a.max ?? 0);
     }
     if (ch.type === "roller") return `[[${ch.attrs?.expr || ch.attrs?.formula || ""}]]`;
     if (ch.type === "formula") return `\`${ch.attrs?.formula || ch.attrs?.expr || ""}\``;
@@ -365,6 +391,11 @@ function htmlToInline(node) {
     if (n.nodeType !== 1) return;
     const tag = n.tagName.toLowerCase();
     if (tag === "br") { out.push({ type: "text", text: "\n", marks }); return; }
+    if (n.classList?.contains("ed-sp-res")) {
+      const t = n.querySelector?.(".ed-sp-title");
+      out.push({ type: "resource", attrs: { id: n.dataset.res || "", name: (t?.textContent || "").replace(/^📦\s*/, "").trim() } });
+      return;
+    }
     if (n.classList?.contains("ed-res") || n.classList?.contains("ed-res-row")) {
       out.push({ type: "resource", attrs: { id: n.dataset.res || "", name: n.textContent.replace(/^📦\s*/, "") } });
       return;
@@ -435,12 +466,7 @@ export function docToEditorHtml(doc, ctx = {}) {
       const nm = live ? (live.name || "ресурс") : (a.name || "ресурс");
       const cv = live ? (live.current ?? 0) : (a.current ?? 0);
       const mx = live ? (live.resolvedMax ?? live.max ?? 0) : (a.max ?? 0);
-      parts.push(
-        '<div class="ed-res-row" data-res="' + (a.id || "") + '" contenteditable="false">'
-        + '<span class="ed-res-name">' + nm + '</span>'
-        + '<span class="ed-res-val">' + (mx > 0 ? cv + "/" + mx : cv) + '</span>'
-        + '</div>'
-      );
+      parts.push(resourceBlockHtml(a.id, nm, cv, mx));
     } else if (node.type === "divider") {
       parts.push(`<hr class="ed-divider">`);
     } else if (node.type === "bulletList" || node.type === "orderedList") {
@@ -470,6 +496,12 @@ export function editorToDoc(root) {
     if (node.nodeType !== 1) continue;
     const tag = node.tagName.toLowerCase();
 
+    if (node.classList?.contains("ed-sp-res")) {
+      flush();
+      const t = node.querySelector(".ed-sp-title");
+      content.push({ type: "resource", attrs: { id: node.dataset.res || "", name: (t?.textContent || "").trim() } });
+      continue;
+    }
     if (node.classList?.contains("ed-sp")) {
       flush();
       const title = node.querySelector(".ed-sp-title");

@@ -1,13 +1,13 @@
 ﻿import React, { useEffect, useState, useRef } from "react";
 import { characters, save } from "./store.js";
 import { SPELL_BY_ID, SPELL_BY_SLUG } from "./store.js";
-import { RollHost, Editable, Popover, ProfPopover, DieIcon, CreateModal, useAnchorPos } from "./ui.jsx";
+import { RollHost, Editable, Popover, ProfPopover, DieIcon, CreateModal, useAnchorPos, Toggle } from "./ui.jsx";
 import SpellsTab from "./Spells.jsx";
 import WeaponModal, { weaponBonus, damageInfo } from "./WeaponModal.jsx";
 import { AvatarMenu, SettingsDrawer, PortraitDrawer } from "./panels.jsx";
 import { getUi, setUi } from "./uistore.js";
 import { Avatar } from "./List.jsx";
-import { renderDoc, docToText, textToDoc, docToEditorHtml, editorToDoc } from "./richtext.jsx";
+import { renderDoc, docToText, textToDoc, docToEditorHtml, editorToDoc, resourceBlockHtml } from "./richtext.jsx";
 import TextMenu from "./TextMenu.jsx";
 import InsertBar from "./InsertBar.jsx";
 import ResourceModal from "./ResourceModal.jsx";
@@ -203,11 +203,8 @@ function AcVital({ c, onSave }) {
               onKeyDown={e => { if (e.key === "Enter") { v.ac = { value: +e.target.value || 0 }; onSave(); setOpen(false); } }}
               onBlur={e => { v.ac = { value: +e.target.value || 0 }; onSave(); }} />
           </label>
-          <label className="prof-opt">
-            <input type="checkbox" checked={!!v.shield?.value}
-              onChange={e => { v.shield = { value: e.target.checked }; onSave(); }} />
-            <span>Щит (+2 КД)</span>
-          </label>
+          <Toggle checked={!!v.shield?.value} label="Щит (+2 КД)"
+            onChange={val => { v.shield = { value: val }; onSave(); }} />
           {shield && base != null ? (
             <div className="f-hint" style={{ marginTop: 6 }}>
               Итоговое КД: <b>{base}</b> + 2 = <b>{total}</b>
@@ -356,15 +353,12 @@ function SubVitals({ c, onSave }) {
           <Popover onClose={() => { setCondOpen(false); onSave(); }} style={{ left: condPos.left, top: condPos.top, maxHeight: 320, overflow: "auto", minWidth: 230 }}>
             <div className="pop-title">Состояния</div>
             {Object.entries(CONDITIONS_RU).map(([k, label]) => (
-              <label key={k} className="prof-opt">
-                <input type="checkbox" checked={conds.includes(k)}
-                  onChange={e => {
-                    if (e.target.checked) conds.push(k);
-                    else c.data.conditions = conds.filter(x => x !== k);
-                    onSave();
-                  }} />
-                <span>{label}</span>
-              </label>
+              <Toggle key={k} checked={conds.includes(k)} label={label}
+                onChange={val => {
+                  if (val) conds.push(k);
+                  else c.data.conditions = conds.filter(x => x !== k);
+                  onSave();
+                }} />
             ))}
           </Popover>
         ) : null}
@@ -619,7 +613,21 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
   const save = () => {
     const el = richRef.current;
     if (!el) return;
-    setDoc(c, blockKey, editorToDoc(el));
+    const d = editorToDoc(el);
+    // название ресурса, отредактированное прямо в тексте, → в данные персонажа
+    const rs = c.data.resources || {};
+    const walk = (node) => {
+      for (const n of node.content || []) {
+        if (n.type === "resource" && n.attrs?.id) {
+          const r = rs[n.attrs.id];
+          const nm = (n.attrs.name || "").trim();
+          if (r && nm && nm !== r.name) r.name = nm;
+        }
+        walk(n);
+      }
+    };
+    walk(d);
+    setDoc(c, blockKey, d);
     onSave();
     closeEdit();
   };
@@ -654,20 +662,18 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
 
   const insertResource = (res) => withCaret(() => {
     let r = res;
+    let created = false;
     if (!r) {
       // новый ресурс персонажа — сразу открываем его настройки
       const id = "resource-" + Date.now();
       r = { id, name: "настроить", current: 0, max: 0, formula: "", isShortRest: false, isLongRest: false, notes: { value: "" } };
       c.data.resources = c.data.resources || {};
       c.data.resources[id] = r;
-      onSave();
-      setResModal({ id });
+      created = true;
     }
-    const html = '<span class="ed-res-row sheet-resource" data-res="' + r.id + '" contenteditable="false">'
-      + '<span class="ed-res-name sheet-resource__block-name" role="button" tabindex="0">' + r.name + '</span>'
-      + '<span class="ed-res-val sheet-resource__label">' + (r.current || 0) + '</span>'
-      + '</span>';
+    const html = resourceBlockHtml(r.id, r.name, r.current || 0, r.max || 0);
     document.execCommand("insertHTML", false, html);
+    if (created) { onSave(); setResModal({ id: r.id }); }
   });
 
   const insertRoll = () => withCaret(() => {
@@ -708,6 +714,43 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
       const r = roller.getBoundingClientRect();
       setDiePick({ el: roller, x: r.left, y: r.bottom });
       return;
+    }
+    const resPlus = el.closest?.(".ed-sp-res [data-type=increment]");
+    const resMinus = el.closest?.(".ed-sp-res [data-type=decrement]");
+    if (resPlus || resMinus) {
+      e.preventDefault();
+      const block = (resPlus || resMinus).closest(".ed-sp-res");
+      const id = block?.dataset.res;
+      const rs = c.data.resources || {};
+      if (id && rs[id]) {
+        const d = resPlus ? 1 : -1;
+        const mx = rs[id].max ?? 0;
+        let next = Math.max(0, (rs[id].current ?? 0) + d);
+        if (mx > 0) next = Math.min(next, mx);
+        onResourceChange(id, { current: next });
+      }
+      return;
+    }
+    const resBlock = el.closest?.(".ed-sp-res");
+    if (resBlock) {
+      const rid = resBlock.dataset.res;
+      if (el.closest?.(".ed-sp-unwrap")) {
+        e.preventDefault();
+        resBlock.remove();
+        return;
+      }
+      if (el.closest?.(".ed-sp-trash")) {
+        e.preventDefault();
+        resBlock.remove();
+        if (rid && c.data.resources) { delete c.data.resources[rid]; onSave(); }
+        return;
+      }
+      if (el.closest?.(".ed-sp-title")) return;   // каретка в названии — можно править текст
+      if (rid) {
+        e.preventDefault();
+        setResModal({ id: rid });
+        return;
+      }
     }
     const resChip = el.closest?.(".ed-res-row") || el.closest?.(".ed-res");
     if (resChip && resChip.dataset.res) {
@@ -751,6 +794,17 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
     if (!rs[id]) return;
     rs[id] = { ...rs[id], ...patch };
     onSave();
+    // обновляем блок прямо в редакторе, чтобы название/счётчик не расходились
+    const root = richRef.current;
+    if (root) {
+      const block = root.querySelector('[data-res="' + id + '"]');
+      if (block) {
+        const titleEl = block.querySelector(".ed-sp-title");
+        if (titleEl && rs[id].name != null) titleEl.textContent = rs[id].name;
+        const valEl = block.querySelector(".sheet-resource__label");
+        if (valEl) valEl.textContent = String(rs[id].current ?? 0);
+      }
+    }
   };
 
   const resCtx = {

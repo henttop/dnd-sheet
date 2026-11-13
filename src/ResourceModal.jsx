@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Toggle } from "./ui.jsx";
 
 /* Модалка ресурса — по образцу longstoryshort.app (?modal=resource) */
 
@@ -73,14 +74,10 @@ export default function ResourceModal({ resource, onChange, onDelete, onClose })
 
         <div className="res-block">
           <div className="res-label">ВОССТАНОВЛЕНИЕ</div>
-          <label className="f-check">
-            <input type="checkbox" checked={shortRest} onChange={e => { setShortRest(e.target.checked); commit({ isShortRest: e.target.checked }); }} />
-            <span>Короткий отдых</span>
-          </label>
-          <label className="f-check">
-            <input type="checkbox" checked={longRest} onChange={e => { setLongRest(e.target.checked); commit({ isLongRest: e.target.checked }); }} />
-            <span>Продолжительный отдых</span>
-          </label>
+          <Toggle checked={shortRest} label="Короткий отдых"
+            onChange={v => { setShortRest(v); commit({ isShortRest: v }); }} />
+          <Toggle checked={longRest} label="Продолжительный отдых"
+            onChange={v => { setLongRest(v); commit({ isLongRest: v }); }} />
         </div>
 
         <div className="res-block">
@@ -88,10 +85,8 @@ export default function ResourceModal({ resource, onChange, onDelete, onClose })
           <textarea className="rt-edit" rows={3} value={notes} placeholder="Заметки к ресурсу"
             onChange={e => { setNotes(e.target.value); commit({ notes: { value: e.target.value } }); }} />
           <div className="res-label">ЗАМЕТКИ</div>
-          <label className="f-check">
-            <input type="checkbox" checked={showNotes} onChange={e => { setShowNotes(e.target.checked); commit({ showNotes: e.target.checked }); }} />
-            <span>Отображать заметки</span>
-          </label>
+          <Toggle checked={showNotes} label="Отображать заметки"
+            onChange={v => { setShowNotes(v); commit({ showNotes: v }); }} />
         </div>
 
         <div className="res-foot">
