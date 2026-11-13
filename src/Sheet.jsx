@@ -624,13 +624,23 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
   };
 
   // команды работают с текущим выделением внутри contenteditable
+  // вставка идёт в текстовое поле: возвращаем туда фокус и каретку
+  const withCaret = (fn) => {
+    const root = richRef.current;
+    const sel = window.getSelection();
+    let range = null;
+    if (sel && sel.rangeCount && root && root.contains(sel.anchorNode)) range = sel.getRangeAt(0).cloneRange();
+    if (root) root.focus();
+    if (range && sel) { sel.removeAllRanges(); sel.addRange(range); }
+    fn();
+  };
+
   const exec = (cmd, val = null) => {
     richRef.current?.focus();
     document.execCommand(cmd, false, val);
   };
 
-  const insertSpoiler = () => {
-    richRef.current?.focus();
+  const insertSpoiler = () => withCaret(() => {
     const html = '<div class="ed-sp" data-sp="1" contenteditable="false">'
       + '<div class="ed-sp-head">'
       + '<button type="button" class="ed-sp-chev" contenteditable="false">›</button>'
@@ -639,10 +649,9 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
       + '<button type="button" class="ed-sp-trash" contenteditable="false">🗑</button>'
       + '</div><div class="ed-sp-body" contenteditable="true"><p>содержимое спойлера</p></div></div><p><br></p>';
     document.execCommand("insertHTML", false, html);
-  };
+  });
 
-  const insertResource = (res) => {
-    richRef.current?.focus();
+  const insertResource = (res) => withCaret(() => {
     let r = res;
     if (!r) {
       // новый ресурс персонажа — сразу открываем его настройки
@@ -653,14 +662,16 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
       onSave();
       setResModal({ id });
     }
-    const html = '<span class="ed-res" data-res="' + r.id + '" contenteditable="false">📦 ' + r.name + '</span>';
+    const html = '<span class="ed-res-row sheet-resource" data-res="' + r.id + '" contenteditable="false">'
+      + '<span class="ed-res-name sheet-resource__block-name" role="button" tabindex="0">' + r.name + '</span>'
+      + '<span class="ed-res-val sheet-resource__label">' + (r.current || 0) + '</span>'
+      + '</span>';
     document.execCommand("insertHTML", false, html);
-  };
+  });
 
-  const insertRoll = () => {
-    richRef.current?.focus();
+  const insertRoll = () => withCaret(() => {
     document.execCommand("insertHTML", false, '<span class="ed-roller" contenteditable="false">🎲 1d6</span>');
-  };
+  });
 
   const insertDivider = () => {
     richRef.current?.focus();
@@ -671,12 +682,10 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
     const map = { "**": "bold", "*": "italic", "__": "underline", "~~": "strikeWithSelection", "`": "code" };
     const cmd = map[mark];
     if (!cmd) return;
-    if (cmd === "strikeWithSelection") {
-      const sel = window.getSelection();
-      if (sel && sel.rangeCount) document.execCommand("strikeThrough");
-      return;
-    }
-    exec(cmd);
+    withCaret(() => {
+      if (cmd === "strikeWithSelection") { document.execCommand("strikeThrough"); return; }
+      document.execCommand(cmd, false, null);
+    });
   };
 
   const onInsert = (kind, res) => {

@@ -595,7 +595,9 @@ img{display:block}
 .res-circle-l{font-size:8px;font-weight:800;letter-spacing:.5px;color:var(--dim);margin-top:2px}
 .res-block{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:10px}
 .res-label{font-size:10px;font-weight:800;letter-spacing:.6px;color:var(--dim);margin:0 0 4px}
-.res-values{display:grid;grid-template-columns:120px 1fr;gap:10px;align-items:end}
+.res-values{display:grid;grid-template-columns:110px 1fr 90px;gap:10px;align-items:end}
+.res-modal-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.res-formula input{font-family:Consolas,monospace;font-size:12px}
 .res-foot{display:flex;justify-content:flex-end}
 .res-foot .f-btn{flex:none;padding:7px 18px}
 
@@ -715,3 +717,17 @@ img{display:block}
 .rt-rich .ed-res-name{flex:1;font-size:13px;color:rgba(255,255,255,.92)}
 .rt-rich .ed-res-val{font-size:13px;color:rgba(255,255,255,.9);background:rgb(40,51,81);
   border:1px solid rgb(96,107,133);border-radius:3px;padding:0 6px}
+
+/* ===== Ресурс: виджет в листе и в редакторе ===== */
+.sheet-resource__block-name.isclick{cursor:pointer}
+.sheet-resource__block-name.isclick:hover{background:#2f3750}
+.sheet-resource__block-controls{background:rgb(39,46,67);color:rgba(255,255,255,.9);font-size:13px;
+  padding:0 4px;border-radius:3px;display:flex;align-items:center;gap:4px}
+.sheet-resource__button{background:rgb(40,51,81);border:1px solid rgb(96,107,133);color:rgba(255,255,255,.9);
+  width:20px;height:20px;border-radius:3px;font-size:14px;line-height:1;display:flex;align-items:center;
+  justify-content:center;cursor:pointer;padding:0;user-select:none}
+.sheet-resource__button:hover{background:#3a4470;border-color:var(--accent2)}
+.sheet-resource__label{font-size:13px;color:rgba(255,255,255,.9)}
+.rt-rich .sheet-resource{margin:6px 0}
+.rt-rich .sheet-resource__block-name{cursor:pointer}
+.rt-rich .sheet-resource__block-name:hover{background:#2f3750}

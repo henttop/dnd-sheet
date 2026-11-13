@@ -53,21 +53,8 @@ function Node({ n, ctx = {} }) {
       const live = a.id && ctx.resources ? ctx.resources[a.id] : null;
       const name = live ? (live.name || "ресурс") : (a.name || "ресурс");
       const cur = live ? (live.current ?? 0) : (a.current ?? 0);
-      const mx = live ? (live.resolvedMax ?? live.max ?? 0) : (a.max ?? 0);
+      const mx = live ? (live.max ?? 0) : (a.max ?? 0);
       const val = mx > 0 ? `${cur}/${mx}` : cur;
-      if (!ctx.editable) {
-        // в листе ресурс — просто строка, правится только в режиме правки
-        return (
-          <span className="sheet-resource sheet-resource_static" data-id={a.id}>
-            <span className="sheet-resource__block-name">
-              <span className="sheet-resource__label">{name}</span>
-            </span>
-            <span className="sheet-resource__block-controls">
-              <span className="sheet-resource__label">{val}</span>
-            </span>
-          </span>
-        );
-      }
       const step = (d) => {
         if (!a.id || !ctx.onResource) return;
         let next = (cur ?? 0) + d;
@@ -372,7 +359,7 @@ function htmlToInline(node) {
     if (n.nodeType !== 1) return;
     const tag = n.tagName.toLowerCase();
     if (tag === "br") { out.push({ type: "text", text: "\n", marks }); return; }
-    if (n.classList?.contains("ed-res")) {
+    if (n.classList?.contains("ed-res") || n.classList?.contains("ed-res-row")) {
       out.push({ type: "resource", attrs: { id: n.dataset.res || "", name: n.textContent.replace(/^📦\s*/, "") } });
       return;
     }

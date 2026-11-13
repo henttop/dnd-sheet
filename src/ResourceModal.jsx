@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from "react";
-/* Модалка ресурса — по образцу longstoryshort.app */
+
+/* Модалка ресурса — по образцу longstoryshort.app (?modal=resource) */
+
 export default function ResourceModal({ resource, onChange, onDelete, onClose }) {
   const r = resource || {};
   const [name, setName] = useState(r.name || "");
   const [current, setCurrent] = useState(r.current ?? 0);
-  const [max, setMax] = useState(r.max ?? r.resolvedMax ?? 0);
-  const [formula, setFormula] = useState(r.maxExpr || r.formula || "");
+  const [max, setMax] = useState(r.max ?? 0);
+  const [formula, setFormula] = useState(r.formula || "");
   const [shortRest, setShortRest] = useState(!!r.isShortRest);
   const [longRest, setLongRest] = useState(!!r.isLongRest);
-  const [notes, setNotes] = useState(typeof r.notes === "string" ? r.notes : (r.notes?.value || ""));
+  const [notes, setNotes] = useState(r.notes?.value || "");
   const [showNotes, setShowNotes] = useState(!!r.showNotes);
 
   useEffect(() => {
@@ -17,36 +19,27 @@ export default function ResourceModal({ resource, onChange, onDelete, onClose })
     return () => document.removeEventListener("keydown", key);
   }, [onClose]);
 
-  const commit = (patch) => {
-    const isFormula = /[^\d\s.]/.test(formula);
-    const next = {
-      ...r,
-      id: r.id || "resource-" + Date.now(),
-      name, current,
-      max: isFormula ? (r.max ?? 0) : (parseInt(max, 10) || 0),
-      isShortRest: shortRest, isLongRest: longRest,
-      showNotes,
-      ...patch,
-    };
-    if (isFormula) next.maxExpr = formula;
-    else delete next.maxExpr;
-    // заметки храним строкой — так же, как в LSS
-    if (typeof r.notes === "object" && r.notes !== null) next.notes = { value: notes };
-    else next.notes = notes;
-    onChange(next);
-  };
+  const commit = (patch) => onChange({
+    ...r,
+    id: r.id || "resource-" + Date.now(),
+    name, current, max, formula,
+    isShortRest: shortRest, isLongRest: longRest,
+    notes: { value: notes },
+    showNotes,
+    ...patch,
+  });
+
+  const restorable = shortRest || longRest;
 
   return (
     <div className="modal-back" onMouseDown={onClose}>
       <div className="modal res-modal" onMouseDown={e => e.stopPropagation()}>
         <button className="modal-x" onClick={onClose}>×</button>
 
-        <div className="res-head">
+        <div className="res-modal-head">
           <div>
-            <div className="res-title">РЕСУРС</div>
-            {r.isLongRest || r.isShortRest ? (
-              <span className="res-restore-tag">ВОССТАНОВИТЬ</span>
-            ) : null}
+            <h3 className="modal-title">РЕСУРС</h3>
+            {restorable ? <span className="res-restore-tag">ВОССТАНОВИТЬ</span> : null}
           </div>
           <div className="res-circle">
             <span className="res-circle-v">{current}</span>
@@ -65,22 +58,15 @@ export default function ResourceModal({ resource, onChange, onDelete, onClose })
           <div className="res-values">
             <label className="pop-field">ТЕКУЩЕЕ
               <input type="number" className="edit-in" value={current}
-                onChange={e => {
-                  let v = +e.target.value || 0;
-                  const limit = parseInt(max, 10) || 0;
-                  if (limit > 0 && v > limit) v = limit;   // не больше максимума
-                  if (v < 0) v = 0;
-                  setCurrent(v); commit({ current: v });
-                }} />
+                onChange={e => { const v = +e.target.value || 0; setCurrent(v); commit({ current: v }); }} />
             </label>
             <label className="pop-field">МАКСИМУМ
-              <input className="f-input" value={typeof max === "string" ? max : (formula || max)} placeholder="10"
-                onChange={e => {
-                  const v = e.target.value;
-                  setMax(v);
-                  setFormula(/[^\d\s]/.test(v) ? v : "");
-                  commit({ max: /[^\d\s]/.test(v) ? max : (parseInt(v, 10) || 0), formula: /[^\d\s]/.test(v) ? v : "" });
-                }} />
+              <input className="f-input" value={max ?? ""} placeholder="0"
+                onChange={e => { const v = e.target.value; setMax(v); commit({ max: v }); }} />
+            </label>
+            <label className="pop-field res-formula" title="формула, например 10 или [PROF]*2">ƒ
+              <input className="f-input" value={formula} placeholder="формула"
+                onChange={e => { setFormula(e.target.value); commit({ formula: e.target.value }); }} />
             </label>
           </div>
         </div>
@@ -99,7 +85,7 @@ export default function ResourceModal({ resource, onChange, onDelete, onClose })
 
         <div className="res-block">
           <div className="res-label">ЗАМЕТКИ</div>
-          <textarea className="rt-edit" rows={3} value={notes}
+          <textarea className="rt-edit" rows={3} value={notes} placeholder="Заметки к ресурсу"
             onChange={e => { setNotes(e.target.value); commit({ notes: { value: e.target.value } }); }} />
           <div className="res-label">ЗАМЕТКИ</div>
           <label className="f-check">
