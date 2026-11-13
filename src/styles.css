@@ -678,22 +678,22 @@ img{display:block}
 .rt-rich .ed-res{background:var(--card);border:1px solid var(--purple2);border-radius:5px;
   padding:0 6px;font-size:12px;font-weight:700;color:var(--purple2);white-space:nowrap}
 .rt-rich .ed-roller{background:var(--accent);color:#fff;border-radius:5px;padding:0 6px;font-size:12px;font-weight:700}
-.rt-rich .ed-sp{display:block;margin:8px 0;border-left:2px solid var(--purple2);
+.ed-sp{display:block;margin:8px 0;border-left:2px solid var(--purple2);
   background:rgba(139,92,246,.07);border-radius:0 8px 8px 0;padding:4px 8px 6px}
-.rt-rich .ed-sp.open{background:rgba(139,92,246,.14)}
-.rt-rich .ed-sp-head{display:flex;align-items:center;gap:6px}
-.rt-rich .ed-sp-chev{background:transparent;border:none;color:rgba(255,255,255,.75);cursor:pointer;padding:0;
+.ed-sp.open{background:rgba(139,92,246,.14)}
+.ed-sp-head{display:flex;align-items:center;gap:6px}
+.ed-sp-chev{background:transparent;border:none;color:rgba(255,255,255,.75);cursor:pointer;padding:0;
   font-size:16px;line-height:1;width:18px}
-.rt-rich .ed-sp.open .ed-sp-chev{transform:rotate(90deg)}
-.rt-rich .ed-sp-title{flex:1;min-width:60px;background:#272e43;border-radius:5px;color:rgba(255,255,255,.92);
+.ed-sp.open .ed-sp-chev{transform:rotate(90deg)}
+.ed-sp-title{flex:1;min-width:60px;background:#272e43;border-radius:5px;color:rgba(255,255,255,.92);
   font-size:12px;font-weight:600;padding:3px 8px;outline:none}
-.rt-rich .ed-sp-title:focus{background:#2f3750}
-.rt-rich .ed-sp-unwrap,.rt-rich .ed-sp-trash{background:transparent;border:none;cursor:pointer;
+.ed-sp-title:focus{background:#2f3750}
+.ed-sp-unwrap,.ed-sp-trash{background:transparent;border:none;cursor:pointer;
   color:var(--dim);font-size:13px;line-height:1;padding:2px 3px}
-.rt-rich .ed-sp-unwrap:hover{color:var(--gold)}
-.rt-rich .ed-sp-trash:hover{color:var(--red)}
-.rt-rich .ed-sp-body{margin-top:4px;padding-left:4px}
-.rt-rich .ed-sp-body p{margin:0 0 4px}
+.ed-sp-unwrap:hover{color:var(--gold)}
+.ed-sp-trash:hover{color:var(--red)}
+.ed-sp-body{margin-top:4px;padding-left:4px}
+.ed-sp-body p{margin:0 0 4px}
 
 /* ===== Ресурс в тексте (как на LSS) ===== */
 .sheet-resource{display:flex;align-items:stretch;gap:2px;width:100%;margin:4px 0}
@@ -731,3 +731,9 @@ img{display:block}
 .rt-rich .sheet-resource{margin:6px 0}
 .rt-rich .sheet-resource__block-name{cursor:pointer}
 .rt-rich .sheet-resource__block-name:hover{background:#2f3750}
+
+/* спойлер в обычном режиме — тот же блок, чуть спокойнее */
+.rt .ed-sp{margin:8px 0;border-left:2px solid var(--purple2);background:rgba(139,92,246,.07);
+  border-radius:0 8px 8px 0;padding:4px 8px 6px}
+.rt .ed-sp.open{background:rgba(139,92,246,.14)}
+.rt .ed-sp-title{cursor:pointer}

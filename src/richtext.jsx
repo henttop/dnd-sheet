@@ -92,20 +92,25 @@ function Inline({ t, ctx = {} }) {
   return <Node n={t} ctx={ctx} />;
 }
 
-/* Спойлер как на LSS: шеврон + тёмная плашка с названием, тело раскрывается по клику */
-function Spoiler({ summary, children }) {
+/* Спойлер: тот же блок, что в редакторе (шеврон + тёмная плашка + тело).
+   В режиме правки добавляются кнопки редактирования. */
+function Spoiler({ summary, children, editable }) {
   const [open, setOpen] = useState(false);
   const toggle = (e) => { e.stopPropagation(); setOpen(o => !o); };
   return (
-    <div className={"sheet-spoiler" + (open ? " open" : "")}>
-      <button type="button" className="sp-toggle" aria-expanded={open}
-        aria-label={open ? "Свернуть" : "Развернуть"} onClick={toggle}>
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-          <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
-        </svg>
-      </button>
-      <div className="sp-summary" onClick={toggle}>{summary}</div>
-      {open ? <div className="sp-body">{children}</div> : null}
+    <div className={"ed-sp" + (open ? " open" : "")}>
+      <div className="ed-sp-head">
+        <button type="button" className="ed-sp-chev" aria-expanded={open}
+          aria-label={open ? "Свернуть" : "Развернуть"} onClick={toggle}>›</button>
+        <span className="ed-sp-title" onClick={toggle}>{summary}</span>
+        {editable ? (
+          <>
+            <button type="button" className="ed-sp-unwrap" title="убрать спойлер (текст останется)">×</button>
+            <button type="button" className="ed-sp-trash" title="удалить блок с текстом">🗑</button>
+          </>
+        ) : null}
+      </div>
+      {open ? <div className="ed-sp-body">{children}</div> : null}
     </div>
   );
 }
