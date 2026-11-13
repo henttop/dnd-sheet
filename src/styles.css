@@ -601,6 +601,15 @@ img{display:block}
 .res-foot{display:flex;justify-content:flex-end}
 .res-foot .f-btn{flex:none;padding:7px 18px}
 
+/* ===== Выбор кубика для броска ===== */
+.die-pick{position:fixed;z-index:220;background:var(--card2);border:1px solid var(--border2);border-radius:10px;
+  box-shadow:0 12px 32px rgba(0,0,0,.6);padding:8px}
+.die-pick-title{font-size:9px;font-weight:800;letter-spacing:.6px;color:var(--dim);margin-bottom:6px}
+.die-pick-row{display:flex;gap:5px}
+.die-pick-btn{background:var(--card);border:1px solid var(--border2);border-radius:7px;padding:4px 10px;
+  font-size:12px;font-weight:800;color:var(--text)}
+.die-pick-btn:hover{border-color:var(--purple);background:var(--purple);color:#fff}
+
 /* ===== Контекстное меню редактора (ПКМ) ===== */
 .ctx-menu{position:fixed;z-index:220;background:var(--card2);border:1px solid var(--border2);
   border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.6);padding:6px;min-width:210px}

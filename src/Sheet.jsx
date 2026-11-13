@@ -598,6 +598,7 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
   const [edit, setEdit] = useState(false);
   const [menu, setMenu] = useState(null);
   const [resModal, setResModal] = useState(null);
+  const [diePick, setDiePick] = useState(null);   // {el, x, y} — выбор кубика для броска
   const richRef = useRef(null);
   const doc = docOf(c, blockKey);
   const resources = Object.values(c.data.resources || {});
@@ -701,6 +702,13 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
     const el = e.target;
     const root = richRef.current;
     if (!root) return;
+    const roller = el.closest?.(".ed-roller");
+    if (roller) {
+      e.preventDefault();
+      const r = roller.getBoundingClientRect();
+      setDiePick({ el: roller, x: r.left, y: r.bottom });
+      return;
+    }
     const resChip = el.closest?.(".ed-res-row") || el.closest?.(".ed-res");
     if (resChip && resChip.dataset.res) {
       e.preventDefault();
@@ -777,6 +785,21 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
           {menu ? (
             <TextMenu x={menu.x} y={menu.y} resources={resources}
               onClose={() => setMenu(null)} onFormat={onFormat} onInsert={onInsert} />
+          ) : null}
+          {diePick ? (
+            <div className="die-pick" style={{ left: diePick.x, top: diePick.y }}
+              onMouseDown={e => e.stopPropagation()}>
+              <div className="die-pick-title">КАКОЙ КУБИК</div>
+              <div className="die-pick-row">
+                {[4, 6, 8, 10, 12, 20, 100].map(f => (
+                  <button key={f} className="die-pick-btn"
+                    onClick={() => {
+                      diePick.el.textContent = "🎲 1d" + f;
+                      setDiePick(null);
+                    }}>d{f}</button>
+                ))}
+              </div>
+            </div>
           ) : null}
         </>
       ) : (

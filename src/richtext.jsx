@@ -45,7 +45,8 @@ function Node({ n, ctx = {} }) {
     case "text": return <Inline t={n} ctx={ctx} />;
     case "roller": {
       const e = n.attrs?.expr || n.attrs?.formula || "";
-      return <button className="roller-btn" onClick={() => window.__rollExpr?.(e, n)}>🎲 {e}</button>;
+      return <button className="roller-btn" title="бросить"
+        onClick={() => window.__rollExpr?.(`Бросок ${e}`, e)}>🎲 {e}</button>;
     }
     case "formula": return <code>{n.attrs?.formula || n.attrs?.expr || ""}</code>;
     case "resource": {
@@ -400,8 +401,7 @@ function collectParagraphs(container) {
     const tag = node.tagName.toLowerCase();
     if (tag === "p" || tag === "div") {
       flush();
-      const inl = htmlToInline(node);
-      if (inl.length) out.push({ type: "paragraph", content: inl });
+      out.push({ type: "paragraph", content: htmlToInline(node) });
       continue;
     }
     if (tag === "br") { buf.push({ type: "text", text: "\n", marks: [] }); continue; }
@@ -500,8 +500,7 @@ export function editorToDoc(root) {
     }
     if (tag === "p" || tag === "div") {
       flush();
-      const inl = htmlToInline(node);
-      if (inl.length) content.push({ type: "paragraph", content: inl });
+      content.push({ type: "paragraph", content: htmlToInline(node) });
       continue;
     }
     // прочие inline-элементы — в текущий абзац
