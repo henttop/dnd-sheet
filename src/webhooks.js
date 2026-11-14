@@ -120,7 +120,10 @@ export function formatRollDetails(roll) {
 
   if (roll.spell) {
     if (roll.rolls && roll.rolls.length) {
-      const parts = roll.rolls.map(r => (r.parts && r.parts.length ? r.parts.join("+") : r.value)).join(" + ");
+      const parts = roll.rolls.map(r => {
+        const raw = (r.parts && r.parts.length ? r.parts.join("+") : r.value);
+        return r.expr ? `${r.expr} (${raw})` : raw;
+      }).join(" + ");
       details = parts + (roll.sub ? ` (${roll.sub})` : "");
     } else if (roll.sub) {
       details = roll.sub;
@@ -141,7 +144,7 @@ export function formatRollDetails(roll) {
     }
   } else if (roll.isDmg) {
     let base = roll.mods || "";
-    if (roll.sub) {
+    if (roll.sub && !base.includes(roll.sub)) {
       base = base ? `${base} (${roll.sub})` : roll.sub;
     }
     details = base || "Урон";

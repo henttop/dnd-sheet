@@ -13,6 +13,8 @@ import InsertBar from "./InsertBar.jsx";
 import ResourceModal from "./ResourceModal.jsx";
 import HealthModal from "./HealthModal.jsx";
 import CoinsModal, { CoinBadge } from "./CoinsModal.jsx";
+import { getRollHistory, subscribeRollHistory } from "./rollHistory.js";
+import { HistoryIcon } from "./RollHistoryModal.jsx";
 import {
   SKILLS, STAT_NAMES, XP, CONDITIONS_RU, SIZES, TABS,
   hp, profOf, coinsTotal, statMod, skillProf, skillCustom, skillBonus,
@@ -27,8 +29,13 @@ export default function Sheet({ idx, back, fresh, onFreshDone }) {
   const [ui, setUiState] = useState(getUi());
   const [showSettings, setShowSettings] = useState(false);
   const [showPortrait, setShowPortrait] = useState(false);
+  const [historyCount, setHistoryCount] = useState(() => getRollHistory().length);
   const rerender = () => { save(); setVer(x => x + 1); };
   const patchUi = (p) => setUiState(setUi(p));
+
+  useEffect(() => {
+    return subscribeRollHistory(list => setHistoryCount(list.length));
+  }, []);
 
   useEffect(() => {
     window.__activeChar = c;
@@ -50,6 +57,16 @@ export default function Sheet({ idx, back, fresh, onFreshDone }) {
         <div className="logo">D&D 5E</div>
         <div className="nav"><span onClick={back}>← Мои персонажи</span></div>
         <div className="spacer" />
+        <button
+          type="button"
+          className="top-history-btn"
+          onClick={() => window.__openRollHistory?.()}
+          title="История бросков"
+        >
+          <HistoryIcon size={16} />
+          <span>История бросков</span>
+          {historyCount > 0 && <span className="top-history-badge">{historyCount > 99 ? "99+" : historyCount}</span>}
+        </button>
         <GoldPill c={c} onSave={rerender} />
       </div>
       <CharBar c={c} onSave={rerender} onSettings={() => setShowSettings(true)} onPortrait={() => setShowPortrait(true)} />

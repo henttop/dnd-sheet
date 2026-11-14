@@ -167,6 +167,10 @@ export function SettingsDrawer({ c, onSave, onClose, onOpenWizard, ui, setUi }) 
           <span>Настройки бросков</span>
           <span className="chev">›</span>
         </button>
+        <button className="settings-nav-btn" onClick={() => { onClose(); window.__openRollHistory?.(); }}>
+          <span>История бросков</span>
+          <span className="chev">›</span>
+        </button>
         <button className="settings-nav-btn" onClick={() => setSubView("spells")}>
           <span>Настройки заклинаний</span>
           <span className="chev">›</span>

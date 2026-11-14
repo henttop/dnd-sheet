@@ -130,7 +130,8 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
         if (!res) continue;
         total += res.total;
         const faces = +(String(expr).match(/[dкк](\d+)/i)?.[1] || 20);
-        rolls.push({ faces, value: res.total, parts: res.raw });
+        const cleanExpr = String(expr).trim().replace(/d/i, "к");
+        rolls.push({ expr: cleanExpr, faces, value: res.total, parts: res.raw });
       }
       subParts.push(dmg.map(x => x.t).filter(Boolean).join(", "));
     }

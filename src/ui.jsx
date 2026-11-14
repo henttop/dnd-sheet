@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { rollDiceExpr, d20, signed } from "./dice.js";
 import { getUi, subscribeUi } from "./uistore.js";
 import { sendRollToWebhooks } from "./webhooks.js";
+import { addRollHistory, getRollHistory, subscribeRollHistory } from "./rollHistory.js";
+import RollHistoryDrawer, { HistoryIcon } from "./RollHistoryModal.jsx";
 
 /* ================= Всплывающие результаты броска (стопка слева внизу) ================= */
 export function RollHost() {
@@ -29,9 +31,11 @@ export function RollHost() {
     document.addEventListener("click", onDocClick, true);
 
     window.__roll = (title, total, mods, opts = {}) => {
-      const entry = { title, total, mods, ...opts };
+      const charName = window.__activeChar?.data?.name?.value || "Безымянный персонаж";
+      const entry = { title, total, mods, charName, ...opts };
       push(entry);
       sendRollToWebhooks(entry);
+      addRollHistory(entry);
     };
     // бросок к20: total = кубик + бонус
     window.__rollD20 = (title, bonus, mods = "") => {
@@ -40,24 +44,60 @@ export function RollHost() {
       if (bonus > 0) parts.push(`+${bonus}`);
       else if (bonus < 0) parts.push(`−${-bonus}`);
       if (mods) parts.push(mods);
-      window.__roll(title, d + bonus, parts.join(" + "), { die: d, crit: d === 20, fail: d === 1 });
+      window.__roll(title, d + bonus, parts.join(" + "), {
+        die: d,
+        bonus,
+        extraMods: mods,
+        crit: d === 20,
+        fail: d === 1
+      });
     };
     window.__rollExpr = (title, expr, mod, modLabel, extraOpts = {}) => {
       const res = rollDiceExpr(expr);
       if (res) {
         const extra = mod || 0;
-        const diceLine = res.raw.length > 1 ? res.raw.join("+") + (extra ? (extra >= 0 ? "+" : "−") + Math.abs(extra) : "") : "";
         const faces = +(String(expr).match(/[dкк](\d+)/i)?.[1] || 20);
-        window.__roll(title, res.total + extra,
-          [diceLine || res.raw.join(" + "), extra && res.raw.length <= 1 ? `${extra >= 0 ? "+" : "−"}${Math.abs(extra)}${modLabel ? " (" + modLabel + ")" : ""}` : ""].filter(Boolean).join(" "),
-          { isDmg: true, modLabel, faces, expr, diceRaw: res.raw, ...extraOpts });
+        const cleanExpr = String(expr).trim().replace(/d/i, "к");
+        const diceBreakdown = res.raw.join("+");
+
+        // Явно указываем кость урона: например "1к8 (5)" или "2к6 (4+3)"
+        const formulaPart = `${cleanExpr} (${diceBreakdown})`;
+        let modPart = "";
+        if (extra > 0) {
+          modPart = ` + ${extra}${modLabel ? " (" + modLabel + ")" : ""}`;
+        } else if (extra < 0) {
+          modPart = ` − ${Math.abs(extra)}${modLabel ? " (" + modLabel + ")" : ""}`;
+        }
+        const subPart = extraOpts.sub ? ` ${extraOpts.sub}` : "";
+        const mods = `${formulaPart}${modPart}${subPart}`.trim();
+
+        window.__roll(title, res.total + extra, mods, {
+          isDmg: true,
+          modLabel,
+          faces,
+          expr: cleanExpr,
+          diceRaw: res.raw,
+          mod: extra,
+          ...extraOpts
+        });
       }
     };
     // бросок урона заклинания (как карточка в журнале кубиков у LSS)
-    window.__rollSpell = (name, total, dmgType, rolls) => {
-      const entry = { title: name, total, kind: "урон", sub: dmgType, rolls: rolls || [], spell: true };
+    window.__rollSpell = (name, total, dmgType, rolls, extraOpts = {}) => {
+      const charName = window.__activeChar?.data?.name?.value || "Безымянный персонаж";
+      const entry = {
+        title: name,
+        total,
+        kind: extraOpts.kind || "урон",
+        sub: dmgType,
+        rolls: rolls || [],
+        spell: true,
+        charName,
+        ...extraOpts
+      };
       push(entry);
       sendRollToWebhooks(entry);
+      addRollHistory(entry);
     };
 
     return () => {
@@ -83,6 +123,10 @@ function RollCard({ st, ui, onClose, old }) {
 
   // карточка броска заклинания (журнал кубиков у LSS)
   if (st.spell) {
+    const diceLine = (st.rolls || []).map(r => {
+      const raw = r.parts && r.parts.length ? r.parts.join("+") : r.value;
+      return r.expr ? `${r.expr} (${raw})` : raw;
+    }).join(" + ");
     return (
       <div className={cls + " spell-pop"}>
         <button className="rp-close" onClick={onClose}>×</button>
@@ -99,7 +143,7 @@ function RollCard({ st, ui, onClose, old }) {
           </div>
           <div className={"rp-total" + mood + (typeof st.total === "string" && isNaN(Number(st.total)) ? " text-total" : "")}>{st.total}</div>
         </div>
-        {allDice.length > 1 ? <div className="rp-roll-line">{allDice.join("+")}</div> : null}
+        {diceLine ? <div className="rp-roll-line">{diceLine}</div> : null}
       </div>
     );
   }
@@ -132,7 +176,14 @@ function RollCard({ st, ui, onClose, old }) {
       <div className="rp-title">{st.title}</div>
       <div className="rp-body">
         <div className={"rp-die" + mood}>
-          {st.faces ? <DieShape faces={st.faces} size={32} /> : <><DieIcon size={34} />{st.die != null ? <span className="rp-die-n">{st.die}</span> : null}</>}
+          {st.faces ? (
+            <span className="rp-glyph" style={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <DieShape faces={st.faces} size={34} />
+              {st.diceRaw && st.diceRaw.length === 1 ? (
+                <span className="rp-die-n">{st.diceRaw[0]}</span>
+              ) : null}
+            </span>
+          ) : <><DieIcon size={34} />{st.die != null ? <span className="rp-die-n">{st.die}</span> : null}</>}
         </div>
         <div className={"rp-total" + mood}>{st.total}</div>
       </div>
@@ -153,7 +204,21 @@ export function DieIcon({ size = 26 }) {
 /* ================= Дайсница (плавающий пул кубиков) ================= */
 export function DiceTower() {
   const [open, setOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyList, setHistoryList] = useState(getRollHistory());
   const [pool, setPool] = useState([]); // массив граней: [20,6,6]
+
+  useEffect(() => {
+    return subscribeRollHistory(setHistoryList);
+  }, []);
+
+  useEffect(() => {
+    window.__openRollHistory = () => setHistoryOpen(true);
+    return () => {
+      delete window.__openRollHistory;
+    };
+  }, []);
+
   const roll = () => {
     if (!pool.length) return;
     const rolls = pool.map(f => { const r = 1 + Math.floor(Math.random() * f); return { faces: f, value: r }; });
@@ -161,32 +226,59 @@ export function DiceTower() {
     window.__roll("Дайсница", total, rolls.map(p => `к${p.faces}: ${p.value}`).join(" + "), { rolls });
   };
   const DICE = [2, 4, 6, 8, 10, 12, 20, 100];
+  const historyCount = historyList.length;
+
   return (
-    <div className="dicetower">
-      {open ? (
-        <div className="tower-panel">
-          <button className="tower-x" onClick={() => setOpen(false)}>×</button>
-          <div className="tower-dice">
-            {DICE.map(f => (
-              <button key={f} className="tower-die" title={`d${f} — ${f} граней`} onClick={() => setPool(p => [...p, f])}>
-                <DieShape faces={f} />
-                <span className="tower-faces">{f}</span>
-                {pool.filter(x => x === f).length ? <span className="tower-badge">{pool.filter(x => x === f).length}</span> : null}
+    <>
+      <div className="dicetower">
+        {open ? (
+          <div className="tower-panel">
+            <button className="tower-x" onClick={() => setOpen(false)}>×</button>
+            <div className="tower-dice">
+              {DICE.map(f => (
+                <button key={f} className="tower-die" title={`d${f} — ${f} граней`} onClick={() => setPool(p => [...p, f])}>
+                  <DieShape faces={f} />
+                  <span className="tower-faces">{f}</span>
+                  {pool.filter(x => x === f).length ? <span className="tower-badge">{pool.filter(x => x === f).length}</span> : null}
+                </button>
+              ))}
+            </div>
+            <div className="tower-row">
+              <button className="tower-btn" title="убрать последний" onClick={() => setPool(p => p.slice(0, -1))}>−</button>
+              <span className="tower-count">{pool.length}</span>
+              <button className="tower-btn" title="очистить" onClick={() => setPool([])}>×</button>
+              <button className="tower-roll" title="бросить" onClick={roll}><DieIcon size={18} /></button>
+            </div>
+            <div className="tower-foot">
+              <button className="tower-history-btn" onClick={() => { setOpen(false); setHistoryOpen(true); }} title="Открыть историю бросков">
+                <HistoryIcon size={14} />
+                <span>История бросков</span>
               </button>
-            ))}
+            </div>
           </div>
-          <div className="tower-row">
-            <button className="tower-btn" title="убрать последний" onClick={() => setPool(p => p.slice(0, -1))}>−</button>
-            <span className="tower-count">{pool.length}</span>
-            <button className="tower-btn" title="очистить" onClick={() => setPool([])}>×</button>
-            <button className="tower-roll" title="бросить" onClick={roll}><DieIcon size={18} /></button>
-          </div>
+        ) : null}
+
+        <div className="dice-fabs-wrap">
+          <button
+            className="history-fab"
+            onClick={() => setHistoryOpen(true)}
+            title="История бросков"
+          >
+            <HistoryIcon size={22} />
+            {historyCount > 0 && (
+              <span className="history-fab-badge">
+                {historyCount > 99 ? "99+" : historyCount}
+              </span>
+            )}
+          </button>
+          <button className={"tower-fab" + (open ? " open" : "")} onClick={() => setOpen(!open)} title="Дайсница">
+            <DieIcon size={26} />
+          </button>
         </div>
-      ) : null}
-      <button className={"tower-fab" + (open ? " open" : "")} onClick={() => setOpen(!open)} title="Дайсница">
-        <DieIcon size={26} />
-      </button>
-    </div>
+      </div>
+
+      {historyOpen && <RollHistoryDrawer onClose={() => setHistoryOpen(false)} />}
+    </>
   );
 }
 
