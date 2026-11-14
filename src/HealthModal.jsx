@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { hp, statMod } from "./helpers.js";
-import { rollDiceExpr } from "./dice.js";
 import { toast } from "./toast.jsx";
 
 /* Модалка здоровья — по образцу longstoryshort.app (?modal=health):
@@ -29,6 +28,14 @@ const FlaskIcon = () => (
   </svg>
 );
 
+/* Зелья лечения — как на dnd.su (5e24): 4 ступени */
+const POTIONS = [
+  { name: "Зелье лечения", n: 2, f: 4, c: 2 },
+  { name: "Зелье большого лечения", n: 4, f: 4, c: 4 },
+  { name: "Зелье отличного лечения", n: 8, f: 4, c: 8 },
+  { name: "Зелье превосходного лечения", n: 10, f: 4, c: 20 },
+];
+
 export default function HealthModal({ c, onSave, onClose }) {
   const [digits, setDigits] = useState("");
   const [sign, setSign] = useState(1);
@@ -55,9 +62,20 @@ export default function HealthModal({ c, onSave, onClose }) {
   };
   const applyDamage = () => {
     if (!num) return;
-    setHp(h.cur - num);
+    // урон сначала съедает временные хиты, потом основные
+    let left = num;
+    let fromTemp = 0;
+    if (h.temp > 0) {
+      fromTemp = Math.min(h.temp, left);
+      setTemp(h.temp - fromTemp);
+      left -= fromTemp;
+    }
+    if (left > 0) setHp(h.cur - left);
     setDigits("");
-    toast(`Урон: −${num} хитов`, "bad");
+    const part = fromTemp
+      ? ` (темп. −${fromTemp}${left ? `, хиты −${left}` : ""})`
+      : "";
+    toast(`Урон: −${num}${part}`, "bad");
   };
   const applyTemp = () => {
     if (!num && sign > 0) return;
@@ -66,12 +84,12 @@ export default function HealthModal({ c, onSave, onClose }) {
     setDigits("");
   };
 
-  const healingPotion = () => {
-    const r = rollDiceExpr("2d4+2");
-    if (!r) return;
-    setHp(h.cur + r.total);
+  const usePotion = (p) => {
+    const raw = Array.from({ length: p.n }, () => 1 + Math.floor(Math.random() * p.f));
+    const total = raw.reduce((a, b) => a + b, 0) + p.c;
+    setHp(h.cur + total);
     setDigits("");
-    toast(`Зелье лечения: ${r.raw.join("+")}+2 = ${r.total}`, "good");
+    toast(`${p.name} (${p.n}к${p.f}+${p.c}): ${raw.join("+")}+${p.c} = ${total}`, "good");
   };
 
   const shortRest = () => {
@@ -123,7 +141,8 @@ export default function HealthModal({ c, onSave, onClose }) {
                 <div className="calculator__main">{key(7)}{key(8)}{key(9)}</div>
                 <div className="calculator__sub">
                   <button type="button" className="calc-button calc-button_sm calc-go-btn calc-go-btn_go-potion"
-                    title="Зелье лечения (2к4+2)" onClick={healingPotion}><PotionIcon /></button>
+                    title={`${POTIONS[0].name} (${POTIONS[0].n}к${POTIONS[0].f}+${POTIONS[0].c})`}
+                    onClick={() => usePotion(POTIONS[0])}><PotionIcon /></button>
                 </div>
               </div>
 
@@ -131,7 +150,8 @@ export default function HealthModal({ c, onSave, onClose }) {
                 <div className="calculator__main">{key(4)}{key(5)}{key(6)}</div>
                 <div className="calculator__sub">
                   <button type="button" className="calc-button calc-button_sm calc-go-btn calc-go-btn_go-potion"
-                    title="Зелье лечения (2к4+2)" onClick={healingPotion}><PotionIcon /></button>
+                    title={`${POTIONS[1].name} (${POTIONS[1].n}к${POTIONS[1].f}+${POTIONS[1].c})`}
+                    onClick={() => usePotion(POTIONS[1])}><PotionIcon /></button>
                 </div>
               </div>
 
@@ -139,7 +159,8 @@ export default function HealthModal({ c, onSave, onClose }) {
                 <div className="calculator__main">{key(1)}{key(2)}{key(3)}</div>
                 <div className="calculator__sub">
                   <button type="button" className="calc-button calc-button_sm calc-go-btn calc-go-btn_go-potion"
-                    title="Зелье лечения (2к4+2)" onClick={healingPotion}><PotionIcon /></button>
+                    title={`${POTIONS[2].name} (${POTIONS[2].n}к${POTIONS[2].f}+${POTIONS[2].c})`}
+                    onClick={() => usePotion(POTIONS[2])}><PotionIcon /></button>
                 </div>
               </div>
 
@@ -153,7 +174,8 @@ export default function HealthModal({ c, onSave, onClose }) {
                 </div>
                 <div className="calculator__sub">
                   <button type="button" className="calc-button calc-button_sm calc-go-btn calc-go-btn_go-potion"
-                    title="Снять временные хиты" onClick={() => { setTemp(0); toast("Временные хиты сняты", "info"); }}><FlaskIcon /></button>
+                    title={`${POTIONS[3].name} (${POTIONS[3].n}к${POTIONS[3].f}+${POTIONS[3].c})`}
+                    onClick={() => usePotion(POTIONS[3])}><FlaskIcon /></button>
                 </div>
               </div>
 

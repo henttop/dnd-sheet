@@ -80,18 +80,6 @@ function Node({ n, ctx = {} }) {
       const cur = live ? (live.current ?? 0) : (a.current ?? 0);
       const mx = live ? (live.resolvedMax ?? live.max ?? 0) : (a.max ?? 0);
       const val = mx > 0 ? `${cur}/${mx}` : cur;
-      // вне режима правки ресурс — просто плашка: ни клика, ни счётчика
-      if (!ctx.editable) {
-        return (
-          <span className="res-chip res-chip_static" data-id={a.id}>
-            <span className="res-chip__icon">📦</span>
-            <span className="res-chip__name">{name}</span>
-            <span className="res-chip__count">
-              <span className="res-chip__val">{val}</span>
-            </span>
-          </span>
-        );
-      }
       const step = (d) => {
         if (!a.id || !ctx.onResource) return;
         let next = (cur ?? 0) + d;
@@ -99,6 +87,22 @@ function Node({ n, ctx = {} }) {
         next = Math.max(0, next);
         ctx.onResource(a.id, { current: next });
       };
+      // вне режима правки ресурс не открывается на настройки, но счётчик ± работает
+      if (!ctx.editable) {
+        return (
+          <span className="res-chip res-chip_static" data-id={a.id}>
+            <span className="res-chip__icon">📦</span>
+            <span className="res-chip__name">{name}</span>
+            <span className="res-chip__count">
+              <button type="button" className="res-chip__btn" data-type="decrement"
+                title="уменьшить" onClick={e => { e.stopPropagation(); step(-1); }}>−</button>
+              <span className="res-chip__val">{val}</span>
+              <button type="button" className="res-chip__btn" data-type="increment"
+                title="увеличить" onClick={e => { e.stopPropagation(); step(1); }}>+</button>
+            </span>
+          </span>
+        );
+      }
       return (
         <span className="res-chip editable" data-id={a.id}
           role="button" tabIndex={0} title="настроить ресурс"
