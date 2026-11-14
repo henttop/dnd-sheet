@@ -746,7 +746,6 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
       + '<button type="button" class="ed-sp-chev" contenteditable="false">›</button>'
       + '<span class="ed-sp-title" contenteditable="true">Спойлер</span>'
       + '<button type="button" class="ed-sp-unwrap" contenteditable="false">×</button>'
-      + '<button type="button" class="ed-sp-trash" contenteditable="false">🗑</button>'
       + '</div><div class="ed-sp-body" contenteditable="true"><p>содержимое спойлера</p></div></div>'
       + GUARD_HTML;
     document.execCommand("insertHTML", false, html);
@@ -837,13 +836,14 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
         if (rid && c.data.resources) { delete c.data.resources[rid]; onSave(); }
         return;
       }
-      if (el.closest?.(".res-chip__name")) return;   // каретка в названии — можно править текст
-      if (el.closest?.(".res-chip__btn")) return;   // кнопки счётчика обработаны выше
-      if (rid) {
+      if (el.closest?.(".res-chip__gear")) {
         e.preventDefault();
-        setResModal({ id: rid });
+        if (rid) setResModal({ id: rid });
         return;
       }
+      if (el.closest?.(".res-chip__name")) return;   // каретка в названии — можно править текст
+      if (el.closest?.(".res-chip__btn")) return;   // кнопки счётчика обработаны выше
+      return;
     }
     const resChip = el.closest?.(".ed-res-row") || el.closest?.(".ed-res");
     if (resChip && resChip.dataset.res) {

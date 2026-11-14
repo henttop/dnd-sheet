@@ -20,6 +20,7 @@ export function resourceBlockHtml(id, name, current, max) {
   return `<span class="res-chip ed-sp-res" data-sp="1" data-res="${escHtml(id || "")}" contenteditable="false">`
     + `<span class="res-chip__icon">📦</span>`
     + `<span class="res-chip__name" contenteditable="true">${escHtml(name || "ресурс")}</span>`
+    + `<button type="button" class="res-chip__gear" contenteditable="false" title="настройки ресурса">⚙</button>`
     + `<span class="res-chip__count">`
     + `<button type="button" class="res-chip__btn" data-type="decrement" contenteditable="false">−</button>`
     + `<span class="res-chip__val">${escHtml(String(val))}</span>`
@@ -62,8 +63,8 @@ function Node({ n, ctx = {} }) {
       const sum = kids.filter(x => x.type === "spoilerSummary").map(x => (x.content || []).map(k => k.type === "text" ? inlineText(k) : null));
       const body = kids.filter(x => x.type === "spoilerContent").map((k, i) => <Node key={i} n={k} ctx={ctx} />);
       return <Spoiler summary={sum.length ? sum : "Спойлер"}
+        editable={ctx.editable}
         onUnwrap={ctx.onSpoilerUnwrap ? () => ctx.onSpoilerUnwrap(n) : null}
-        onTrash={ctx.onSpoilerTrash ? () => ctx.onSpoilerTrash(n) : null}
       >{body}</Spoiler>;
     }
     case "text": return <Inline t={n} ctx={ctx} />;
@@ -104,11 +105,11 @@ function Node({ n, ctx = {} }) {
         );
       }
       return (
-        <span className="res-chip editable" data-id={a.id}
-          role="button" tabIndex={0} title="настроить ресурс"
-          onClick={(e) => { e.stopPropagation(); if (a.id && ctx.onResourceOpen) ctx.onResourceOpen(a.id); }}>
+        <span className="res-chip editable" data-id={a.id}>
           <span className="res-chip__icon">📦</span>
           <span className="res-chip__name">{name}</span>
+          <button type="button" className="res-chip__gear" title="настройки ресурса"
+            onClick={(e) => { e.stopPropagation(); if (a.id && ctx.onResourceOpen) ctx.onResourceOpen(a.id); }}>⚙</button>
           <span className="res-chip__count">
             <button type="button" className="res-chip__btn" data-type="decrement"
               onClick={e => { e.stopPropagation(); step(-1); }}>−</button>
@@ -116,7 +117,8 @@ function Node({ n, ctx = {} }) {
             <button type="button" className="res-chip__btn" data-type="increment"
               onClick={e => { e.stopPropagation(); step(1); }}>+</button>
           </span>
-          <button type="button" className="ed-sp-unwrap" title="убрать ресурс из текста">×</button>
+          <button type="button" className="ed-sp-unwrap" title="убрать ресурс из текста"
+            onClick={(e) => { e.stopPropagation(); if (ctx.onResourceDelete) ctx.onResourceDelete(a.id); }}>×</button>
         </span>
       );
     }
@@ -134,8 +136,9 @@ function Inline({ t, ctx = {} }) {
 }
 
 /* Спойлер: тот же блок, что в редакторе (шеврон + тёмная плашка + тело).
-   В режиме правки добавляются кнопки редактирования. */
-function Spoiler({ summary, children, editable, onUnwrap, onTrash }) {
+   В режиме просмотра — только разворачивание/сворачивание.
+   В режиме правки добавляется кнопка × (убрать спойлер). */
+function Spoiler({ summary, children, editable, onUnwrap }) {
   const [open, setOpen] = useState(false);
   const toggle = (e) => { e.stopPropagation(); setOpen(o => !o); };
   return (
@@ -144,13 +147,9 @@ function Spoiler({ summary, children, editable, onUnwrap, onTrash }) {
         <button type="button" className="ed-sp-chev" aria-expanded={open}
           aria-label={open ? "Свернуть" : "Развернуть"} onClick={toggle}>›</button>
         <span className="ed-sp-title" onClick={toggle}>{summary}</span>
-        {onUnwrap ? (
+        {editable && onUnwrap ? (
           <button type="button" className="ed-sp-unwrap" title="убрать спойлер (текст останется)"
             onClick={(e) => { e.stopPropagation(); onUnwrap(); }}>×</button>
-        ) : null}
-        {onTrash ? (
-          <button type="button" className="ed-sp-trash" title="удалить блок с текстом"
-            onClick={(e) => { e.stopPropagation(); onTrash(); }}>🗑</button>
         ) : null}
       </div>
       {open ? <div className="ed-sp-body">{children}</div> : null}
@@ -479,7 +478,6 @@ export function docToEditorHtml(doc, ctx = {}) {
         `<button type="button" class="ed-sp-chev" contenteditable="false" title="развернуть/свернуть">›</button>` +
         `<span class="ed-sp-title" contenteditable="true">${sum || "Спойлер"}</span>` +
         `<button type="button" class="ed-sp-unwrap" contenteditable="false" title="убрать спойлер (текст останется)">×</button>` +
-        `<button type="button" class="ed-sp-trash" contenteditable="false" title="удалить блок с текстом">🗑</button>` +
         `</div><div class="ed-sp-body" contenteditable="true">${body}</div></div>` +
         GUARD_HTML
       );

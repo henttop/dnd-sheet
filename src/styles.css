@@ -711,12 +711,12 @@ img{display:block}
 .ed-sp-title{flex:1;min-width:60px;background:#272e43;border-radius:5px;color:rgba(255,255,255,.92);
   font-size:12px;font-weight:600;padding:3px 8px;outline:none}
 .ed-sp-title:focus{background:#2f3750}
-/* × — извлечь текст (золото), 🗑 — удалить целиком (красный): чтобы не путать */
+/* × — убрать/извлечь (красный) */
 .ed-sp-unwrap,.ed-sp-trash{background:transparent;border:none;cursor:pointer;
   color:var(--dim);font-size:13px;line-height:1;padding:2px 3px}
-.ed-sp-unwrap{color:var(--gold);opacity:.75}
+.ed-sp-unwrap{color:var(--red);opacity:.75}
 .ed-sp-trash{color:var(--red);opacity:.75}
-.ed-sp-unwrap:hover{opacity:1;background:rgba(250,176,5,.12);color:var(--gold)}
+.ed-sp-unwrap:hover{opacity:1;background:rgba(250,82,82,.12);color:var(--red)}
 .ed-sp-trash:hover{opacity:1;background:rgba(250,82,82,.12);color:var(--red)}
 .ed-sp-body{margin-top:4px;padding-left:4px}
 .ed-sp-body p{margin:0 0 4px}
@@ -737,8 +737,11 @@ img{display:block}
 .res-chip__btn:hover{background:var(--purple2);color:#1b1030}
 .res-chip__val{background:rgba(26,18,48,.55);border:1px solid rgba(167,139,250,.35);border-radius:999px;
   padding:0 8px;font-size:11px;color:rgba(255,255,255,.92);font-weight:800;min-width:26px;text-align:center}
-.res-chip .ed-sp-unwrap{font-size:13px;padding:1px 4px;color:var(--gold);opacity:.8}
-.res-chip .ed-sp-unwrap:hover{opacity:1}
+.res-chip__gear{background:transparent;border:none;cursor:pointer;font-size:13px;line-height:1;
+  padding:2px 4px;color:var(--purple2);opacity:.85;border-radius:4px;display:inline-flex;align-items:center;justify-content:center}
+.res-chip__gear:hover{opacity:1;background:rgba(139,92,246,.25);color:#fff}
+.res-chip .ed-sp-unwrap{font-size:13px;padding:1px 4px;color:var(--red);opacity:.8}
+.res-chip .ed-sp-unwrap:hover{opacity:1;background:rgba(250,82,82,.15);color:var(--red)}
 
 /* ===== Модалка здоровья (как на LSS: ?modal=health) ===== */
 .hp-modal-back{position:fixed;inset:0;z-index:240;background:rgba(6,8,20,.72);
