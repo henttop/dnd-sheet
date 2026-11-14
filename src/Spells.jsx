@@ -376,8 +376,8 @@ function SpellRow({ spell, dc, atk, onOpen, castLevel, onCast }) {
       <div className="sp-row-main">
         <div className="sp-row-name">
           {s.name}
-          {s.ritual ? <span className="sp-badge" title="Ритуал">К</span> : null}
-          {s.conc ? <span className="sp-badge" title="Концентрация">К*</span> : null}
+          {s.ritual ? <span className="sp-badge" title="Ритуал">Р</span> : null}
+          {s.conc ? <span className="sp-badge" title="Концентрация">К</span> : null}
           {up > 0 ? <span className="sp-badge up" title={`Наложено ячейкой ${useLevel} уровня`}>+{up}</span> : null}
         </div>
         <div className="sp-row-sub">{s.level === 0 ? "Заговор" : s.level === "?" ? "—" : `${s.level}-й уровень`}</div>
@@ -529,12 +529,12 @@ function PrepareModal({ c, onSave, onClose }) {
                   <span className="sp-prep-name">{s.name}</span>
                 </div>
                 <div className="sp-prep-right">
-                  <span className="sp-prep-lv">{s.level === 0 ? "заг" : s.level}</span>
                   {s.conc ? (
                     <span className="sp-prep-badge conc" title="Концентрация">к</span>
                   ) : s.ritual ? (
                     <span className="sp-prep-badge rit" title="Ритуал">р</span>
                   ) : null}
+                  <span className="sp-prep-lv">{s.level === 0 ? "заг" : s.level}</span>
                 </div>
               </div>
             );
