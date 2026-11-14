@@ -398,9 +398,27 @@ function PassivePanel({ c }) {
     <div className="panel">
       <h4><PassiveIcon /> ПАССИВНЫЕ ЧУВСТВА</h4>
       <div className="passive-row">
-        <div className="passive"><span className="pi"><EyeIcon /></span>{passive(c, "perception")}</div>
-        <div className="passive"><span className="pi"><BrainIcon /></span>{passive(c, "investigation")}</div>
-        <div className="passive"><span className="pi"><BulbIcon /></span>{passive(c, "insight")}</div>
+        <div
+          className="passive"
+          data-tooltip="Пассивное восприятие (Мудрость)"
+          title="Пассивное восприятие (Мудрость)"
+        >
+          <span className="pi"><EyeIcon /></span>{passive(c, "perception")}
+        </div>
+        <div
+          className="passive"
+          data-tooltip="Пассивный анализ (Интеллект)"
+          title="Пассивный анализ (Интеллект)"
+        >
+          <span className="pi"><BrainIcon /></span>{passive(c, "investigation")}
+        </div>
+        <div
+          className="passive"
+          data-tooltip="Пассивная проницательность (Мудрость)"
+          title="Пассивная проницательность (Мудрость)"
+        >
+          <span className="pi"><BulbIcon /></span>{passive(c, "insight")}
+        </div>
       </div>
     </div>
   );
