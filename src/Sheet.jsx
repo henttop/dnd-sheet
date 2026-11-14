@@ -673,6 +673,21 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
     }
   };
 
+  /* если в защитную строку ввели текст — она перестаёт быть защитной
+     и становится обычной строкой; спойлеру добавляется свежая пустая защита */
+  const onEditorInput = () => {
+    const root = richRef.current;
+    if (!root) return;
+    for (const g of Array.from(root.querySelectorAll(".ed-guard"))) {
+      const txt = (g.textContent || "").replace(/[\u200b\s]/g, "");
+      if (!txt) continue;
+      g.classList.remove("ed-guard");
+      g.removeAttribute("data-guard");
+      g.classList.add("ed-p");
+    }
+    repairGuards();
+  };
+
   /* защитные строки удалять нельзя — блокируем удаление */
   const onBeforeInput = (e) => {
     const it = e.inputType || "";
@@ -703,18 +718,19 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
 
     const prev = siblingBlock(block, -1);
     const next = siblingBlock(block, 1);
+    const empty = (b) => isGuard(b) && !(b.textContent || "").replace(/[\u200b\s]/g, "");
 
-    // каретка в начале абзаца: нельзя слить абзац с защитной строкой
-    if (caretAtStart(range, block) && (isGuard(block) || isGuard(prev))) { e.preventDefault(); return; }
-    // каретка в конце абзаца: нельзя затереть защитную строку впереди
-    if (caretAtEnd(range, block) && (isGuard(block) || isGuard(next))) { e.preventDefault(); return; }
+    // каретка в начале абзаца: нельзя слить абзац с пустой защитной строкой
+    if (caretAtStart(range, block) && (empty(block) || empty(prev))) { e.preventDefault(); return; }
+    // каретка в конце абзаца: нельзя затереть пустую защитную строку впереди
+    if (caretAtEnd(range, block) && (empty(block) || empty(next))) { e.preventDefault(); return; }
   };
 
   useEffect(() => {
     const root = richRef.current;
     if (!edit || !root) return;
     const h1 = (e) => onBeforeInput(e);
-    const h2 = () => repairGuards();
+    const h2 = () => onEditorInput();
     root.addEventListener("beforeinput", h1);
     root.addEventListener("input", h2);
     return () => {
