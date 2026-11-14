@@ -12,6 +12,107 @@ export const COINS = [
 
 export const COIN_MAP = Object.fromEntries(COINS.map(c => [c.key, c]));
 
+export const COIN_VALUES_CP = {
+  pp: 1000,
+  gp: 100,
+  ep: 50,
+  sp: 10,
+  cp: 1,
+};
+
+export const getTotalCP = (coinsData) => {
+  return Object.keys(COIN_VALUES_CP).reduce((acc, k) => {
+    return acc + (coinsData[k]?.value ?? 0) * COIN_VALUES_CP[k];
+  }, 0);
+};
+
+export function deductCoins(coinsData, amount, targetCoin) {
+  const targetRate = COIN_VALUES_CP[targetCoin] || 100;
+  const costCP = amount * targetRate;
+  const totalCP = getTotalCP(coinsData);
+
+  if (costCP > totalCP) {
+    const totalInTarget = (totalCP / targetRate).toFixed(totalCP % targetRate === 0 ? 0 : 2);
+    return {
+      success: false,
+      error: `Недостаточно средств (нужно: ${amount}, доступно: ${totalInTarget})`,
+    };
+  }
+
+  const next = {
+    pp: coinsData.pp?.value ?? 0,
+    gp: coinsData.gp?.value ?? 0,
+    ep: coinsData.ep?.value ?? 0,
+    sp: coinsData.sp?.value ?? 0,
+    cp: coinsData.cp?.value ?? 0,
+  };
+
+  let wasExchanged = false;
+
+  // 1. Оплата напрямую из выбранной монеты
+  const haveDirect = next[targetCoin] ?? 0;
+  const payDirect = Math.min(haveDirect, amount);
+  next[targetCoin] -= payDirect;
+  let remCP = (amount - payDirect) * targetRate;
+
+  if (remCP > 0) {
+    wasExchanged = true;
+    // 2. Ищем наименьшую отдельную монету, способную покрыть remCP
+    const candidates = ["cp", "sp", "ep", "gp", "pp"].filter(
+      k => COIN_VALUES_CP[k] >= remCP && (next[k] ?? 0) > 0
+    );
+
+    if (candidates.length > 0) {
+      const breakCoin = candidates[0];
+      next[breakCoin] -= 1;
+      let changeCP = COIN_VALUES_CP[breakCoin] - remCP;
+      remCP = 0;
+
+      // Раскладываем сдачу в стандартные монеты (pp, gp, sp, cp)
+      for (const k of ["pp", "gp", "sp", "cp"]) {
+        const rate = COIN_VALUES_CP[k];
+        const count = Math.floor(changeCP / rate);
+        if (count > 0) {
+          next[k] = (next[k] ?? 0) + count;
+          changeCP -= count * rate;
+        }
+      }
+    } else {
+      // 3. Собираем сумму из доступных монет от крупных к мелким с разменом последней
+      for (const k of ["pp", "gp", "ep", "sp", "cp"]) {
+        if (remCP <= 0) break;
+        const rate = COIN_VALUES_CP[k];
+        while ((next[k] ?? 0) > 0 && remCP > 0) {
+          if (rate <= remCP) {
+            const take = Math.min(next[k], Math.floor(remCP / rate));
+            next[k] -= take;
+            remCP -= take * rate;
+          } else {
+            next[k] -= 1;
+            let changeCP = rate - remCP;
+            remCP = 0;
+            for (const c of ["pp", "gp", "sp", "cp"]) {
+              const r = COIN_VALUES_CP[c];
+              const count = Math.floor(changeCP / r);
+              if (count > 0) {
+                next[c] = (next[c] ?? 0) + count;
+                changeCP -= count * r;
+              }
+            }
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  for (const k of ["pp", "gp", "ep", "sp", "cp"]) {
+    coinsData[k] = { value: next[k] };
+  }
+
+  return { success: true, wasExchanged };
+}
+
 export function CoinBadge({ coinKey, size = "normal" }) {
   const c = COIN_MAP[coinKey] || COIN_MAP.gp;
   const isSm = size === "sm";
@@ -89,13 +190,18 @@ export default function CoinsModal({ c, onSave, onClose }) {
 
   const applySub = () => {
     if (!num) return;
-    const cur = d[activeCoin]?.value ?? 0;
-    const next = Math.max(0, cur - num);
-    const diff = cur - next;
-    d[activeCoin] = { value: next };
+    const res = deductCoins(d, num, activeCoin);
+    if (!res.success) {
+      toast(res.error, "bad");
+      return;
+    }
     setDigits("");
     onSave();
-    toast(`Отдано: −${diff} ${activeObj.label.toLowerCase()}`, "bad");
+    if (res.wasExchanged) {
+      toast(`Отдано: −${num} ${activeObj.label.toLowerCase()} (с авторазменом)`, "bad");
+    } else {
+      toast(`Отдано: −${num} ${activeObj.label.toLowerCase()}`, "bad");
+    }
   };
 
   // 4 other denominations to show in the side conversion buttons
