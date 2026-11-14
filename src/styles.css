@@ -692,6 +692,9 @@ img{display:block}
 .rt-rich:focus{border-color:var(--accent)}
 .rt-rich p{margin:0 0 6px}
 .rt-rich p:last-child{margin-bottom:0}
+/* защитная пустая строка вокруг спойлера — её нельзя удалить */
+.rt-rich .ed-guard{min-height:1.2em;margin:0 0 6px}
+.rt-rich .ed-guard:empty::after{content:"\00a0"}
 .rt-rich ul,.rt-rich ol{margin:4px 0 6px 20px;padding:0}
 .rt-rich li{margin:2px 0}
 .rt-rich code{background:var(--card);border-radius:4px;padding:0 4px;font-size:12px}

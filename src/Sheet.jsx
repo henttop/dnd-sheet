@@ -7,7 +7,7 @@ import WeaponModal, { weaponBonus, damageInfo } from "./WeaponModal.jsx";
 import { AvatarMenu, SettingsDrawer, PortraitDrawer } from "./panels.jsx";
 import { getUi, setUi } from "./uistore.js";
 import { Avatar } from "./List.jsx";
-import { renderDoc, docToText, textToDoc, docToEditorHtml, editorToDoc, resourceBlockHtml } from "./richtext.jsx";
+import { renderDoc, docToText, textToDoc, docToEditorHtml, editorToDoc, resourceBlockHtml, GUARD_HTML } from "./richtext.jsx";
 import TextMenu from "./TextMenu.jsx";
 import InsertBar from "./InsertBar.jsx";
 import ResourceModal from "./ResourceModal.jsx";
@@ -584,6 +584,60 @@ const fmtMod = (n) => (n >= 0 ? "+" + n : "−" + Math.abs(n));
 
 const RT_HINT = "ПКМ — меню: спойлер, ресурс, бросок · **жирный**, *курсив*, ||спойлер||, {{ресурс}}, [[1d6]]";
 
+/* ---------- Защитные пустые строки вокруг спойлера ---------- */
+const isGuard = (el) => !!(el && el.nodeType === 1 && el.classList.contains("ed-guard"));
+
+/* ближайший блок (абзац) вокруг узла */
+function blockOf(node, root) {
+  let n = node;
+  while (n && n !== root) {
+    if (n.nodeType === 1) {
+      const t = n.tagName.toLowerCase();
+      if (t === "p" || t === "div" || t === "li") return n;
+    }
+    n = n.parentNode;
+  }
+  return root;
+}
+
+/* соседний блочный элемент */
+function siblingBlock(el, dir) {
+  let n = dir < 0 ? el.previousSibling : el.nextSibling;
+  while (n) {
+    if (n.nodeType === 1) return n;
+    if (n.nodeType === 3 && n.textContent.trim()) return null;
+    n = dir < 0 ? n.previousSibling : n.nextSibling;
+  }
+  return null;
+}
+
+function caretAtStart(range, block) {
+  try {
+    const r = range.cloneRange();
+    r.selectNodeContents(block);
+    r.setEnd(range.startContainer, range.startOffset);
+    return r.toString().length === 0;
+  } catch { return false; }
+}
+
+function caretAtEnd(range, block) {
+  try {
+    const r = range.cloneRange();
+    r.selectNodeContents(block);
+    r.setStart(range.endContainer, range.endOffset);
+    return r.toString().length === 0;
+  } catch { return false; }
+}
+
+/* создать пустую защитную строку */
+function makeGuard() {
+  const g = document.createElement("p");
+  g.className = "ed-guard";
+  g.dataset.guard = "1";
+  g.appendChild(document.createElement("br"));
+  return g;
+}
+
 function TextTab({ c, onSave, blocks }) {
   return blocks.map(([title, key]) => <RtBlock key={key} c={c} title={title} blockKey={key} onSave={onSave} />);
 }
@@ -604,6 +658,70 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
     richRef.current.innerHTML = docToEditorHtml(doc, { resources: c.data.resources || {} });
     richRef.current.dataset.filled = "1";
   }, [edit, doc]);
+
+  /* перед и после каждого спойлера должна быть пустая защитная строка,
+     иначе поле «ломается» — восстанавливаем структуру */
+  const repairGuards = () => {
+    const root = richRef.current;
+    if (!root) return;
+    for (const sp of Array.from(root.querySelectorAll(".ed-sp"))) {
+      if (sp.parentNode !== root) continue;
+      const prev = sp.previousElementSibling;
+      if (!isGuard(prev)) root.insertBefore(makeGuard(), sp);
+      const next = sp.nextElementSibling;
+      if (!isGuard(next)) root.insertBefore(makeGuard(), sp.nextSibling);
+    }
+  };
+
+  /* защитные строки удалять нельзя — блокируем удаление */
+  const onBeforeInput = (e) => {
+    const it = e.inputType || "";
+    if (!it.startsWith("delete")) return;
+    const root = richRef.current;
+    const sel = window.getSelection();
+    if (!root || !sel || !sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
+
+    // выделено всё поле — разрешаем очистить
+    try {
+      const all = range.cloneRange();
+      all.selectNodeContents(root);
+      if (range.startContainer === all.startContainer && range.startOffset === all.startOffset
+        && range.endContainer === all.endContainer && range.endOffset === all.endOffset) return;
+    } catch { /* игнорируем */ }
+
+    // выделение пересекает защитную строку (кроме выделения внутри неё)
+    for (const g of Array.from(root.querySelectorAll(".ed-guard"))) {
+      if (!range.intersectsNode || !range.intersectsNode(g)) continue;
+      const inside = g.contains(range.startContainer) && g.contains(range.endContainer);
+      if (!inside) { e.preventDefault(); return; }
+    }
+
+    if (!range.collapsed) return;
+    const block = blockOf(range.startContainer, root);
+    if (!block || block === root) return;
+
+    const prev = siblingBlock(block, -1);
+    const next = siblingBlock(block, 1);
+
+    // каретка в начале абзаца: нельзя слить абзац с защитной строкой
+    if (caretAtStart(range, block) && (isGuard(block) || isGuard(prev))) { e.preventDefault(); return; }
+    // каретка в конце абзаца: нельзя затереть защитную строку впереди
+    if (caretAtEnd(range, block) && (isGuard(block) || isGuard(next))) { e.preventDefault(); return; }
+  };
+
+  useEffect(() => {
+    const root = richRef.current;
+    if (!edit || !root) return;
+    const h1 = (e) => onBeforeInput(e);
+    const h2 = () => repairGuards();
+    root.addEventListener("beforeinput", h1);
+    root.addEventListener("input", h2);
+    return () => {
+      root.removeEventListener("beforeinput", h1);
+      root.removeEventListener("input", h2);
+    };
+  }, [edit]);
 
   const startEdit = () => setEdit(true);
   const closeEdit = () => {
@@ -650,13 +768,15 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
   };
 
   const insertSpoiler = () => withCaret(() => {
-    const html = '<div class="ed-sp" data-sp="1" contenteditable="false">'
+    const html = GUARD_HTML
+      + '<div class="ed-sp" data-sp="1" contenteditable="false">'
       + '<div class="ed-sp-head">'
       + '<button type="button" class="ed-sp-chev" contenteditable="false">›</button>'
       + '<span class="ed-sp-title" contenteditable="true">Спойлер</span>'
       + '<button type="button" class="ed-sp-unwrap" contenteditable="false">×</button>'
       + '<button type="button" class="ed-sp-trash" contenteditable="false">🗑</button>'
-      + '</div><div class="ed-sp-body" contenteditable="true"><p>содержимое спойлера</p></div></div><p><br></p>';
+      + '</div><div class="ed-sp-body" contenteditable="true"><p>содержимое спойлера</p></div></div>'
+      + GUARD_HTML;
     document.execCommand("insertHTML", false, html);
   });
 
@@ -779,13 +899,22 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
       // снимаем обёртку — текст остаётся
       const frag = document.createDocumentFragment();
       Array.from(body.children).forEach(ch => frag.appendChild(ch));
+      const g1 = sp.previousElementSibling, g2 = sp.nextElementSibling;
       sp.replaceWith(frag);
+      // спойлера больше нет — убираем и защитные строки
+      if (isGuard(g1)) g1.remove();
+      if (isGuard(g2)) g2.remove();
       return;
     }
     const trash = el.closest?.(".ed-sp-trash");
     if (trash) {
       e.preventDefault();
-      trash.closest(".ed-sp")?.remove();
+      const sp = trash.closest(".ed-sp");
+      if (!sp) return;
+      const g1 = sp.previousElementSibling, g2 = sp.nextElementSibling;
+      sp.remove();
+      if (isGuard(g1)) g1.remove();
+      if (isGuard(g2)) g2.remove();
     }
   };
 

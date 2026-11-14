@@ -8,6 +8,11 @@ import React, { useState } from "react";
 //   ——                                          — разделитель
 //   "- " в начале строки                       — маркированный список
 
+/* Защитная пустая строка: ставится перед и после каждого спойлера.
+   Без неё поле редактора «ломается»: некуда поставить каретку,
+   спойлер сливается с соседним текстом, а пустые строки удалить нельзя. */
+export const GUARD_HTML = `<p class="ed-guard" data-guard="1"><br></p>`;
+
 /* Блок ресурса — такой же, как спойлер (интерфейс правки — только в режиме редактирования) */
 export function resourceBlockHtml(id, name, current, max) {
   const val = max > 0 ? current + "/" + max : current;
@@ -430,6 +435,7 @@ function collectParagraphs(container) {
     }
     if (node.nodeType !== 1) continue;
     const tag = node.tagName.toLowerCase();
+    if (node.classList?.contains("ed-guard")) continue;
     if (tag === "p" || tag === "div") {
       flush();
       out.push({ type: "paragraph", content: htmlToInline(node) });
@@ -452,13 +458,15 @@ export function docToEditorHtml(doc, ctx = {}) {
       const body = ((node.content || []).find(x => x.type === "spoilerContent")?.content || [])
         .map(p => `<p>${inlineToHtml(p.content)}</p>`).join("") || "<p><br></p>";
       parts.push(
+        GUARD_HTML +
         `<div class="ed-sp" data-sp="1" contenteditable="false">` +
         `<div class="ed-sp-head">` +
         `<button type="button" class="ed-sp-chev" contenteditable="false" title="развернуть/свернуть">›</button>` +
         `<span class="ed-sp-title" contenteditable="true">${sum || "Спойлер"}</span>` +
         `<button type="button" class="ed-sp-unwrap" contenteditable="false" title="убрать спойлер (текст останется)">×</button>` +
         `<button type="button" class="ed-sp-trash" contenteditable="false" title="удалить блок с текстом">🗑</button>` +
-        `</div><div class="ed-sp-body" contenteditable="true">${body}</div></div>`
+        `</div><div class="ed-sp-body" contenteditable="true">${body}</div></div>` +
+        GUARD_HTML
       );
     } else if (node.type === "resource") {
       const a = node.attrs || {};
@@ -495,6 +503,12 @@ export function editorToDoc(root) {
     }
     if (node.nodeType !== 1) continue;
     const tag = node.tagName.toLowerCase();
+
+    // защитная пустая строка — в документ не попадает (непустая — обычный абзац)
+    if (node.classList?.contains("ed-guard")) {
+      const txt = (node.textContent || "").replace(/[\u200b\s]/g, "");
+      if (!txt) { flush(); continue; }
+    }
 
     if (node.classList?.contains("ed-sp-res")) {
       flush();
