@@ -12,6 +12,7 @@ import TextMenu from "./TextMenu.jsx";
 import InsertBar from "./InsertBar.jsx";
 import ResourceModal from "./ResourceModal.jsx";
 import HealthModal from "./HealthModal.jsx";
+import CoinsModal, { CoinBadge } from "./CoinsModal.jsx";
 import {
   SKILLS, STAT_NAMES, XP, CONDITIONS_RU, SIZES, TABS,
   hp, profOf, coinsTotal, statMod, skillProf, skillCustom, skillBonus,
@@ -217,31 +218,16 @@ function AcVital({ c, onSave }) {
   );
 }
 
-/* ===== Монеты ===== */
+/* ===== Монеты (как на LSS: ?modal=coins) ===== */
 function GoldPill({ c, onSave }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-  const pos = useAnchorPos(open, ref, { dx: -110, dy: 8, width: 230, align: "right" });
-  const d = c.data.coins ||= { gp: { value: 0 }, sp: { value: 0 }, cp: { value: 0 }, pp: { value: 0 }, ep: { value: 0 } };
-  const NOM = [["pp", "ПМ"], ["gp", "ЗМ"], ["ep", "ЭМ"], ["sp", "СМ"], ["cp", "ММ"]];
   return (
-    <div style={{ position: "relative" }}>
-      <div className="gold-pill" ref={ref} onClick={() => setOpen(!open)} title="монеты">🪙 {coinsTotal(c)}</div>
-      {open && pos ? (
-        <Popover onClose={() => { setOpen(false); onSave(); }} style={{ left: pos.left, top: pos.top }}>
-          <div className="pop-title">Монеты</div>
-          <div className="coins-grid">
-            {NOM.map(([k, label]) => (
-              <label key={k}>{label}
-                <input type="number" className="edit-in" defaultValue={d[k]?.value || 0}
-                  onChange={e => { d[k] = { value: +e.target.value || 0 }; onSave(); }} />
-              </label>
-            ))}
-          </div>
-          <div style={{ textAlign: "center", marginTop: 6 }}><b>итого: {coinsTotal(c)}</b></div>
-        </Popover>
-      ) : null}
-    </div>
+    <>
+      <div className="gold-pill" onClick={() => setOpen(true)} title="Калькулятор монет">
+        <CoinBadge coinKey="gp" size="sm" /> <span>{coinsTotal(c)}</span>
+      </div>
+      {open ? <CoinsModal c={c} onSave={onSave} onClose={() => setOpen(false)} /> : null}
+    </>
   );
 }
 

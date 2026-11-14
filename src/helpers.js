@@ -43,7 +43,7 @@ export const raceClass = (c) => {
 };
 export const coinsTotal = (c) => {
   const co = c.data.coins || {}; const g = n => co[n]?.value || 0;
-  return +(g("pp") + g("gp") + g("ep") * .5 + g("sp") * .1 + g("cp") * .01).toFixed(2);
+  return +(g("pp") * 10 + g("gp") + g("ep") * .5 + g("sp") * .1 + g("cp") * .01).toFixed(2);
 };
 export const spellName = (id) => SPELL_INDEX.get(id);
 export const statMod = (c, st) => mod(c.data.stats?.[st]?.score ?? 10);
