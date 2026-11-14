@@ -521,6 +521,7 @@ img{display:block}
 .roll-pop .rp-die-n{position:absolute;font-size:12px;font-weight:800;color:var(--text)}
 .roll-pop .rp-dmg-icon{font-size:22px}
 .roll-pop .rp-total{font-size:32px;font-weight:900}
+.roll-pop .rp-total.text-total{font-size:16px;font-weight:800;letter-spacing:.3px;white-space:nowrap}
 .roll-pop .rp-total.crit{color:var(--gold)}
 .roll-pop .rp-total.fail{color:var(--red)}
 .roll-pop .rp-details{font-size:11px;color:var(--dim);margin-top:2px}

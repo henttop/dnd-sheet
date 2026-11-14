@@ -4,6 +4,7 @@ import { Popover, Toggle } from "./ui.jsx";
 import { statMod, profOf, levelOf, XP, spellCasting } from "./helpers.js";
 import { SpellFilters, emptyFilters, spellMatches, filterSummary } from "./SpellFilters.jsx";
 import { rollDiceExpr } from "./dice.js";
+import { toast } from "./toast.jsx";
 
 const SCHOOL_RU = {
   abj: "Ограждение", con: "Очарование", div: "Прорицание", enc: "Воплощение",
@@ -84,35 +85,78 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
     return { total: s.value || 0, used: s.filled || 0 };
   };
 
-  /* наложение: тратит ячейку выбранного уровня и бросает урон (с учётом «улучшения») */
-  const castSpell = (e, spell, useLevel, up) => {
-    e.stopPropagation();
-    const dmg = spell.dmg && spell.dmg.length ? spell.dmg : null;
-    // трата ячейки
+  /* наложение: тратит ячейку выбранного уровня и бросает урон / эффект (с учётом «улучшения») */
+  const castSpell = (e, spell, useLevel, up = 0) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+
+    // 1. Трата ячейки (если ячейки настроены в чарнике)
     if (spell.level > 0) {
       const key = "slots-" + useLevel;
       const s = (c.data.spells ||= {})[key] || { value: 0, filled: 0 };
-      if ((s.filled || 0) >= (s.value || 0)) {
-        window.__rollSpell(spell.name, 0, "нет ячеек " + useLevel + " уровня", []);
-        return;
+      const maxSlots = s.value ?? 0;
+      const filledSlots = s.filled ?? 0;
+
+      if (maxSlots > 0 && filledSlots >= maxSlots) {
+        toast(`Все ячейки ${useLevel}-го уровня израсходованы!`, "err");
+      } else if (maxSlots > 0) {
+        s.filled = filledSlots + 1;
+        c.data.spells[key] = s;
+        onSave();
       }
-      s.filled = (s.filled || 0) + 1;
-      c.data.spells[key] = s;
-      onSave();
     }
-    if (!dmg || !dmg.length) return;
-    const rolls = [];
+
+    // 2. Кубики урона или лечения
+    let dmg = spell.dmg && spell.dmg.length ? spell.dmg : null;
+    let kind = "урон";
+    let rolls = [];
     let total = 0;
-    for (const part of dmg) {
-      const expr = upcastDice(part.d, up);
-      const res = rollDiceExpr(expr);
-      if (!res) continue;
-      total += res.total;
-      const faces = +(String(expr).match(/[dкк](\d+)/i)?.[1] || 20);
-      rolls.push({ faces, value: res.total, parts: res.raw });
+    const subParts = [];
+
+    // Если в dmg пусто, ищем формулу кубиков в описании (например 1к8 в «Лечение ран», 6к10 в «Стена клинков»)
+    if (!dmg || !dmg.length) {
+      const descMatch = String(spell.desc || "").match(/(\d+)[dкк](\d+)/i);
+      if (descMatch) {
+        const isHeal = /восстанавливает|лечен|хит/i.test(spell.desc || "");
+        kind = isHeal ? "лечение" : "урон";
+        const baseDice = `${descMatch[1]}к${descMatch[2]}`;
+        dmg = [{ d: baseDice, t: isHeal ? "лечение" : (spell.school || "эффект") }];
+      }
     }
-    window.__rollSpell(spell.name, total,
-      dmg.map(x => x.t).join(", ") + (up > 0 ? ` · ячейка ${useLevel} ур.` : ""), rolls);
+
+    if (dmg && dmg.length) {
+      for (const part of dmg) {
+        const expr = upcastDice(part.d, up);
+        const res = rollDiceExpr(expr);
+        if (!res) continue;
+        total += res.total;
+        const faces = +(String(expr).match(/[dкк](\d+)/i)?.[1] || 20);
+        rolls.push({ faces, value: res.total, parts: res.raw });
+      }
+      subParts.push(dmg.map(x => x.t).filter(Boolean).join(", "));
+    }
+
+    // Уровень наложения
+    const lvlText = spell.level === 0 ? "заговор" : `ячейка ${useLevel} ур.`;
+    subParts.push(lvlText);
+
+    // Спасбросок или бонус атаки
+    if (spell.mode === "save") {
+      subParts.push(`Сл ${dc}${spell.saveAbility ? " " + (ABIL_RU[spell.saveAbility] || "") : ""}`);
+    } else if (spell.mode === "attack") {
+      subParts.push(`Атака ${atk >= 0 ? "+" + atk : atk}`);
+    }
+
+    // Если кубиков нет — это вспомогательное/защитное заклинание (бафф, утилита)
+    if (!rolls.length) {
+      kind = "заклинание";
+      total = "Сотворено";
+      if (spell.time) subParts.push(spell.time);
+      if (spell.range) subParts.push(spell.range);
+    }
+
+    const sub = subParts.filter(Boolean).join(" · ");
+
+    window.__rollSpell(spell.name, total, sub, rolls, { kind, spellData: spell });
   };
 
   return (
@@ -287,7 +331,18 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
 
       {!spells.length ? <div className="sp-empty">Нет подготовленных заклинаний. Нажмите «Подготовить заклинания».</div> : null}
 
-      {modal ? <SpellModal spell={modal} dc={dc} atk={atk} onClose={() => setModal(null)} onToggle={() => togglePrepared(modal.id)} prepared={prepared.includes(modal.id)} /> : null}
+      {modal ? (
+        <SpellModal
+          spell={modal}
+          dc={dc}
+          atk={atk}
+          onClose={() => setModal(null)}
+          onToggle={() => togglePrepared(modal.id)}
+          prepared={prepared.includes(modal.id)}
+          castLevel={castLevel}
+          onCast={castSpell}
+        />
+      ) : null}
       {prep ? <PrepareModal c={c} onSave={onSave} onClose={() => setPrep(false)} /> : null}
     </>
   );
@@ -346,8 +401,10 @@ export function upcastDice(dice, up) {
 }
 
 /* ================= Карточка заклинания ================= */
-function SpellModal({ spell, dc, atk, onClose, onToggle, prepared }) {
+function SpellModal({ spell, dc, atk, onClose, onToggle, prepared, castLevel, onCast }) {
   const s = spell;
+  const useLevel = castLevel !== null && castLevel >= s.level ? castLevel : s.level;
+  const up = s.level > 0 ? useLevel - s.level : 0;
   return (
     <div className="modal-back" onMouseDown={onClose}>
       <div className="modal sp-modal" onMouseDown={e => e.stopPropagation()}>
@@ -377,9 +434,16 @@ function SpellModal({ spell, dc, atk, onClose, onToggle, prepared }) {
             Доступно классам: {s.classes.map(x => CLASS_RU[x] || x).join(", ")}
           </div>
         ) : null}
-        <button className="modal-btn" onClick={() => { onToggle(); onClose(); }}>
-          {prepared ? "Убрать из подготовленных" : "Подготовить"}
-        </button>
+        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+          <button className="modal-btn" onClick={() => { onToggle(); onClose(); }}>
+            {prepared ? "Убрать из подготовленных" : "Подготовить"}
+          </button>
+          {onCast ? (
+            <button className="modal-btn primary" onClick={(e) => { onCast(e, s, useLevel, up); onClose(); }}>
+              Наложить
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );

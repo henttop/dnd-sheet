@@ -97,7 +97,7 @@ function RollCard({ st, ui, onClose, old }) {
               </span>
             ))}
           </div>
-          <div className={"rp-total" + mood}>{st.total}</div>
+          <div className={"rp-total" + mood + (typeof st.total === "string" && isNaN(Number(st.total)) ? " text-total" : "")}>{st.total}</div>
         </div>
         {allDice.length > 1 ? <div className="rp-roll-line">{allDice.join("+")}</div> : null}
       </div>
@@ -119,7 +119,7 @@ function RollCard({ st, ui, onClose, old }) {
               </span>
             ))}
           </div>
-          <div className={"rp-total" + mood}>{st.total}</div>
+          <div className={"rp-total" + mood + (typeof st.total === "string" && isNaN(Number(st.total)) ? " text-total" : "")}>{st.total}</div>
         </div>
         {allDice.length > 1 ? <div className="rp-roll-line">{allDice.join("+")}</div> : null}
       </div>

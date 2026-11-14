@@ -120,7 +120,7 @@ export function formatRollDetails(roll) {
 
   if (roll.spell) {
     if (roll.rolls && roll.rolls.length) {
-      const parts = roll.rolls.map(r => r.value).join("+");
+      const parts = roll.rolls.map(r => (r.parts && r.parts.length ? r.parts.join("+") : r.value)).join(" + ");
       details = parts + (roll.sub ? ` (${roll.sub})` : "");
     } else if (roll.sub) {
       details = roll.sub;
@@ -202,7 +202,9 @@ export async function sendRollToWebhooks(roll) {
   const rollTitle = formatRollTitle(roll);
   const details = formatRollDetails(roll);
 
-  let resultLine = `Итог: **${roll.total}**`;
+  let resultLine = typeof roll.total === "number" || !isNaN(Number(roll.total))
+    ? `Итог: **${roll.total}**`
+    : `✨ **${roll.total}**`;
   if (roll.crit) {
     resultLine = `Итог: **${roll.total}** 🔥`;
   } else if (roll.fail) {
