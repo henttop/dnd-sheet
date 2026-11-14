@@ -16,6 +16,17 @@ export function RollHost() {
   };
 
   useEffect(() => {
+    const onDocClick = (e) => {
+      const btn = e.target.closest(".roll-btn, .atk-val, .sp-cast, .roller-btn, .wpn-atk, .sp-stat");
+      if (btn) {
+        btn.classList.remove("is-rolling");
+        void btn.offsetWidth;
+        btn.classList.add("is-rolling");
+        setTimeout(() => btn.classList.remove("is-rolling"), 500);
+      }
+    };
+    document.addEventListener("click", onDocClick, true);
+
     window.__roll = (title, total, mods, opts = {}) => push({ title, total, mods, ...opts });
     // бросок к20: total = кубик + бонус
     window.__rollD20 = (title, bonus, mods = "") => {
@@ -40,6 +51,10 @@ export function RollHost() {
     // бросок урона заклинания (как карточка в журнале кубиков у LSS)
     window.__rollSpell = (name, total, dmgType, rolls) => {
       push({ title: name, total, kind: "урон", sub: dmgType, rolls: rolls || [], spell: true });
+    };
+
+    return () => {
+      document.removeEventListener("click", onDocClick, true);
     };
   }, []);
 

@@ -157,28 +157,107 @@ img{display:block}
 .skill-row .s-name{font-size:11.5px;font-weight:700;letter-spacing:.3px;color:var(--text);
   flex:1;cursor:pointer;text-transform:uppercase}
 .skill-row:not(.p1):not(.p2) .s-name{color:var(--dim)}
-.skill-row .roll-btn{background:rgba(255,255,255,.08);border:none;border-radius:999px;font-size:12px;font-weight:800;
-  padding:2px 10px;position:relative;user-select:none;cursor:pointer;
-  transition:transform .15s cubic-bezier(0.34,1.56,0.64,1),background .15s,box-shadow .15s,color .15s}
-.skill-row .roll-btn:hover{background:rgba(255,255,255,.18);color:#fff;box-shadow:0 0 10px rgba(99,133,240,.35)}
-.skill-row .roll-btn:active{transform:scale(0.85);background:linear-gradient(135deg,#4f6ff6,#8e54e9)!important;
-  box-shadow:0 0 14px rgba(142,84,233,.85),inset 0 1px 3px rgba(255,255,255,.6)!important;
-  color:#fff!important;text-shadow:0 0 6px rgba(255,255,255,.8);transition:none}
-.skill-row .roll-btn::after{content:"";position:absolute;inset:-2px;border-radius:999px;border:1.5px solid rgba(142,84,233,.9);
-  opacity:0;transform:scale(0.8);pointer-events:none}
-.skill-row .roll-btn.is-rolling{animation:diceRollPulse .45s cubic-bezier(0.22,1,0.36,1)}
-.skill-row .roll-btn.is-rolling::after{animation:rollBtnRing .45s cubic-bezier(0.16,1,0.3,1) forwards}
+/* ===== Общие стили для кнопок бросков (навыки, проверки, атаки, заклинания) ===== */
+.roll-btn, .atk-val, .sp-cast, .roller-btn, .wpn-atk {
+  position: relative;
+  user-select: none;
+  cursor: pointer;
+  transition: transform .15s cubic-bezier(0.34, 1.56, 0.64, 1), background .15s, box-shadow .15s, color .15s, border-color .15s;
+}
 
-@keyframes diceRollPulse{
-  0%{transform:scale(0.85);background:linear-gradient(135deg,#4f6ff6,#8e54e9);box-shadow:0 0 0 0 rgba(142,84,233,.8),inset 0 1px 3px rgba(255,255,255,.6);color:#fff}
-  35%{transform:scale(1.12);background:linear-gradient(135deg,#6082f8,#9f66f8);box-shadow:0 0 14px rgba(142,84,233,.85),0 0 22px rgba(79,111,246,.5),inset 0 1px 3px rgba(255,255,255,.8);color:#fff;text-shadow:0 0 6px #fff}
-  70%{transform:scale(0.97);background:linear-gradient(135deg,rgba(79,111,246,.4),rgba(142,84,233,.4));box-shadow:0 0 10px rgba(142,84,233,.4)}
-  100%{transform:scale(1);background:rgba(255,255,255,.08);box-shadow:none;color:var(--text);text-shadow:none}
+.roll-btn:hover, .atk-val:hover, .roller-btn:hover {
+  background: rgba(255, 255, 255, .18);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(99, 133, 240, 0.35);
 }
-@keyframes rollBtnRing{
-  0%{opacity:.9;transform:scale(0.9);border-color:#a77dfa}
-  100%{opacity:0;transform:scale(1.6);border-color:#6385f0}
+
+.sp-cast:hover {
+  background: var(--purple2);
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.6);
+  transform: translateY(-1px);
 }
+
+/* Мгновенный тактильный отклик при нажатии мыши (:active) */
+.roll-btn:active, .atk-val:active, .roller-btn:active {
+  transform: scale(0.88) translateY(1px);
+  background: linear-gradient(135deg, #4f6ff6, #8e54e9) !important;
+  border-color: transparent !important;
+  box-shadow: 0 0 14px rgba(142, 84, 233, 0.85), inset 0 1px 3px rgba(255, 255, 255, 0.6) !important;
+  color: #fff !important;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+  transition: none;
+}
+
+.sp-cast:active {
+  transform: scale(0.86) translateY(1px);
+  background: linear-gradient(135deg, #7c3aed, #a855f7) !important;
+  box-shadow: 0 0 18px rgba(168, 85, 247, 0.95), inset 0 1px 3px rgba(255, 255, 255, 0.7) !important;
+  color: #fff !important;
+  transition: none;
+}
+
+.wpn-atk:active {
+  transform: scale(0.92);
+  background: linear-gradient(135deg, #4f6ff6, #8e54e9) !important;
+  border-color: transparent !important;
+  box-shadow: 0 0 20px rgba(142, 84, 233, 0.9), inset 0 2px 4px rgba(255, 255, 255, 0.6) !important;
+  color: #fff !important;
+  transition: none;
+}
+
+/* Кольцевая световая ударная волна ::after (наследует форму кнопки) */
+.roll-btn::after, .atk-val::after, .sp-cast::after, .roller-btn::after, .wpn-atk::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 1.5px solid rgba(142, 84, 233, 0.9);
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+}
+
+/* Анимация при броске (.is-rolling) */
+.roll-btn.is-rolling, .atk-val.is-rolling, .roller-btn.is-rolling, .wpn-atk.is-rolling {
+  animation: diceRollPulse .45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.sp-cast.is-rolling {
+  animation: spellCastPulse .45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.roll-btn.is-rolling::after, .atk-val.is-rolling::after, .roller-btn.is-rolling::after, .wpn-atk.is-rolling::after {
+  animation: rollBtnRing .45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.sp-cast.is-rolling::after {
+  animation: spellCastRing .45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes diceRollPulse {
+  0% { transform: scale(0.88); background: linear-gradient(135deg, #4f6ff6, #8e54e9); box-shadow: 0 0 0 0 rgba(142, 84, 233, 0.8), inset 0 1px 3px rgba(255, 255, 255, 0.6); color: #fff; }
+  35% { transform: scale(1.10); background: linear-gradient(135deg, #6082f8, #9f66f8); box-shadow: 0 0 14px rgba(142, 84, 233, 0.85), 0 0 22px rgba(79, 111, 246, 0.5), inset 0 1px 3px rgba(255, 255, 255, 0.8); color: #fff; text-shadow: 0 0 6px #fff; }
+  70% { transform: scale(0.98); background: linear-gradient(135deg, rgba(79, 111, 246, 0.4), rgba(142, 84, 233, 0.4)); box-shadow: 0 0 10px rgba(142, 84, 233, 0.4); }
+  100% { transform: scale(1); box-shadow: none; }
+}
+
+@keyframes spellCastPulse {
+  0% { transform: scale(0.86); background: linear-gradient(135deg, #7c3aed, #a855f7); box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.9), inset 0 1px 3px rgba(255, 255, 255, 0.7); color: #fff; }
+  35% { transform: scale(1.14); background: linear-gradient(135deg, #905cfc, #bd7aff); box-shadow: 0 0 18px rgba(168, 85, 247, 0.95), 0 0 26px rgba(124, 58, 237, 0.6), inset 0 1px 4px rgba(255, 255, 255, 0.9); color: #fff; text-shadow: 0 0 8px #fff; }
+  70% { transform: scale(0.97); background: var(--purple2); box-shadow: 0 0 12px rgba(168, 85, 247, 0.5); }
+  100% { transform: scale(1); background: var(--purple); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35); }
+}
+
+@keyframes rollBtnRing {
+  0% { opacity: 0.9; transform: scale(0.9); border-color: #a77dfa; }
+  100% { opacity: 0; transform: scale(1.6); border-color: #6385f0; }
+}
+
+@keyframes spellCastRing {
+  0% { opacity: 1; transform: scale(0.9); border-color: #d8b4fe; }
+  100% { opacity: 0; transform: scale(1.7); border-color: #9333ea; }
+}
+
+.skill-row .roll-btn{background:rgba(255,255,255,.08);border:none;border-radius:999px;font-size:12px;font-weight:800;padding:2px 10px}
 
 /* ===== Панели (пассивки, владения, текстовые блоки) ===== */
 .panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:12px}
@@ -267,7 +346,6 @@ img{display:block}
   font-weight:800;min-width:48px}
 .atk-val.wide{min-width:120px;text-align:left;font-weight:600}
 .atk-dmg-mod{margin-left:6px;font-size:11px;font-weight:800;color:var(--purple2)}
-.atk-val:hover{border-color:var(--accent)}
 .atk-mod{display:inline-flex;align-items:center;gap:4px}
 .mini-roll{opacity:.6;font-size:13px}
 .mini-roll:hover{opacity:1}
