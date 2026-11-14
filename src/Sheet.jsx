@@ -30,6 +30,11 @@ export default function Sheet({ idx, back, fresh, onFreshDone }) {
   const rerender = () => { save(); setVer(x => x + 1); };
   const patchUi = (p) => setUiState(setUi(p));
 
+  useEffect(() => {
+    window.__activeChar = c;
+    return () => { if (window.__activeChar === c) window.__activeChar = null; };
+  }, [c]);
+
   const tabs = ui.showFeatures === false ? TABS.filter(t => t.id !== "abilities") : TABS;
 
   return (

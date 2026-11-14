@@ -579,6 +579,9 @@ img{display:block}
 @keyframes slide-in{from{transform:translateX(-30px);opacity:.4}to{transform:none;opacity:1}}
 .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 12px;
   border-bottom:1px solid var(--border)}
+.drawer-head-left{display:flex;align-items:center;gap:10px}
+.drawer-back-btn{background:none;border:none;color:var(--dim);font-size:24px;line-height:1;cursor:pointer;padding:0 6px 2px;display:flex;align-items:center;justify-content:center;border-radius:4px}
+.drawer-back-btn:hover{color:var(--text);background:var(--card)}
 .drawer-head h3{font-size:20px;font-weight:800}
 .drawer-x{font-size:24px;line-height:1;color:var(--dim);padding:0 4px}
 .drawer-x:hover{color:var(--text)}
@@ -663,7 +666,7 @@ img{display:block}
 .sp-body{flex:1 1 100%;padding:4px 2px 0 28px;animation:roll-in .15s ease-out}
 
 /* ===== Внутренние уведомления ===== */
-.toast-wrap{position:fixed;top:16px;right:16px;z-index:300;display:flex;flex-direction:column;
+.toast-wrap{position:fixed;bottom:20px;right:20px;z-index:300;display:flex;flex-direction:column;
   gap:8px;max-width:360px;pointer-events:none}
 .toast{display:flex;align-items:flex-start;gap:10px;background:var(--card2);border:1px solid var(--border2);
   border-left:3px solid var(--accent);border-radius:10px;padding:10px 12px;font-size:12.5px;font-weight:600;
@@ -994,3 +997,85 @@ img{display:block}
   border-radius:0 8px 8px 0;padding:4px 8px 6px}
 .rt .ed-sp.open{background:rgba(139,92,246,.14)}
 .rt .ed-sp-title{cursor:pointer}
+
+/* ===== Настройки: 4 колонки параметров ===== */
+.f-tiles4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:4px 0 14px}
+@media (max-width:520px){.f-tiles4{grid-template-columns:repeat(2,1fr)}}
+
+/* ===== Меню навигации в настройках ===== */
+.settings-nav-list{display:flex;flex-direction:column;gap:8px;margin:16px 0}
+.settings-nav-btn{display:flex;align-items:center;justify-content:space-between;width:100%;
+  background:transparent;border:1px solid var(--border2);border-radius:8px;padding:12px 14px;
+  color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.settings-nav-btn:hover{background:var(--card);border-color:var(--accent)}
+.settings-nav-btn .chev{color:var(--dim);font-size:16px}
+
+/* ===== Кнопка поддержки ===== */
+.support-btn{display:flex;align-items:center;justify-content:center;gap:8px;margin:22px auto 6px;
+  background:#1a2133;border:1px solid #2d3854;color:#f1f3f5;font-size:13px;font-weight:700;
+  border-radius:9999px;padding:9px 22px;cursor:pointer;transition:all .15s}
+.support-btn:hover{background:#232d47;border-color:var(--accent);color:#fff}
+
+/* ===== Настройки бросков (Вебхуки / Пресеты) ===== */
+.rolls-settings-view{display:flex;flex-direction:column}
+.rolls-warn{background:#28180e;border:1px solid #542d13;border-radius:8px;padding:12px 14px;margin-bottom:16px}
+.rolls-warn-title{font-size:12px;font-weight:800;color:#ff922b;margin-bottom:4px}
+.rolls-warn-text{font-size:11px;line-height:1.45;color:rgba(255,255,255,.82)}
+.rolls-warn-text a{color:#ff922b;text-decoration:underline;font-weight:600}
+.rolls-warn-text a:hover{color:#ffa94d}
+
+.presets-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.presets-head-title{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;color:var(--text)}
+.preset-add-btn{width:22px;height:22px;border:1px solid var(--border2);border-radius:5px;
+  background:var(--card2);color:var(--accent);font-size:15px;font-weight:700;display:flex;
+  align-items:center;justify-content:center;cursor:pointer;line-height:1;padding:0}
+.preset-add-btn:hover{border-color:var(--accent);background:var(--card);color:#fff}
+.presets-kb-link{font-size:12px;font-weight:600;color:var(--accent2);text-decoration:none;cursor:pointer}
+.presets-kb-link:hover{text-decoration:underline}
+
+/* Форма пресета */
+.preset-form{background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:14px;
+  margin-bottom:16px;animation:slide-in .15s ease-out}
+.preset-color-row{display:flex;align-items:center;gap:10px}
+.preset-color-swatch-wrap{width:26px;height:26px;border-radius:50%;border:2px solid #fff;
+  cursor:pointer;position:relative;overflow:hidden;display:inline-block;flex-shrink:0;
+  box-shadow:0 0 6px rgba(0,0,0,.4)}
+.preset-color-native{position:absolute;opacity:0;inset:0;width:100%;height:100%;cursor:pointer}
+.preset-form-btns{display:flex;gap:10px;margin-top:12px}
+
+/* Сетка карточек пресетов */
+.presets-empty{text-align:center;color:var(--dim2);font-size:12px;padding:24px 12px;
+  border:1px dashed var(--border2);border-radius:8px;margin-bottom:16px}
+.presets-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+@media (max-width:480px){.presets-grid{grid-template-columns:1fr}}
+
+.preset-card{background:#151824;border:1px solid #252a3b;border-radius:8px;padding:10px 11px;
+  display:flex;flex-direction:column;gap:8px;transition:all .15s}
+.preset-card.enabled{border-color:#384360}
+.preset-card-top{display:flex;align-items:center;justify-content:space-between}
+.preset-badges{display:flex;align-items:center;gap:6px;overflow:hidden}
+.preset-type-badge{background:#ffffff;color:#0c0f17;font-size:9px;font-weight:800;
+  border-radius:9999px;padding:2px 7px;letter-spacing:.5px;flex-shrink:0}
+.preset-name-badge{color:#ffffff;font-size:9px;font-weight:800;border-radius:9999px;
+  padding:2px 8px;max-width:95px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  text-transform:uppercase}
+.preset-cb{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+
+.preset-card-mid{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.preset-card-val{font-size:11px;color:var(--dim2);overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;font-family:monospace}
+.preset-card-bot{display:flex;align-items:center;gap:6px;margin-top:2px}
+
+.preset-icon-btn{background:transparent;border:1px solid #272d40;border-radius:5px;
+  color:var(--dim);width:28px;height:26px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;padding:0;transition:all .12s}
+.preset-icon-btn:hover{color:var(--text);border-color:var(--accent)}
+.preset-icon-btn.small{width:22px;height:20px;border:none}
+.preset-icon-btn.del{color:var(--red);opacity:.7}
+.preset-icon-btn.del:hover{opacity:1;border-color:var(--red);background:rgba(250,82,82,.1)}
+
+.preset-test-btn{flex:1;background:transparent;border:1px solid #272d40;border-radius:5px;
+  color:var(--text);font-size:11px;font-weight:700;height:26px;cursor:pointer;padding:0 8px;
+  display:flex;align-items:center;justify-content:center;transition:all .12s}
+.preset-test-btn:hover:not(:disabled){border-color:var(--accent);background:rgba(88,101,242,.15);color:#fff}
+.preset-test-btn:disabled{opacity:.5;cursor:default}

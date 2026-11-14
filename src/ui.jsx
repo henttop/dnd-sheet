@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { rollDiceExpr, d20, signed } from "./dice.js";
 import { getUi, subscribeUi } from "./uistore.js";
+import { sendRollToWebhooks } from "./webhooks.js";
 
 /* ================= Всплывающие результаты броска (стопка слева внизу) ================= */
 export function RollHost() {
@@ -27,7 +28,11 @@ export function RollHost() {
     };
     document.addEventListener("click", onDocClick, true);
 
-    window.__roll = (title, total, mods, opts = {}) => push({ title, total, mods, ...opts });
+    window.__roll = (title, total, mods, opts = {}) => {
+      const entry = { title, total, mods, ...opts };
+      push(entry);
+      sendRollToWebhooks(entry);
+    };
     // бросок к20: total = кубик + бонус
     window.__rollD20 = (title, bonus, mods = "") => {
       const d = d20();
@@ -50,7 +55,9 @@ export function RollHost() {
     };
     // бросок урона заклинания (как карточка в журнале кубиков у LSS)
     window.__rollSpell = (name, total, dmgType, rolls) => {
-      push({ title: name, total, kind: "урон", sub: dmgType, rolls: rolls || [], spell: true });
+      const entry = { title: name, total, kind: "урон", sub: dmgType, rolls: rolls || [], spell: true };
+      push(entry);
+      sendRollToWebhooks(entry);
     };
 
     return () => {
