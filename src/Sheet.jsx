@@ -957,10 +957,36 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
     }
   };
 
+  /* спойлер в листе (без режима правки): × — оставить только текст, 🗑 — удалить блок */
+  const changeDoc = (next) => {
+    setDoc(c, blockKey, next);
+    onSave();
+  };
+
+  const spoilerUnwrap = (node) => {
+    const content = (doc?.content || []).slice();
+    const i = content.indexOf(node);
+    if (i < 0) return;
+    const body = (node.content || []).find(x => x.type === "spoilerContent");
+    const paras = body?.content || [];
+    content.splice(i, 1, ...paras);
+    changeDoc({ type: "doc", content });
+  };
+
+  const spoilerTrash = (node) => {
+    const content = (doc?.content || []).slice();
+    const i = content.indexOf(node);
+    if (i < 0) return;
+    content.splice(i, 1);
+    changeDoc({ type: "doc", content });
+  };
+
   const resCtx = {
     resources: c.data.resources || {},
     onResource: onResourceChange,
     onResourceOpen: (id) => setResModal({ id }),
+    onSpoilerUnwrap: spoilerUnwrap,
+    onSpoilerTrash: spoilerTrash,
   };
 
   return (

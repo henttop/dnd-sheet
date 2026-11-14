@@ -61,7 +61,10 @@ function Node({ n, ctx = {} }) {
     case "spoiler": {
       const sum = kids.filter(x => x.type === "spoilerSummary").map(x => (x.content || []).map(k => k.type === "text" ? inlineText(k) : null));
       const body = kids.filter(x => x.type === "spoilerContent").map((k, i) => <Node key={i} n={k} ctx={ctx} />);
-      return <Spoiler summary={sum.length ? sum : "Спойлер"}>{body}</Spoiler>;
+      return <Spoiler summary={sum.length ? sum : "Спойлер"}
+        onUnwrap={ctx.onSpoilerUnwrap ? () => ctx.onSpoilerUnwrap(n) : null}
+        onTrash={ctx.onSpoilerTrash ? () => ctx.onSpoilerTrash(n) : null}
+      >{body}</Spoiler>;
     }
     case "text": return <Inline t={n} ctx={ctx} />;
     case "roller": {
@@ -85,13 +88,11 @@ function Node({ n, ctx = {} }) {
         ctx.onResource(a.id, { current: next });
       };
       return (
-        <span className={"res-chip" + (ctx.editable ? " editable" : "")} data-id={a.id}>
+        <span className={"res-chip" + (ctx.editable ? " editable" : "")} data-id={a.id}
+          role="button" tabIndex={0} title="настроить ресурс"
+          onClick={(e) => { e.stopPropagation(); if (a.id && ctx.onResourceOpen) ctx.onResourceOpen(a.id); }}>
           <span className="res-chip__icon">📦</span>
-          <span className="res-chip__name" role="button" tabIndex={0}
-            title="настроить ресурс"
-            onClick={e => { e.stopPropagation(); if (a.id && ctx.onResourceOpen) ctx.onResourceOpen(a.id); }}>
-            {name}
-          </span>
+          <span className="res-chip__name">{name}</span>
           <span className="res-chip__count">
             <button type="button" className="res-chip__btn" data-type="decrement"
               onClick={e => { e.stopPropagation(); step(-1); }}>−</button>
@@ -120,7 +121,7 @@ function Inline({ t, ctx = {} }) {
 
 /* Спойлер: тот же блок, что в редакторе (шеврон + тёмная плашка + тело).
    В режиме правки добавляются кнопки редактирования. */
-function Spoiler({ summary, children, editable }) {
+function Spoiler({ summary, children, editable, onUnwrap, onTrash }) {
   const [open, setOpen] = useState(false);
   const toggle = (e) => { e.stopPropagation(); setOpen(o => !o); };
   return (
@@ -129,11 +130,13 @@ function Spoiler({ summary, children, editable }) {
         <button type="button" className="ed-sp-chev" aria-expanded={open}
           aria-label={open ? "Свернуть" : "Развернуть"} onClick={toggle}>›</button>
         <span className="ed-sp-title" onClick={toggle}>{summary}</span>
-        {editable ? (
-          <>
-            <button type="button" className="ed-sp-unwrap" title="убрать спойлер (текст останется)">×</button>
-            <button type="button" className="ed-sp-trash" title="удалить блок с текстом">🗑</button>
-          </>
+        {onUnwrap ? (
+          <button type="button" className="ed-sp-unwrap" title="убрать спойлер (текст останется)"
+            onClick={(e) => { e.stopPropagation(); onUnwrap(); }}>×</button>
+        ) : null}
+        {onTrash ? (
+          <button type="button" className="ed-sp-trash" title="удалить блок с текстом"
+            onClick={(e) => { e.stopPropagation(); onTrash(); }}>🗑</button>
         ) : null}
       </div>
       {open ? <div className="ed-sp-body">{children}</div> : null}
