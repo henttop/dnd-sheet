@@ -80,6 +80,18 @@ function Node({ n, ctx = {} }) {
       const cur = live ? (live.current ?? 0) : (a.current ?? 0);
       const mx = live ? (live.resolvedMax ?? live.max ?? 0) : (a.max ?? 0);
       const val = mx > 0 ? `${cur}/${mx}` : cur;
+      // вне режима правки ресурс — просто плашка: ни клика, ни счётчика
+      if (!ctx.editable) {
+        return (
+          <span className="res-chip res-chip_static" data-id={a.id}>
+            <span className="res-chip__icon">📦</span>
+            <span className="res-chip__name">{name}</span>
+            <span className="res-chip__count">
+              <span className="res-chip__val">{val}</span>
+            </span>
+          </span>
+        );
+      }
       const step = (d) => {
         if (!a.id || !ctx.onResource) return;
         let next = (cur ?? 0) + d;
@@ -88,7 +100,7 @@ function Node({ n, ctx = {} }) {
         ctx.onResource(a.id, { current: next });
       };
       return (
-        <span className={"res-chip" + (ctx.editable ? " editable" : "")} data-id={a.id}
+        <span className="res-chip editable" data-id={a.id}
           role="button" tabIndex={0} title="настроить ресурс"
           onClick={(e) => { e.stopPropagation(); if (a.id && ctx.onResourceOpen) ctx.onResourceOpen(a.id); }}>
           <span className="res-chip__icon">📦</span>
@@ -100,9 +112,7 @@ function Node({ n, ctx = {} }) {
             <button type="button" className="res-chip__btn" data-type="increment"
               onClick={e => { e.stopPropagation(); step(1); }}>+</button>
           </span>
-          {ctx.editable ? (
-            <button type="button" className="ed-sp-unwrap" title="убрать ресурс из текста">×</button>
-          ) : null}
+          <button type="button" className="ed-sp-unwrap" title="убрать ресурс из текста">×</button>
         </span>
       );
     }
