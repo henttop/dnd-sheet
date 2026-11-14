@@ -13,8 +13,8 @@ import React, { useState } from "react";
    спойлер сливается с соседним текстом, а пустые строки удалить нельзя. */
 export const GUARD_HTML = `<p class="ed-guard" data-guard="1"><br></p>`;
 
-/* Блок ресурса — отдельная плашка (не как у спойлера: бирюзовая, округлая, inline).
-   Интерфейс правки (×/🗑) — только в редакторе. */
+/* Блок ресурса — «таблетка» во всю строку (не как у спойлера: без полосы слева, без шеврона).
+   В редакторе только × (убрать из текста) — удаление ресурса есть в его настройках. */
 export function resourceBlockHtml(id, name, current, max) {
   const val = max > 0 ? current + "/" + max : current;
   return `<span class="res-chip ed-sp-res" data-sp="1" data-res="${escHtml(id || "")}" contenteditable="false">`
@@ -26,7 +26,6 @@ export function resourceBlockHtml(id, name, current, max) {
     + `<button type="button" class="res-chip__btn" data-type="increment" contenteditable="false">+</button>`
     + `</span>`
     + `<button type="button" class="ed-sp-unwrap" contenteditable="false" title="убрать ресурс из текста">×</button>`
-    + `<button type="button" class="ed-sp-trash" contenteditable="false" title="удалить ресурс">🗑</button>`
     + `</span>`;
 }
 
@@ -101,10 +100,7 @@ function Node({ n, ctx = {} }) {
               onClick={e => { e.stopPropagation(); step(1); }}>+</button>
           </span>
           {ctx.editable ? (
-            <>
-              <button type="button" className="ed-sp-unwrap" title="убрать ресурс из текста">×</button>
-              <button type="button" className="ed-sp-trash" title="удалить ресурс">🗑</button>
-            </>
+            <button type="button" className="ed-sp-unwrap" title="убрать ресурс из текста">×</button>
           ) : null}
         </span>
       );
