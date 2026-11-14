@@ -453,7 +453,7 @@ function SpellModal({ spell, dc, atk, onClose, onToggle, prepared, castLevel, on
 function PrepareModal({ c, onSave, onClose }) {
   const [q, setQ] = useState("");
   const [lv, setLv] = useState("all");
-  const prepared = (c.spells && c.spells.prepared) || [];
+  const [prepList, setPrepList] = useState(() => [...((c.spells && c.spells.prepared) || [])]);
   const book = (c.spells && c.spells.book) || [];
 
   const cls = (c.data.info && c.data.info.charClass && c.data.info.charClass.value) || "";
@@ -476,9 +476,16 @@ function PrepareModal({ c, onSave, onClose }) {
   }).sort((a, b) => a.level - b.level || a.name.localeCompare(b.name, "ru"));
 
   const toggle = (id) => {
+    c.spells ||= {};
+    c.spells.prepared ||= [];
     const arr = c.spells.prepared;
     const i = arr.indexOf(id);
-    if (i >= 0) arr.splice(i, 1); else arr.push(id);
+    if (i >= 0) {
+      arr.splice(i, 1);
+    } else {
+      arr.push(id);
+    }
+    setPrepList([...arr]);
     onSave();
   };
 
@@ -503,21 +510,41 @@ function PrepareModal({ c, onSave, onClose }) {
         </div>
         <SpellFilters value={filters} onChange={setFilters} levels={levels} showLevels={false} />
         <div className="sp-prep-list">
-          {list.map(s => (
-            <button key={s.id} className={"sp-prep-item" + (prepared.includes(s.id) ? " on" : "")}
-              onClick={() => toggle(s.id)}>
-              <span className="tg-box">{prepared.includes(s.id) ? "✓" : ""}</span>
-              <span className="sp-prep-name">{s.name}</span>
-              <span className="sp-prep-lv">{s.level === 0 ? "заг" : s.level}</span>
-              {s.conc ? <span className="sp-badge" title="Концентрация">К</span> : null}
-            </button>
-          ))}
+          {list.map(s => {
+            const isPrep = prepList.includes(s.id);
+            return (
+              <div
+                key={s.id}
+                className={"sp-prep-item" + (isPrep ? " on" : "")}
+                onClick={() => toggle(s.id)}
+              >
+                <div className="sp-prep-left">
+                  <span className={"sp-prep-cb" + (isPrep ? " checked" : "")}>
+                    {isPrep ? (
+                      <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3.5 8.5 6.5 11.5 12.5 4.5" />
+                      </svg>
+                    ) : null}
+                  </span>
+                  <span className="sp-prep-name">{s.name}</span>
+                </div>
+                <div className="sp-prep-right">
+                  <span className="sp-prep-lv">{s.level === 0 ? "заг" : s.level}</span>
+                  {s.conc ? (
+                    <span className="sp-prep-badge conc" title="Концентрация">к</span>
+                  ) : s.ritual ? (
+                    <span className="sp-prep-badge rit" title="Ритуал">р</span>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
           {!list.length ? <div className="hint">Ничего не найдено</div> : null}
         </div>
         <div className="sp-prep-foot">
-          Подготовлено: {prepared.length} · В книге: {book.length}
+          Подготовлено: {prepList.length} · В книге: {book.length}
         </div>
-        <button className="modal-btn" onClick={onClose}>Готово</button>
+        <button className="modal-btn primary" onClick={onClose}>Готово</button>
       </div>
     </div>
   );

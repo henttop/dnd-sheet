@@ -465,14 +465,21 @@ img{display:block}
 .sp-prep-tools{display:flex;gap:8px;margin-bottom:10px}
 .sp-prep-tools input{flex:2}
 .sp-prep-tools select{flex:1}
-.sp-prep-list{overflow:auto;flex:1;min-height:200px;border:1px solid var(--border);border-radius:8px;padding:6px}
-.sp-prep-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:12.5px}
-.sp-prep-item:hover{background:var(--card)}
-.sp-prep-item.on{background:rgba(139,92,246,.16)}
-.sp-prep-item input{accent-color:var(--accent)}
-.sp-prep-name{flex:1}
-.sp-prep-lv{font-size:11px;color:var(--dim);min-width:26px;text-align:right}
-.sp-prep-foot{font-size:11.5px;color:var(--dim);margin:10px 0}
+.sp-prep-list{overflow:auto;flex:1;min-height:220px;border:1px solid var(--border);border-radius:8px;padding:6px;display:flex;flex-direction:column;gap:2px}
+.sp-prep-item{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:13px;background:transparent;border:none;color:var(--text);box-sizing:border-box;transition:background .12s;text-align:left;user-select:none}
+.sp-prep-item:hover{background:#1e2436}
+.sp-prep-item.on{background:#262f49}
+.sp-prep-item.on:hover{background:#2e3856}
+.sp-prep-left{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.sp-prep-cb{width:18px;height:18px;border-radius:4px;border:1.5px solid #414b66;background:#181d2c;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s}
+.sp-prep-cb.checked{background:#5c7cfa;border-color:#5c7cfa}
+.sp-prep-name{font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp-prep-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.sp-prep-lv{font-size:11.5px;color:var(--dim);min-width:14px;text-align:right;font-weight:600}
+.sp-prep-badge{display:inline-flex;align-items:center;justify-content:center;border-radius:4px;font-size:10px;font-weight:800;padding:1px 5px;line-height:1.2;text-transform:lowercase}
+.sp-prep-badge.conc{background:#7048e8;color:#fff}
+.sp-prep-badge.rit{background:#2b8a3e;color:#fff}
+.sp-prep-foot{font-size:12px;color:var(--dim);margin:10px 0;text-align:center}
 .spell-pop{min-width:190px}
 .roll-pop .rp-sub{font-size:10px;color:var(--dim);font-weight:700;text-transform:lowercase;margin-bottom:2px}
 .roll-pop .rp-glyphs{display:flex;gap:8px;align-items:center}
