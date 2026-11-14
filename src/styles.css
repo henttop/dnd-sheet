@@ -740,6 +740,53 @@ img{display:block}
 .res-chip .ed-sp-unwrap{font-size:13px;padding:1px 4px;color:var(--gold);opacity:.8}
 .res-chip .ed-sp-unwrap:hover{opacity:1}
 
+/* ===== Модалка здоровья (как на LSS: ?modal=health) ===== */
+.hp-modal-back{position:fixed;inset:0;z-index:240;background:rgba(6,8,20,.72);
+  display:flex;align-items:stretch;justify-content:flex-start}
+.hp-modal{position:relative;width:580px;max-width:100vw;height:100%;overflow:auto;
+  background:#20222c;color:rgba(255,255,255,.9);border-radius:0 6px 6px 0;padding:12px}
+.hp-modal__close{position:absolute;top:12px;right:12px;width:28px;height:28px;line-height:1;
+  font-size:22px;color:#fff;background:transparent;border:none;cursor:pointer;z-index:2}
+.hp-modal__close:hover{color:var(--gold)}
+.calc-health{display:flex;flex-direction:column;gap:8px}
+.calc-health__info{display:flex;align-items:center;gap:10px;background:transparent;border:none;
+  color:#66a8a9;font-size:42px;font-weight:700;padding:36px 0 0 12px;cursor:default;line-height:1.1}
+.calc-health__pulse{flex:none}
+.calc-health__temp{font-size:20px;font-weight:700;color:#66a8a9;opacity:.85}
+.calculator{display:flex;flex-direction:column;gap:8px;padding-top:8px}
+.calculator__row{display:flex;gap:51px;align-items:flex-start}
+.calculator__row-top{gap:10px}
+.calculator__main{flex:0 1 319px;display:flex;gap:8px;min-width:0}
+.calculator__row-top .calculator__main{flex:0 1 360px}
+.calculator__sub{width:50px;flex:none}
+.calc-input__wrapper{flex:1}
+.calc-input{width:100%;height:51px;background:transparent;color:rgba(255,255,255,.9);
+  border:1px solid #606b85;border-radius:3px;font-size:24px;padding:0 12px;outline:none}
+.calc-input:focus{border-color:var(--accent2)}
+.calc-button{background:transparent;color:rgba(255,255,255,.9);border:1px solid #606b85;
+  border-radius:3px;cursor:pointer;font-family:inherit;transition:background .12s,border-color .12s}
+.calc-button:hover{background:rgba(255,255,255,.07);border-color:#8a95ad}
+.calc-button_lg{flex:1;height:50px;font-size:32px;line-height:1}
+.calc-button_sm{width:50px;height:50px;font-size:16px;line-height:1;display:flex;
+  align-items:center;justify-content:center}
+.calc-button_sm svg{width:24px;height:24px}
+.calc-go-btn{font-size:11px;font-weight:700;letter-spacing:.4px}
+.calc-go-btn_go-temp{color:#6681a9}
+.calc-go-btn_go-heal{color:#66a8a9}
+.calc-go-btn_go-damage{color:#e64747}
+.calc-go-btn_go-sign{font-size:24px;font-weight:400;color:rgba(255,255,255,.9)}
+.calc-go-btn_go-sign.is-active{background:rgba(255,255,255,.1);border-color:#8a95ad;color:#fff}
+.calc-go-btn_go-potion svg{opacity:.9}
+.calc-go-btn_go-potion:hover svg{opacity:1}
+.calc-backspace{font-size:20px}
+.hp-modal__settings{padding:56px 12px 12px}
+.hp-modal__title{font-size:15px;font-weight:800;letter-spacing:1.2px;margin-bottom:12px}
+.hp-set-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.hp-set-row .pop-field{flex:1;min-width:100px}
+.hp-modal__back{margin-top:16px;background:transparent;border:1px solid #606b85;border-radius:3px;
+  color:rgba(255,255,255,.9);padding:8px 14px;cursor:pointer;font-size:12px;font-weight:700}
+.hp-modal__back:hover{background:rgba(255,255,255,.07)}
+
 /* ===== Ресурс в тексте (как на LSS) ===== */
 .sheet-resource{display:flex;align-items:stretch;gap:2px;width:100%;margin:4px 0}
 .sheet-resource__block-name{flex:1;background:rgb(39,46,67);color:rgba(255,255,255,.9);font-size:13px;

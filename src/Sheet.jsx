@@ -11,6 +11,7 @@ import { renderDoc, docToText, textToDoc, docToEditorHtml, editorToDoc, resource
 import TextMenu from "./TextMenu.jsx";
 import InsertBar from "./InsertBar.jsx";
 import ResourceModal from "./ResourceModal.jsx";
+import HealthModal from "./HealthModal.jsx";
 import {
   SKILLS, STAT_NAMES, XP, CONDITIONS_RU, SIZES, TABS,
   hp, profOf, coinsTotal, statMod, skillProf, skillCustom, skillBonus,
@@ -247,60 +248,15 @@ function GoldPill({ c, onSave }) {
 /* ===== HP ===== */
 function HpBox({ c, onSave }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-  const pos = useAnchorPos(open, ref, { dx: -60, dy: 8, width: 250, align: "right" });
   const v = c.data.vitality ||= {};
   const h = hp(c);
-  const setHp = (val) => { v["hp-current"] = { value: Math.max(0, Math.min(h.max, val)) }; onSave(); };
   const low = h.cur < h.max * .34;
   return (
     <div style={{ position: "relative" }}>
-      <div className={"hp-box" + (low ? " low" : "")} ref={ref} onClick={() => setOpen(!open)} title="хиты">
+      <div className={"hp-box" + (low ? " low" : "")} onClick={() => setOpen(true)} title="хиты">
         <HeartIcon /> {h.cur}/{h.max}{h.temp ? <span className="hp-temp">+{h.temp}</span> : ""}
       </div>
-      {open && pos ? (
-        <Popover onClose={() => setOpen(false)} style={{ left: pos.left, top: pos.top, minWidth: 250 }}>
-          <div className="pop-title">Хиты</div>
-          <div className="hp-row">
-            <button onClick={() => setHp(h.cur - 5)}>−5</button>
-            <button onClick={() => setHp(h.cur - 1)}>−1</button>
-            <span style={{ alignSelf: "center", fontWeight: 800, minWidth: 64, textAlign: "center" }}>{h.cur}/{h.max}</span>
-            <button onClick={() => setHp(h.cur + 1)}>+1</button>
-            <button onClick={() => setHp(h.cur + 5)}>+5</button>
-          </div>
-          <div className="hp-row">
-            <label style={{ flex: 1 }} className="pop-field">HP
-              <input type="number" className="edit-in" defaultValue={h.cur}
-                onKeyDown={e => { if (e.key === "Enter") setHp(+e.target.value); }}
-                onBlur={e => setHp(+e.target.value)} />
-            </label>
-            <label style={{ flex: 1 }} className="pop-field">Макс. HP
-              <input type="number" className="edit-in" defaultValue={h.max}
-                onKeyDown={e => { if (e.key === "Enter") { v["hp-max"] = { value: Math.max(0, +e.target.value || 0) }; onSave(); } }}
-                onBlur={e => { v["hp-max"] = { value: Math.max(0, +e.target.value || 0) }; onSave(); }} />
-            </label>
-          </div>
-          <div className="hp-row">
-            <label style={{ flex: 1 }} className="pop-field">Темп. HP
-              <input type="number" className="edit-in" defaultValue={h.temp} onBlur={e => { v["hp-temp"] = { value: Math.max(0, +e.target.value || 0) }; onSave(); }} />
-            </label>
-          </div>
-          <div className="rest-row">
-            <button title="Короткий отдых: восстановить одну кость хитов (1к10 + модификатор Телосложения)"
-              onClick={() => {
-                const heal = 1 + Math.floor(Math.random() * 10) + statMod(c, "con");
-                setHp(Math.min(h.max, h.cur + Math.max(0, heal)));
-              }}>Короткий отдых</button>
-            <button title="Длинный отдых: все хиты, сброс темп. HP, −1 истощение"
-              onClick={() => {
-                v["hp-max"] && (v["hp-current"] = { value: h.max });
-                v["hp-temp"] = { value: 0 };
-                c.data.exhaustion = Math.max(0, (+c.data.exhaustion || 0) - 1);
-                onSave();
-              }}>Длинный отдых</button>
-          </div>
-        </Popover>
-      ) : null}
+      {open ? <HealthModal c={c} onSave={onSave} onClose={() => setOpen(false)} /> : null}
     </div>
   );
 }
