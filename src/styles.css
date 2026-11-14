@@ -562,28 +562,38 @@ img{display:block}
 .toast-x:hover{color:var(--text)}
 @keyframes toast-in{from{transform:translateX(18px);opacity:0}to{transform:none;opacity:1}}
 
-/* ===== Обрезка изображения под квадрат ===== */
-.crop-modal{width:min(680px,100%);text-align:left}
-.crop-actions{display:flex;gap:10px;margin:6px 0 14px}
-.crop-actions .f-btn{flex:none;padding:7px 20px}
-.f-btn.success{background:#2f9e44;border-color:#2f9e44;color:#fff}
-.f-btn.success:hover{background:#37b24d;border-color:#37b24d}
-.crop-main{display:flex;justify-content:center}
-.crop-stage{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
-@media(max-width:760px){.crop-window{width:280px;height:280px}.crop-side{max-width:100%}}
-.crop-window{position:relative;width:320px;height:320px;flex:none;border-radius:10px;overflow:hidden;
-  background:#0c0e18;border:1px solid var(--border2);touch-action:none}
-.crop-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim)}
-.crop-shade{position:absolute;border:1px solid rgba(255,255,255,.25);box-shadow:0 0 0 100vmax rgba(0,0,0,.55);
-  pointer-events:none}
-.crop-box{position:absolute;border:2px solid var(--purple2);cursor:move;touch-action:none}
-.crop-handle{position:absolute;right:-6px;bottom:-6px;width:14px;height:14px;border-radius:3px;
-  background:var(--purple2);border:1px solid #fff;cursor:nwse-resize;display:block}
-.crop-side{flex:1;min-width:170px;max-width:220px}
-.crop-side input[type=range]{width:100%;accent-color:var(--purple)}
-.crop-preview{margin-top:12px}
-.crop-preview-box{position:relative;width:140px;height:140px;border-radius:8px;overflow:hidden;
-  border:1px solid var(--border2);background:var(--card2)}
+/* ===== Обрезка портрета под квадрат (как на LSS) ===== */
+.crop-modal-overlay{position:fixed;inset:0;z-index:250;background:rgba(10,12,20,.88);
+  backdrop-filter:blur(4px);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  overflow-y:auto;padding:16px 12px 32px}
+.crop-modal-content{position:relative;width:100%;max-width:840px;display:flex;flex-direction:column;
+  align-items:center}
+.crop-modal-title{font-size:20px;font-weight:700;color:#fff;margin:0 0 16px;text-align:center}
+.crop-modal-close{position:absolute;top:0;right:4px;width:32px;height:32px;line-height:1;
+  font-size:24px;color:rgba(255,255,255,.75);background:transparent;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;border-radius:4px;transition:color .15s}
+.crop-modal-close:hover{color:#fff}
+.crop-modal-actions{display:flex;gap:14px;justify-content:center;margin-bottom:20px}
+.crop-btn-cancel{background:#39282f;color:#ff8787;border:1px solid rgba(255,135,135,.2);
+  border-radius:6px;padding:7px 22px;font-size:13px;font-weight:700;cursor:pointer;
+  transition:background .12s,color .12s}
+.crop-btn-cancel:hover{background:#472d37;color:#ffa8a8}
+.crop-btn-save{background:#234237;color:#69db7c;border:1px solid rgba(105,219,124,.2);
+  border-radius:6px;padding:7px 22px;font-size:13px;font-weight:700;cursor:pointer;
+  transition:background .12s,color .12s}
+.crop-btn-save:hover{background:#2b5345;color:#8ce99a}
+.crop-stage-container{display:flex;justify-content:center;align-items:center;width:100%;
+  user-select:none;max-height:70vh}
+.crop-stage-container .ReactCrop{max-width:100%;max-height:68vh;border-radius:4px;
+  box-shadow:0 8px 32px rgba(0,0,0,.6)}
+.crop-stage-container .avatar__crop{display:block;max-width:100%;max-height:65vh;
+  object-fit:contain;user-select:none;pointer-events:none}
+.ReactCrop__crop-selection{border:1px dashed rgba(255,255,255,.95)!important;
+  box-shadow:0 0 0 9999em rgba(0,0,0,.6)!important}
+.ReactCrop__crop-selection:before{content:"";position:absolute;top:0;left:0;width:12%;height:100%;
+  border-right:1px dashed rgba(255,255,255,.5);pointer-events:none}
+.ReactCrop__crop-selection:after{content:"";position:absolute;top:0;right:0;width:12%;height:100%;
+  border-left:1px dashed rgba(255,255,255,.5);pointer-events:none}
 .res-modal{width:min(460px,100%);text-align:left}
 .res-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
 .res-title{font-size:20px;font-weight:900;letter-spacing:.5px}
