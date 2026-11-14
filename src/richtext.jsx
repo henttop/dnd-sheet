@@ -13,21 +13,21 @@ import React, { useState } from "react";
    спойлер сливается с соседним текстом, а пустые строки удалить нельзя. */
 export const GUARD_HTML = `<p class="ed-guard" data-guard="1"><br></p>`;
 
-/* Блок ресурса — такой же, как спойлер (интерфейс правки — только в режиме редактирования) */
+/* Блок ресурса — отдельная плашка (не как у спойлера: бирюзовая, округлая, inline).
+   Интерфейс правки (×/🗑) — только в редакторе. */
 export function resourceBlockHtml(id, name, current, max) {
   const val = max > 0 ? current + "/" + max : current;
-  return `<span class="ed-sp ed-sp-res" data-sp="1" data-res="${escHtml(id || "")}" contenteditable="false">`
-    + `<span class="ed-sp-head">`
-    + `<span class="ed-sp-icon">📦</span>`
-    + `<span class="ed-sp-title" contenteditable="true">${escHtml(name || "ресурс")}</span>`
-    + `<span class="ed-sp-count">`
-    + `<button type="button" class="sheet-resource__button" data-type="decrement" contenteditable="false">−</button>`
-    + `<span class="sheet-resource__label">${escHtml(String(val))}</span>`
-    + `<button type="button" class="sheet-resource__button" data-type="increment" contenteditable="false">+</button>`
+  return `<span class="res-chip ed-sp-res" data-sp="1" data-res="${escHtml(id || "")}" contenteditable="false">`
+    + `<span class="res-chip__icon">📦</span>`
+    + `<span class="res-chip__name" contenteditable="true">${escHtml(name || "ресурс")}</span>`
+    + `<span class="res-chip__count">`
+    + `<button type="button" class="res-chip__btn" data-type="decrement" contenteditable="false">−</button>`
+    + `<span class="res-chip__val">${escHtml(String(val))}</span>`
+    + `<button type="button" class="res-chip__btn" data-type="increment" contenteditable="false">+</button>`
     + `</span>`
     + `<button type="button" class="ed-sp-unwrap" contenteditable="false" title="убрать ресурс из текста">×</button>`
     + `<button type="button" class="ed-sp-trash" contenteditable="false" title="удалить ресурс">🗑</button>`
-    + `</span></span>`;
+    + `</span>`;
 }
 
 export function renderDoc(doc, ctx = {}) {
@@ -76,7 +76,7 @@ function Node({ n, ctx = {} }) {
       const live = a.id && ctx.resources ? ctx.resources[a.id] : null;
       const name = live ? (live.name || "ресурс") : (a.name || "ресурс");
       const cur = live ? (live.current ?? 0) : (a.current ?? 0);
-      const mx = live ? (live.max ?? 0) : (a.max ?? 0);
+      const mx = live ? (live.resolvedMax ?? live.max ?? 0) : (a.max ?? 0);
       const val = mx > 0 ? `${cur}/${mx}` : cur;
       const step = (d) => {
         if (!a.id || !ctx.onResource) return;
@@ -86,28 +86,26 @@ function Node({ n, ctx = {} }) {
         ctx.onResource(a.id, { current: next });
       };
       return (
-        <span className={"ed-sp ed-sp-res" + (ctx.editable ? " editable" : "")} data-id={a.id}>
-          <span className="ed-sp-head">
-            <span className="ed-sp-icon">📦</span>
-            <span className="ed-sp-title" role="button" tabIndex={0}
-              title="настроить ресурс"
-              onClick={e => { e.stopPropagation(); if (a.id && ctx.onResourceOpen) ctx.onResourceOpen(a.id); }}>
-              {name}
-            </span>
-            <span className="ed-sp-count">
-              <button type="button" className="sheet-resource__button" data-type="decrement"
-                onClick={e => { e.stopPropagation(); step(-1); }}>−</button>
-              <span className="sheet-resource__label">{val}</span>
-              <button type="button" className="sheet-resource__button" data-type="increment"
-                onClick={e => { e.stopPropagation(); step(1); }}>+</button>
-            </span>
-            {ctx.editable ? (
-              <>
-                <button type="button" className="ed-sp-unwrap" title="убрать ресурс из текста">×</button>
-                <button type="button" className="ed-sp-trash" title="удалить ресурс">🗑</button>
-              </>
-            ) : null}
+        <span className={"res-chip" + (ctx.editable ? " editable" : "")} data-id={a.id}>
+          <span className="res-chip__icon">📦</span>
+          <span className="res-chip__name" role="button" tabIndex={0}
+            title="настроить ресурс"
+            onClick={e => { e.stopPropagation(); if (a.id && ctx.onResourceOpen) ctx.onResourceOpen(a.id); }}>
+            {name}
           </span>
+          <span className="res-chip__count">
+            <button type="button" className="res-chip__btn" data-type="decrement"
+              onClick={e => { e.stopPropagation(); step(-1); }}>−</button>
+            <span className="res-chip__val">{val}</span>
+            <button type="button" className="res-chip__btn" data-type="increment"
+              onClick={e => { e.stopPropagation(); step(1); }}>+</button>
+          </span>
+          {ctx.editable ? (
+            <>
+              <button type="button" className="ed-sp-unwrap" title="убрать ресурс из текста">×</button>
+              <button type="button" className="ed-sp-trash" title="удалить ресурс">🗑</button>
+            </>
+          ) : null}
         </span>
       );
     }
@@ -357,7 +355,7 @@ export function textToDoc(text) {
 const escHtml = (s) => String(s ?? "")
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-function inlineToHtml(nodes) {
+function inlineToHtml(nodes, ctx = {}) {
   return (nodes || []).map(ch => {
     if (ch.type === "text") {
       let t = escHtml(ch.text);
@@ -373,7 +371,11 @@ function inlineToHtml(nodes) {
     }
     if (ch.type === "resource") {
       const a = ch.attrs || {};
-      return `<span class="ed-res" data-res="${escHtml(a.id || "")}" contenteditable="false">📦 ${escHtml(a.name || "ресурс")}</span>`;
+      const live = a.id && ctx.resources ? ctx.resources[a.id] : null;
+      const nm = live ? (live.name || "ресурс") : (a.name || "ресурс");
+      const cv = live ? (live.current ?? 0) : (a.current ?? 0);
+      const mx = live ? (live.resolvedMax ?? live.max ?? 0) : (a.max ?? 0);
+      return resourceBlockHtml(a.id, nm, cv, mx);
     }
     if (ch.type === "roller") {
       const e = ch.attrs?.expr || ch.attrs?.formula || "";
@@ -397,8 +399,8 @@ function htmlToInline(node) {
     const tag = n.tagName.toLowerCase();
     if (tag === "br") { out.push({ type: "text", text: "\n", marks }); return; }
     if (n.classList?.contains("ed-sp-res")) {
-      const t = n.querySelector?.(".ed-sp-title");
-      out.push({ type: "resource", attrs: { id: n.dataset.res || "", name: (t?.textContent || "").replace(/^📦\s*/, "").trim() } });
+      const t = n.querySelector?.(".res-chip__name");
+      out.push({ type: "resource", attrs: { id: n.dataset.res || "", name: (t?.textContent || "").trim() } });
       return;
     }
     if (n.classList?.contains("ed-res") || n.classList?.contains("ed-res-row")) {
@@ -454,9 +456,9 @@ export function docToEditorHtml(doc, ctx = {}) {
   for (const node of doc?.content || []) {
     if (node.type === "spoiler") {
       const sum = ((node.content || []).find(x => x.type === "spoilerSummary")?.content || [])
-        .map(t => inlineToHtml([t])).join("");
+        .map(t => inlineToHtml([t], ctx)).join("");
       const body = ((node.content || []).find(x => x.type === "spoilerContent")?.content || [])
-        .map(p => `<p>${inlineToHtml(p.content)}</p>`).join("") || "<p><br></p>";
+        .map(p => `<p>${inlineToHtml(p.content, ctx)}</p>`).join("") || "<p><br></p>";
       parts.push(
         GUARD_HTML +
         `<div class="ed-sp" data-sp="1" contenteditable="false">` +
@@ -480,10 +482,10 @@ export function docToEditorHtml(doc, ctx = {}) {
     } else if (node.type === "bulletList" || node.type === "orderedList") {
       const tag = node.type === "orderedList" ? "ol" : "ul";
       const items = (node.content || []).map(li =>
-        `<li>${inlineToHtml(li.content?.[0]?.content || [])}</li>`).join("");
+        `<li>${inlineToHtml(li.content?.[0]?.content || [], ctx)}</li>`).join("");
       parts.push(`<${tag} class="ed-list">${items}</${tag}>`);
     } else {
-      parts.push(`<p class="ed-p">${inlineToHtml(node.content)}</p>`);
+      parts.push(`<p class="ed-p">${inlineToHtml(node.content, ctx)}</p>`);
     }
   }
   return parts.join("") || `<p class="ed-p"><br></p>`;
@@ -512,7 +514,7 @@ export function editorToDoc(root) {
 
     if (node.classList?.contains("ed-sp-res")) {
       flush();
-      const t = node.querySelector(".ed-sp-title");
+      const t = node.querySelector(".res-chip__name");
       content.push({ type: "resource", attrs: { id: node.dataset.res || "", name: (t?.textContent || "").trim() } });
       continue;
     }

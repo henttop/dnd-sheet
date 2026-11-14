@@ -881,7 +881,8 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
         if (rid && c.data.resources) { delete c.data.resources[rid]; onSave(); }
         return;
       }
-      if (el.closest?.(".ed-sp-title")) return;   // каретка в названии — можно править текст
+      if (el.closest?.(".res-chip__name")) return;   // каретка в названии — можно править текст
+      if (el.closest?.(".res-chip__btn")) return;   // кнопки счётчика обработаны выше
       if (rid) {
         e.preventDefault();
         setResModal({ id: rid });
@@ -944,10 +945,14 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
     if (root) {
       const block = root.querySelector('[data-res="' + id + '"]');
       if (block) {
-        const titleEl = block.querySelector(".ed-sp-title");
+        const titleEl = block.querySelector(".res-chip__name");
         if (titleEl && rs[id].name != null) titleEl.textContent = rs[id].name;
-        const valEl = block.querySelector(".sheet-resource__label");
-        if (valEl) valEl.textContent = String(rs[id].current ?? 0);
+        const valEl = block.querySelector(".res-chip__val");
+        if (valEl) {
+          const mx = rs[id].resolvedMax ?? rs[id].max ?? 0;
+          const cv = rs[id].current ?? 0;
+          valEl.textContent = mx > 0 ? `${cv}/${mx}` : String(cv);
+        }
       }
     }
   };
