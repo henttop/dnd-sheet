@@ -40,30 +40,133 @@ function hexToColorInt(hex) {
   return isNaN(num) ? 0x5865F2 : num;
 }
 
+const SKILLS = new Set([
+  "Атлетика", "Акробатика", "Ловкость рук", "Скрытность",
+  "Магия", "История", "Анализ", "Природа", "Религия",
+  "Уход за животными", "Проницательность", "Медицина",
+  "Внимательность", "Выживание", "Обман", "Запугивание",
+  "Выступление", "Убеждение",
+  "Athletics", "Acrobatics", "Sleight of Hand", "Stealth",
+  "Arcana", "History", "Investigation", "Nature", "Religion",
+  "Animal Handling", "Insight", "Medicine",
+  "Perception", "Survival", "Deception", "Intimidation",
+  "Performance", "Persuasion"
+]);
+
+export function formatRollTitle(roll) {
+  const t = (roll.title || "").trim();
+
+  // Заклинание
+  if (roll.spell) {
+    return `Заклинание: ${t}`;
+  }
+
+  // Атака оружием / заклинанием
+  if (t.startsWith("Атака:")) {
+    const weaponName = t.replace(/^Атака:\s*/, "").trim();
+    return `Бросок атаки: ${weaponName}`;
+  }
+  if (t === "Атака заклинанием") {
+    return "Бросок атаки: Заклинание";
+  }
+
+  // Урон
+  if (t.startsWith("Урон:")) {
+    const weaponName = t.replace(/^Урон:\s*/, "").trim();
+    return `Бросок урона: ${weaponName}`;
+  }
+  if (roll.isDmg) {
+    const clean = t.replace(/^(Урон|Бросок урона):\s*/, "").trim();
+    return clean ? `Бросок урона: ${clean}` : "Бросок урона";
+  }
+
+  // Спасбросок
+  if (t.startsWith("Спасбросок")) {
+    const stat = t.replace(/^Спасбросок\s*:?\s*/, "").trim();
+    return `Спасбросок: ${stat}`;
+  }
+
+  // Проверка характеристики
+  if (t.startsWith("Проверка ")) {
+    const stat = t.replace(/^Проверка\s*:?\s*/, "").trim();
+    return `Проверка характеристики: ${stat}`;
+  }
+
+  // Инициатива
+  if (t === "Инициатива" || t === "Бросок инициативы") {
+    return "Бросок инициативы";
+  }
+
+  // Навык
+  if (SKILLS.has(t)) {
+    return `Проверка навыка: ${t}`;
+  }
+
+  // Дайсница
+  if (t === "Дайсница") {
+    return "Дайсница";
+  }
+
+  // Кастомный бросок кубиков (например "Бросок 2d6")
+  if (t.startsWith("Бросок ")) {
+    return `Бросок костей: ${t.replace(/^Бросок\s+/, "")}`;
+  }
+
+  return t || "Бросок кубиков";
+}
+
+export function formatRollDetails(roll) {
+  let details = "";
+
+  if (roll.spell) {
+    if (roll.rolls && roll.rolls.length) {
+      const parts = roll.rolls.map(r => r.value).join("+");
+      details = parts + (roll.sub ? ` (${roll.sub})` : "");
+    } else if (roll.sub) {
+      details = roll.sub;
+    } else {
+      details = "Заклинание";
+    }
+  } else if (roll.title === "Дайсница") {
+    details = roll.mods || "Бросок костей";
+  } else if (roll.die != null) {
+    // к20 бросок
+    let base = roll.mods || `${roll.die} на к20`;
+    if (roll.crit) {
+      details = `${base} (Критический успех!)`;
+    } else if (roll.fail) {
+      details = `${base} (Критический провал!)`;
+    } else {
+      details = base;
+    }
+  } else if (roll.isDmg) {
+    let base = roll.mods || "";
+    if (roll.sub) {
+      base = base ? `${base} (${roll.sub})` : roll.sub;
+    }
+    details = base || "Урон";
+  } else {
+    details = roll.mods || "Бросок";
+  }
+
+  return details;
+}
+
 export async function testDiscordWebhook(preset, charName = "") {
   if (!preset.url || !preset.url.trim()) {
     toast("Ошибка: Укажите URL вебхука Discord", "err");
     return { ok: false, error: "Укажите URL вебхука" };
   }
 
-  const avatar = window.__activeChar?.data?.avatar?.jpeg;
-  const avatarUrl = (avatar && (avatar.startsWith("http://") || avatar.startsWith("https://"))) ? avatar : undefined;
   const name = charName || window.__activeChar?.data?.name?.value || "Безымянный персонаж";
 
   const payload = {
-    username: name,
-    avatar_url: avatarUrl,
     embeds: [
       {
-        title: "🎲 Проверка связи — Вебхук подключен!",
-        description: `Интеграция с Discord настроена успешно!\nПресет: **${preset.name || "Discord"}**\nБроски персонажа **${name}** будут отправляться в этот канал.`,
-        color: hexToColorInt(preset.color),
-        fields: [
-          { name: "Персонаж", value: name, inline: true },
-          { name: "Тестовый бросок", value: "к20: **20** *(крит!)*", inline: true }
-        ],
-        footer: { text: "D&D 5e Character Sheet · Тест вебхука" },
-        timestamp: new Date().toISOString()
+        author: { name: name },
+        title: "Проверка систем",
+        description: "Всё работает в штатном режиме 👍",
+        color: hexToColorInt(preset.color)
       }
     ]
   };
@@ -95,52 +198,28 @@ export async function sendRollToWebhooks(roll) {
 
   const char = window.__activeChar;
   const charName = char?.data?.name?.value || "Безымянный персонаж";
-  const charClass = char?.data?.info?.charClass?.value || "";
-  const avatar = char?.data?.avatar?.jpeg;
-  const avatarUrl = (avatar && (avatar.startsWith("http://") || avatar.startsWith("https://"))) ? avatar : undefined;
 
-  const { title, total, mods, die, crit, fail, kind, sub, isDmg } = roll;
+  const rollTitle = formatRollTitle(roll);
+  const details = formatRollDetails(roll);
 
-  let embedTitle = `🎲 ${title}`;
-  let color = 0x5865F2;
-  if (crit) {
-    embedTitle = `🔥 КРИТИЧЕСКИЙ УСПЕХ! — ${title}`;
-    color = 0x40c057;
-  } else if (fail) {
-    embedTitle = `💀 КРИТИЧЕСКИЙ ПРОВАЛ! — ${title}`;
-    color = 0xfa5252;
-  } else if (isDmg || kind === "урон") {
-    embedTitle = `⚔️ ${title}`;
+  let resultLine = `Итог: **${roll.total}**`;
+  if (roll.crit) {
+    resultLine = `Итог: **${roll.total}** 🔥`;
+  } else if (roll.fail) {
+    resultLine = `Итог: **${roll.total}** 💀`;
   }
 
-  const fields = [];
-  if (die != null) {
-    fields.push({ name: "Кубик d20", value: `${die}`, inline: true });
-  }
-  if (sub) {
-    fields.push({ name: "Тип урона", value: `${sub}`, inline: true });
-  }
-
-  const descParts = [`**Итог: ${total}**`];
-  if (mods) {
-    descParts.push(`\`${mods}\``);
-  }
+  const description = details ? `${details}\n${resultLine}` : resultLine;
 
   for (const p of presets) {
-    const embedColor = (crit || fail) ? color : hexToColorInt(p.color);
+    const embedColor = (roll.crit ? 0x40c057 : roll.fail ? 0xfa5252 : hexToColorInt(p.color));
     const payload = {
-      username: charName,
-      avatar_url: avatarUrl,
       embeds: [
         {
-          title: embedTitle,
-          description: descParts.join("\n"),
-          color: embedColor,
-          fields: fields.length ? fields : undefined,
-          footer: {
-            text: `D&D 5e · ${charName}${charClass ? ` (${charClass})` : ""}`
-          },
-          timestamp: new Date().toISOString()
+          author: { name: charName },
+          title: rollTitle,
+          description: description,
+          color: embedColor
         }
       ]
     };

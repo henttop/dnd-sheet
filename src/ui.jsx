@@ -42,7 +42,7 @@ export function RollHost() {
       if (mods) parts.push(mods);
       window.__roll(title, d + bonus, parts.join(" + "), { die: d, crit: d === 20, fail: d === 1 });
     };
-    window.__rollExpr = (title, expr, mod, modLabel) => {
+    window.__rollExpr = (title, expr, mod, modLabel, extraOpts = {}) => {
       const res = rollDiceExpr(expr);
       if (res) {
         const extra = mod || 0;
@@ -50,7 +50,7 @@ export function RollHost() {
         const faces = +(String(expr).match(/[dкк](\d+)/i)?.[1] || 20);
         window.__roll(title, res.total + extra,
           [diceLine || res.raw.join(" + "), extra && res.raw.length <= 1 ? `${extra >= 0 ? "+" : "−"}${Math.abs(extra)}${modLabel ? " (" + modLabel + ")" : ""}` : ""].filter(Boolean).join(" "),
-          { isDmg: true, modLabel, faces });
+          { isDmg: true, modLabel, faces, expr, diceRaw: res.raw, ...extraOpts });
       }
     };
     // бросок урона заклинания (как карточка в журнале кубиков у LSS)

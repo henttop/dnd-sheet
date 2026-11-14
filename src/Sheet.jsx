@@ -525,7 +525,7 @@ function AttacksTab({ c, onSave }) {
                     <button className="atk-val wide" title="бросок урона"
                       onClick={() => {
                         const info = damageInfo(w.dmg?.value, statMod(c, w.ability || "str"));
-                        if (info.ok) window.__rollExpr(`Урон: ${w.name?.value || "оружие"}`, info.dice, info.abil, STAT_NAMES[w.ability || "str"]);
+                        if (info.ok) window.__rollExpr(`Урон: ${w.name?.value || "оружие"}`, info.dice, info.abil, STAT_NAMES[w.ability || "str"], { sub: info.type });
                       }}>
                       {w.dmg?.value || "—"}
                       {w.dmg?.value && damageInfo(w.dmg?.value, statMod(c, w.ability || "str")).abil
