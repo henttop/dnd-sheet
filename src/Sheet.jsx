@@ -365,6 +365,7 @@ function SaveBtn({ c, st, onSave }) {
 function SkillRow({ c, id, name, base, onSave }) {
   const d = c.data;
   const [anchor, setAnchor] = useState(null);
+  const [rolling, setRolling] = useState(false);
   const p = skillProf(c, id);
   const custom = skillCustom(c, id);
   const b = skillBonus(c, id);
@@ -377,11 +378,20 @@ function SkillRow({ c, id, name, base, onSave }) {
     d.skills[id] = { baseStat: base, name: id };
     return d.skills[id];
   };
+  const handleRoll = (e) => {
+    e.stopPropagation();
+    setRolling(false);
+    requestAnimationFrame(() => {
+      setRolling(true);
+      setTimeout(() => setRolling(false), 450);
+    });
+    window.__rollD20(name, b, custom != null ? "кастом" : "");
+  };
   return (
     <div className={"skill-row" + (p === 1 ? " p1" : p === 2 ? " p2" : "")}>
       <span className="dot" title="владение (клик)" onClick={e => { e.stopPropagation(); setAnchor(e.currentTarget); }} />
       <span className="s-name" onClick={e => setAnchor(e.currentTarget)}>{name}</span>
-      <button className="roll-btn" onClick={e => window.__rollD20(name, b, custom != null ? "кастом" : "")}>{signed(b)}</button>
+      <button className={"roll-btn" + (rolling ? " is-rolling" : "")} onClick={handleRoll}>{signed(b)}</button>
       {anchor ? (
         <ProfPopover anchor={anchor} value={p} withCustom customValue={custom} title={name}
           onChange={v => { ensure().isProf = v; onSave(); }}
