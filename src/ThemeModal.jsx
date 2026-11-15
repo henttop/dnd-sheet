@@ -161,6 +161,19 @@ export function ThemeSettingsContent({ ui, setUi }) {
                 onChange={(v) => setUi({ cursorRipple: v })}
               />
             </div>
+
+            <div className="theme-item-row" style={{ marginTop: 14 }}>
+              <div className="theme-item-info">
+                <div className="theme-item-title" style={{ fontSize: 13 }}>Точка на острие курсора</div>
+                <div className="theme-item-desc">
+                  Световая отметка в точности в месте, куда указывает курсор мыши.
+                </div>
+              </div>
+              <Toggle
+                checked={!!ui.cursorCenterDot}
+                onChange={(v) => setUi({ cursorCenterDot: v })}
+              />
+            </div>
           </div>
         )}
       </div>

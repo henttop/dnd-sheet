@@ -14,6 +14,7 @@ let state = {
   cursorRadius: 240,   // радиус круга подсветки в пикселях (120 - 450)
   cursorColor: "purple", // цвет подсветки (purple, cyan, gold, red, green)
   cursorRipple: true,  // эффект расходящейся волны при клике
+  cursorCenterDot: false, // световая точка на острие курсора (по умолчанию выключена)
   pillSpotlight: true,         // интерактивный спотлайт и эффекты на всех плашках
   pillSpotlightIntensity: 70,  // интенсивность/яркость спотлайта на плашках (20 - 100%)
   pillSpotlightRadius: 130,    // радиус светового пятна на плашках в пикселях (70 - 220)
@@ -22,7 +23,12 @@ let state = {
 
 try {
   const saved = JSON.parse(localStorage.getItem("dnd-sheet-ui") || "null");
-  if (saved) state = { ...state, ...saved };
+  if (saved) {
+    state = { ...state, ...saved };
+    if (saved.cursorCenterDot === undefined) {
+      state.cursorCenterDot = false;
+    }
+  }
 } catch (e) { /* игнорируем */ }
 
 const subs = new Set();

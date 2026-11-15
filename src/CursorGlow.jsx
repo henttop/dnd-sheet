@@ -184,14 +184,16 @@ export default function CursorGlow() {
           ctx.shadowBlur = 0;
         }
 
-        // 3. Центральное световое ядро
-        ctx.fillStyle = activeColors.core;
-        ctx.shadowColor = activeColors.core;
-        ctx.shadowBlur = 12;
-        ctx.beginPath();
-        ctx.arc(px, py, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        // 3. Центральное световое ядро (опциональная точка на острие курсора)
+        if (currentUi.cursorCenterDot) {
+          ctx.fillStyle = activeColors.core;
+          ctx.shadowColor = activeColors.core;
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.arc(px, py, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
       }
 
       // Цикл засыпает при полной неподвижности мыши (0% CPU в простое)
@@ -308,6 +310,7 @@ export default function CursorGlow() {
     ui.cursorDotSpacing,
     ui.cursorRadius,
     ui.cursorColor,
+    ui.cursorCenterDot,
     ui.pillSpotlight,
     ui.pillSpotlightIntensity,
     ui.pillSpotlightRadius,
