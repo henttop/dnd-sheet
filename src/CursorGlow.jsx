@@ -215,6 +215,16 @@ export default function CursorGlow() {
       targetPos.current = { x: e.clientX, y: e.clientY };
       isInside.current = true;
       startLoop();
+
+      // Динамический эффект светового пятна (spotlight) при вождении курсора по плашкам и карточкам
+      const pill = e.target.closest?.(
+        ".skill-row, .stat-roll .roll-btn, .passive, .subvital, .char-card, .charbar, .cond-box, .hp-box, .tab"
+      );
+      if (pill) {
+        const rect = pill.getBoundingClientRect();
+        pill.style.setProperty("--mx", `${(e.clientX - rect.left).toFixed(1)}px`);
+        pill.style.setProperty("--my", `${(e.clientY - rect.top).toFixed(1)}px`);
+      }
     };
 
     const onMouseEnter = (e) => {
@@ -238,6 +248,7 @@ export default function CursorGlow() {
     };
 
     window.addEventListener("mousemove", onMouseMove, { passive: true });
+    window.addEventListener("pointermove", onMouseMove, { passive: true });
     document.addEventListener("mouseenter", onMouseEnter);
     document.addEventListener("mouseleave", onMouseLeave);
     window.addEventListener("mousedown", onMouseDown, { capture: true, passive: true });
@@ -248,6 +259,7 @@ export default function CursorGlow() {
     return () => {
       window.removeEventListener("resize", onResize);
       window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("pointermove", onMouseMove);
       document.removeEventListener("mouseenter", onMouseEnter);
       document.removeEventListener("mouseleave", onMouseLeave);
       window.removeEventListener("mousedown", onMouseDown, { capture: true });

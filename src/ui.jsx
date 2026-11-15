@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { rollDiceExpr, d20, signed, evaluateFormula } from "./dice.js";
 import { getUi, subscribeUi } from "./uistore.js";
 import { sendRollToWebhooks, getCharAvatarUrl } from "./webhooks.js";
@@ -432,7 +433,7 @@ export function Popover({ onClose, children, style }) {
     const t = setTimeout(() => document.addEventListener("mousedown", close), 0);
     return () => { clearTimeout(t); document.removeEventListener("mousedown", close); };
   }, []);
-  return <div className="popover" ref={ref} style={style}>{children}</div>;
+  return createPortal(<div className="popover" ref={ref} style={style}>{children}</div>, document.body);
 }
 
 /* Позиция поповера относительно элемента-триггера (экра��ные координаты) */
