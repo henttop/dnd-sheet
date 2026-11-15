@@ -229,7 +229,8 @@ export function RollsSettingsContent({ c, ui, setUi }) {
       name: "",
       color: "#EBEBEC",
       url: "",
-      tgChatId: ""
+      tgChatId: "",
+      enabled: true
     });
     setShowForm(true);
   };
@@ -241,7 +242,8 @@ export function RollsSettingsContent({ c, ui, setUi }) {
       name: p.name || "",
       color: p.color || "#EBEBEC",
       url: p.url || "",
-      tgChatId: p.tgChatId || ""
+      tgChatId: p.tgChatId || "",
+      enabled: p.enabled !== false
     });
     setShowForm(true);
   };
@@ -271,7 +273,8 @@ export function RollsSettingsContent({ c, ui, setUi }) {
             name,
             color,
             url: formState.url.trim(),
-            tgChatId: formState.tgChatId?.trim()
+            tgChatId: formState.tgChatId?.trim(),
+            enabled: formState.enabled !== false
           };
         }
         return p;
@@ -284,7 +287,7 @@ export function RollsSettingsContent({ c, ui, setUi }) {
         color,
         url: formState.url.trim(),
         tgChatId: formState.tgChatId?.trim(),
-        enabled: true
+        enabled: formState.enabled !== false
       };
       nextPresets = [...presets, newPreset];
     }
@@ -414,6 +417,15 @@ export function RollsSettingsContent({ c, ui, setUi }) {
               />
             </>
           )}
+
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: 14, fontSize: 13, userSelect: "none", color: "var(--fg)" }}>
+            <input
+              type="checkbox"
+              checked={formState.enabled !== false}
+              onChange={e => setFormState(s => ({ ...s, enabled: e.target.checked }))}
+            />
+            <span>Включен (отправлять броски в этот вебхук)</span>
+          </label>
 
           <div className="preset-form-btns">
             <button className="f-btn primary" onClick={handleSaveForm}>

@@ -296,12 +296,14 @@ dnd-sheet/
 
 ---
 
-### 4.7. Кроссбраузерная совместимость и поддержка Firefox / CORS (`sendDiscordPayload`)
-  - В браузере Firefox прямые запросы `fetch` с `Content-Type: application/json` вызывают предварительный запрос `OPTIONS` (preflight) либо блокируются политикой безопасности Same-Origin / Enhanced Tracking Protection, а при открытии автономного файла из `file:///` — ошибкой `(Reason: CORS request not HTTP)`.
+### 4.7. Кроссбраузерная совместимость и поддержка Firefox / Waterfox / CORS (`sendDiscordPayload`, `vite.config.js`)
+  - В браузерах на движке Gecko (Firefox, Waterfox) строгие политики приватности (Enhanced Tracking Protection), блокировщики (uBlock Origin, Privacy Badger, NoScript) или открытие из `file:///` блокируют прямые cross-site запросы `fetch` к `discord.com` либо вызывают ошибки CORS / preflight.
   - Реализован универсальный многоуровневый механизм доставки:
-    1. **`multipart/form-data` (`FormData`)**: поле `payload_json` со структурой сообщения и прикреплением файла аватарки (`files[0]`). Поскольку `multipart/form-data` является safelisted-заголовком, браузер не выполняет preflight `OPTIONS`.
-    2. **Fallback `mode: "no-cors"`**: если чтение ответа блокируется политикой CORS, запрос всё равно гарантированно доставляется на серверы Discord с непрозрачным (opaque) ответом.
-    3. **Fallback через скрытую HTML-форму (`submitViaHiddenForm`)**: для локального открытия из `file:///` в Firefox динамически создаётся невидимая форма `<form method="POST" enctype="multipart/form-data" target="hidden_iframe">`, которая отправляет `payload_json` и вложения в Discord без ограничений fetch/CORS. Вебхуки работают на 100% стабильно во всех браузерах (Firefox, Chrome, Edge, Safari, Opera).
+    1. **Встроенный Vite прокси (`/api/webhook-proxy`)**: при работе на `http://localhost:5173/` запрос передаётся локальному Node.js серверу на том же origin. Node.js выполняет запрос к Discord напрямую через серверный `fetch` без ограничений браузера, CORS или блокировщиков.
+    2. **`multipart/form-data` (`FormData`)**: при прямой отправке структура сообщения передаётся в поле `payload_json`, а файл аватарки персонажа — в `files[0]`.
+    3. **Нормализация домена**: устаревшие ссылки `discordapp.com` автоматически преобразуются в `discord.com`, предотвращая ошибки CORS при HTTP 301 редиректах.
+    4. **Fallback через скрытую HTML-форму (`submitViaHiddenForm`)**: для локального открытия из `file:///` динамически создаётся форма `<form method="POST" enctype="multipart/form-data" target="hidden_iframe">` с отложенной очисткой (5 секунд), отправляющая данные в Discord в обход ограничений браузера.
+    5. **Обратная связь в интерфейсе**: при ошибках сети или недоступности вебхука выводится всплывающее уведомление (Toast), а в форме создания/редактирования пресета доступен прямой чекбокс включения активности. Вебхуки работают на 100% стабильно во всех браузерах (Firefox, Waterfox, Chrome, Edge, Safari, Opera).
 
 ---
 

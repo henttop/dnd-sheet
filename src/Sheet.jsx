@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useRef, useMemo } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { characters, save } from "./store.js";
 import { SPELL_BY_ID, SPELL_BY_SLUG } from "./store.js";
 import { Editable, Popover, ProfPopover, DieIcon, CreateModal, useAnchorPos, Toggle } from "./ui.jsx";

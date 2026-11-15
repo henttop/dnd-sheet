@@ -1,6 +1,9 @@
 node_modules/
 .vite/
-*.log
+# Экспорты персонажей
+*.json
+!package.json
+!package-lock.json
 .DS_Store
 Thumbs.db
 scratch/

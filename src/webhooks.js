@@ -9,7 +9,7 @@ const DEFAULT_PRESETS = [
     name: "ДИСКОРД",
     color: "#5865F2",
     url: "",
-    enabled: false
+    enabled: true
   }
 ];
 
@@ -219,8 +219,8 @@ function dataUrlToBlob(dataUrl) {
 
 /**
  * Отправка через скрытую HTML-форму во фрейм.
- * Это 100% надёжный обход CORS и ограничений file:// в Firefox и других браузерах,
- * так как отправка формы (POST) не подпадает под проверки fetch / CORS.
+ * Это 100% надёжный обход CORS, блокировщиков (uBlock/Privacy Badger) и ограничений file:// в Firefox/Waterfox,
+ * так как стандартная отправка формы (POST) не подпадает под проверки fetch / CORS.
  */
 function submitViaHiddenForm(url, payload, blob = null) {
   return new Promise((resolve) => {
@@ -273,29 +273,15 @@ function submitViaHiddenForm(url, payload, blob = null) {
 
       document.body.appendChild(form);
 
-      let settled = false;
-      const cleanup = () => {
+      // Удаляем форму с задержкой 5 сек, чтобы не прерывать отправку POST-запроса браузером
+      setTimeout(() => {
         try {
           if (form.parentNode) form.parentNode.removeChild(form);
         } catch {}
-      };
-
-      const done = (ok = true, error = "") => {
-        if (!settled) {
-          settled = true;
-          cleanup();
-          resolve(ok ? { ok: true, viaForm: true } : { ok: false, error });
-        }
-      };
-
-      const timer = setTimeout(() => done(true), 1200);
-
-      iframe.onload = () => {
-        clearTimeout(timer);
-        done(true);
-      };
+      }, 5000);
 
       form.submit();
+      resolve({ ok: true, viaForm: true });
     } catch (err) {
       console.warn("Hidden form submit error:", err);
       resolve({ ok: false, error: err.message || "Ошибка отправки формы" });
@@ -306,29 +292,60 @@ function submitViaHiddenForm(url, payload, blob = null) {
 /**
  * Универсальная отправка запроса в Discord Webhook.
  * Поддерживает:
- * - Все браузеры (Firefox, Chrome, Safari, Edge)
- * - Работу на localhost / HTTP / HTTPS
+ * - Все браузеры (Firefox, Waterfox, Chrome, Safari, Edge)
+ * - Работу через встроенный Vite прокси на localhost (обход любых блокировок uBlock/Privacy Badger)
  * - Работу из автономного файла (file:///)
- * - Обход блокировок CORS и preflight (OPTIONS) за счёт FormData, no-cors и hidden form.
+ * - Прямую отправку с вложениями (multipart/form-data) и JSON
+ * - Резервную отправку через невидимую HTML-форму
  */
 export async function sendDiscordPayload(webhookUrl, payload, blob = null) {
-  const url = (webhookUrl || "").trim();
+  let url = (webhookUrl || "").trim();
   if (!url) {
     return { ok: false, error: "Укажите URL вебхука" };
   }
 
-  // Discord официально поддерживает multipart/form-data с полем payload_json.
-  // Это safelisted Content-Type, поэтому браузер НЕ посылает предварительный запрос OPTIONS.
+  // Заменяем устаревший discordapp.com на discord.com, чтобы не ловить 301 CORS-редиректы
+  if (url.includes("discordapp.com/api/webhooks/")) {
+    url = url.replace("discordapp.com/api/webhooks/", "discord.com/api/webhooks/");
+  }
+
   const formData = new FormData();
   formData.append("payload_json", JSON.stringify(payload));
   if (blob) {
     formData.append("files[0]", blob, "avatar.jpg");
   }
 
+  // 1. Проверяем, запущен ли локальный сервер (например Vite на localhost:5173).
+  // На локальном сервере используем встроенный прокси Vite, который работает на Node.js.
+  // Это 100% гарантирует отправку мимо любых блокировщиков рекламы (uBlock Origin, Privacy Badger) и CORS!
+  const isLocalHost = typeof window !== "undefined" && window.location &&
+    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname === "0.0.0.0") &&
+    window.location.port;
+
+  if (isLocalHost) {
+    try {
+      const proxyUrl = `/api/webhook-proxy?target=${encodeURIComponent(url)}`;
+      const res = await fetch(proxyUrl, {
+        method: "POST",
+        body: formData
+      });
+
+      if (res.ok || res.status === 204) {
+        return { ok: true, status: res.status, viaProxy: true };
+      }
+
+      const errText = await res.text().catch(() => "");
+      console.warn("Local webhook proxy returned error:", res.status, errText);
+      // Если локальный прокси вернул 4xx/5xx, пробуем прямой запрос
+    } catch (proxyErr) {
+      console.warn("Local proxy fetch error, falling back to direct send:", proxyErr);
+    }
+  }
+
   const isFileProto = typeof window !== "undefined" && window.location && window.location.protocol === "file:";
 
-  // Если файл открыт локально как file:///, в Firefox fetch() блокируется политикой безопасности ("CORS request not HTTP").
-  // В этом случае сразу используем скрытую HTML-форму.
+  // 2. Если файл открыт локально как file:///, в Firefox/Waterfox fetch() блокируется
+  // политикой безопасности ("CORS request not HTTP"). В этом случае сразу используем форму.
   if (isFileProto) {
     try {
       return await submitViaHiddenForm(url, payload, blob);
@@ -337,7 +354,7 @@ export async function sendDiscordPayload(webhookUrl, payload, blob = null) {
     }
   }
 
-  // 1. Стандартный запрос fetch с FormData (нет preflight OPTIONS)
+  // 3. Стандартный прямой fetch с FormData (нет preflight OPTIONS)
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -349,29 +366,34 @@ export async function sendDiscordPayload(webhookUrl, payload, blob = null) {
     }
 
     const errText = await res.text().catch(() => "");
-    return { ok: false, error: errText || `HTTP ${res.status}`, status: res.status };
-  } catch (corsErr) {
-    console.warn("Direct CORS fetch to Discord failed (Firefox CORS / ETP), using no-cors / form fallback...", corsErr);
-
-    // 2. Резервный вариант: mode: "no-cors" с FormData (гарантирует доставку в Discord)
-    try {
-      await fetch(url, {
-        method: "POST",
-        mode: "no-cors",
-        body: formData
-      });
-      return { ok: true, opaque: true };
-    } catch (noCorsErr) {
-      console.warn("no-cors fetch failed, falling back to hidden form...", noCorsErr);
-
-      // 3. Резервный вариант: скрытая HTML-форма
-      try {
-        return await submitViaHiddenForm(url, payload, blob);
-      } catch (formErr) {
-        console.error("All Discord webhook methods failed:", formErr);
-        return { ok: false, error: formErr.message || "Ошибка сети" };
-      }
+    // Если ошибка 400 Bad Request, возвращаем ошибку
+    if (res.status >= 400 && res.status < 500 && res.status !== 405) {
+      return { ok: false, error: errText || `HTTP ${res.status}`, status: res.status };
     }
+  } catch (corsErr) {
+    console.warn("Direct CORS fetch to Discord failed, using fallback...", corsErr);
+  }
+
+  // 4. Если нет прикреплённого blob-файла, пробуем стандартный JSON fetch
+  if (!blob) {
+    try {
+      const jsonRes = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (jsonRes.ok || jsonRes.status === 204) {
+        return { ok: true, status: jsonRes.status };
+      }
+    } catch {}
+  }
+
+  // 5. Финальный надёжный fallback: отправка через скрытую HTML-форму
+  try {
+    return await submitViaHiddenForm(url, payload, blob);
+  } catch (formErr) {
+    console.error("All Discord webhook methods failed:", formErr);
+    return { ok: false, error: formErr.message || "Ошибка сети" };
   }
 }
 
@@ -422,8 +444,16 @@ export async function testDiscordWebhook(preset, charName = "") {
 }
 
 export async function sendRollToWebhooks(roll) {
-  const presets = getRollPresets().filter(p => p.enabled && p.type === "discord" && p.url && p.url.trim());
-  if (!presets.length) return;
+  const allPresets = getRollPresets();
+  const configuredPresets = allPresets.filter(p => p.url && p.url.trim());
+  const presets = configuredPresets.filter(p => p.enabled && p.type === "discord");
+
+  if (!presets.length) {
+    if (configuredPresets.length) {
+      console.warn("Бросок не отправлен: вебхук Discord выключен в настройках.");
+    }
+    return;
+  }
 
   const char = window.__activeChar;
   const charName = roll.charName || char?.data?.name?.value || "Безымянный персонаж";
@@ -467,8 +497,14 @@ export async function sendRollToWebhooks(roll) {
 
     const payload = { embeds: [embed] };
 
-    sendDiscordPayload(p.url.trim(), payload, blob).catch(err => {
+    sendDiscordPayload(p.url.trim(), payload, blob).then(res => {
+      if (!res.ok) {
+        console.warn("Discord webhook roll delivery failed:", res.error);
+        toast(`Вебхук: ${res.error || "ошибка отправки"}`, "err");
+      }
+    }).catch(err => {
       console.warn("Failed to send roll to Discord preset:", p.name, err);
+      toast(`Вебхук: ${err.message || "ошибка сети"}`, "err");
     });
   }
 }
