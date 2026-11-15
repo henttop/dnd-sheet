@@ -933,7 +933,7 @@ img{display:block}
 
 /* ===== Модалка «Создание персонажа» ===== */
 .modal-back{position:fixed;inset:0;z-index:200;background:rgba(6,8,20,.72);display:flex;
-  align-items:center;justify-content:center;padding:20px}
+  align-items:center;justify-content:center;padding:20px;overflow-y:auto}
 .modal{position:relative;background:var(--card);border:1px solid var(--border2);border-radius:16px;
   box-shadow:0 24px 60px rgba(0,0,0,.65);padding:30px 34px;max-width:460px;width:100%;text-align:center}
 .modal-x{position:absolute;top:10px;right:14px;color:var(--dim);font-size:18px;line-height:1}
@@ -1430,14 +1430,175 @@ body.darker-bg .modal {
 
 /* ===== Стили модалки оформления ===== */
 .theme-modal {
-  width: 500px;
-  max-width: 95vw;
+  width: 580px;
+  max-width: min(580px, 94vw);
+  max-height: min(88vh, 720px);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px 16px;
+  text-align: left;
+  margin: auto;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75), 0 0 24px rgba(139, 92, 246, 0.2);
+  overflow: hidden;
 }
+
+.theme-modal .modal-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+.theme-modal .modal-title {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: var(--text);
+  margin: 0;
+}
+
+.theme-modal .modal-x {
+  position: static;
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--dim);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.theme-modal .modal-x:hover {
+  background: var(--card2);
+  color: var(--text);
+}
+
+.theme-modal .modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+  margin-right: -2px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+
+.theme-modal .modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+.theme-modal .modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.theme-modal .modal-body::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border-radius: 4px;
+}
+.theme-modal .modal-body::-webkit-scrollbar-thumb:hover {
+  background: var(--purple2);
+}
+
+.theme-modal-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  margin-top: 12px;
+}
+
+.btn-done {
+  background: linear-gradient(135deg, #7c3aed, #6366f1);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 24px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
+  transition: all 0.18s ease;
+}
+
+.btn-done:hover {
+  background: linear-gradient(135deg, #8b5cf6, #818cf8);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+  transform: translateY(-1px);
+}
+
+.theme-btn-reset {
+  background: transparent;
+  color: var(--dim);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.theme-btn-reset:hover {
+  color: var(--red);
+  border-color: var(--red);
+  background: rgba(250, 82, 82, 0.1);
+}
+
+/* Навигация по вкладкам темы */
+.theme-nav-tabs {
+  display: flex;
+  gap: 6px;
+  background: var(--bg2);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  margin-bottom: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.theme-nav-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--dim);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.theme-nav-tab:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.theme-nav-tab.is-active {
+  background: var(--card2);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--border2);
+}
+
 .theme-settings-content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 8px 0;
+  gap: 14px;
+  padding: 2px 0 8px;
 }
 .theme-section {
   background: var(--card);
