@@ -203,16 +203,11 @@ export function SettingsDrawer({ c, onSave, onClose, onOpenWizard, ui, setUi }) 
           </div>
         </div>
       </div>
-
-      <button className="support-btn" onClick={() => window.open("https://longstoryshort.app", "_blank")}>
-        <span>⭐</span>
-        <span>Поддержите нас</span>
-      </button>
     </Drawer>
   );
 }
 
-/* ================= Подраздел: Настройки бросков (Вебхуки Discord / LSS / TG) ================= */
+/* ================= Подраздел: Настройки бросков (Вебхуки Discord / Telegram) ================= */
 export function RollsSettingsContent({ c, ui, setUi }) {
   const [presets, setPresets] = useState(() => getRollPresets());
   const [showForm, setShowForm] = useState(false);
@@ -224,7 +219,6 @@ export function RollsSettingsContent({ c, ui, setUi }) {
     name: "",
     color: "#EBEBEC",
     url: "",
-    lssId: "",
     tgChatId: ""
   });
 
@@ -235,7 +229,6 @@ export function RollsSettingsContent({ c, ui, setUi }) {
       name: "",
       color: "#EBEBEC",
       url: "",
-      lssId: "",
       tgChatId: ""
     });
     setShowForm(true);
@@ -248,7 +241,6 @@ export function RollsSettingsContent({ c, ui, setUi }) {
       name: p.name || "",
       color: p.color || "#EBEBEC",
       url: p.url || "",
-      lssId: p.lssId || "",
       tgChatId: p.tgChatId || ""
     });
     setShowForm(true);
@@ -279,7 +271,6 @@ export function RollsSettingsContent({ c, ui, setUi }) {
             name,
             color,
             url: formState.url.trim(),
-            lssId: formState.lssId?.trim(),
             tgChatId: formState.tgChatId?.trim()
           };
         }
@@ -292,7 +283,6 @@ export function RollsSettingsContent({ c, ui, setUi }) {
         name,
         color,
         url: formState.url.trim(),
-        lssId: formState.lssId?.trim(),
         tgChatId: formState.tgChatId?.trim(),
         enabled: true
       };
@@ -346,22 +336,8 @@ export function RollsSettingsContent({ c, ui, setUi }) {
     }
   };
 
-  const generateRandomLssId = () => {
-    const id = Math.random().toString(36).substring(2, 8).toUpperCase();
-    setFormState(s => ({ ...s, lssId: id }));
-  };
-
   return (
     <div className="rolls-settings-view">
-      {/* Предупреждение об устаревшем механизме */}
-      <div className="rolls-warn">
-        <div className="rolls-warn-title">Этот механизм устарел</div>
-        <div className="rolls-warn-text">
-          У нас появились Комнаты, которые кроме всего прочего упрощают отправку бросков в мессенджеры. Переходите в Комнаты, так как текущий механизм бросков скоро будет отключен.{" "}
-          <a href="https://longstoryshort.app" target="_blank" rel="noreferrer">Подробнее.</a>
-        </div>
-      </div>
-
       {/* Заголовок пресетов */}
       <div className="presets-head">
         <div className="presets-head-title">
@@ -370,9 +346,6 @@ export function RollsSettingsContent({ c, ui, setUi }) {
             +
           </button>
         </div>
-        <a className="presets-kb-link" href="https://longstoryshort.app" target="_blank" rel="noreferrer">
-          📖 База знаний
-        </a>
       </div>
 
       {/* Форма создания/редактирования */}
@@ -386,7 +359,6 @@ export function RollsSettingsContent({ c, ui, setUi }) {
             style={{ marginBottom: 12 }}
           >
             <option value="discord">Discord</option>
-            <option value="lss">LSS</option>
             <option value="telegram">Telegram</option>
           </select>
 
@@ -430,26 +402,6 @@ export function RollsSettingsContent({ c, ui, setUi }) {
             </>
           )}
 
-          {formState.type === "lss" && (
-            <>
-              <div className="f-label">ID СВЯЗИ</div>
-              <div className="f-inline" style={{ marginBottom: 4 }}>
-                <input
-                  className="f-input"
-                  value={formState.lssId}
-                  placeholder="ID комнаты"
-                  onChange={e => setFormState(s => ({ ...s, lssId: e.target.value }))}
-                />
-                <button className="preset-icon-btn" onClick={generateRandomLssId} title="Сгенерировать случайный ID">
-                  <RefreshIcon />
-                </button>
-              </div>
-              <div className="f-hint" style={{ marginBottom: 14 }}>
-                ID должен быть одинаковым у всех участников
-              </div>
-            </>
-          )}
-
           {formState.type === "telegram" && (
             <>
               <div className="f-label">ID ЧАТА</div>
@@ -482,7 +434,7 @@ export function RollsSettingsContent({ c, ui, setUi }) {
       ) : (
         <div className="presets-grid">
           {presets.map(p => {
-            const rawValue = p.type === "discord" ? p.url : p.type === "lss" ? p.lssId : p.tgChatId;
+            const rawValue = p.type === "discord" ? p.url : p.tgChatId;
             let displayVal = rawValue || "—";
             if (displayVal.length > 24) {
               displayVal = displayVal.slice(0, 24) + "...";

@@ -3,7 +3,7 @@ import { statMod, profOf } from "./helpers.js";
 import { Toggle } from "./ui.jsx";
 import { rollDiceExpr } from "./dice.js";
 
-/* Модалка настройки оружия — по образцу longstoryshort.app (?modal=weapon) */
+/* Модалка настройки оружия (?modal=weapon) */
 
 const ABILITIES = [
   ["str", "Сила"], ["dex", "Ловкость"], ["con", "Телосложение"],

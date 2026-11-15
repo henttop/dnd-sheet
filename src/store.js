@@ -65,7 +65,7 @@ export function exportCharacters() {
   );
 }
 
-/* ============ Создание нового персонажа (шаблон LSS «default») ============ */
+/* ============ Создание нового персонажа (шаблон «default») ============ */
 const hex = (n = 12) => Array.from({ length: n }, () => "0123456789abcdef"[Math.floor(Math.random() * 16)]).join("");
 
 const SKILL_IDS = [

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { hp, statMod } from "./helpers.js";
 import { toast } from "./toast.jsx";
 
-/* Модалка здоровья — по образцу longstoryshort.app (?modal=health):
+/* Модалка здоровья (?modal=health):
    калькулятор хитов слева, цифровая клавиатура, действия
    ВРЕМЕННЫЕ / ЛЕЧЕНИЕ / УРОН и кнопка настроек. */
 

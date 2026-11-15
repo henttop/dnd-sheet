@@ -70,7 +70,7 @@ export function saveBonus(c, st) { return statMod(c, st) + profOf(c) * saveProf(
 export function passive(c, id) { return 10 + skillBonus(c, id); }
 
 /* Заклинательная характеристика, Сл спасброска и бонус атаки.
-   В LSS: spellsInfo.base.code — характеристика, spellsInfo.save.customModifier —
+   В схеме персонажа: spellsInfo.base.code — характеристика, spellsInfo.save.customModifier —
    добавка к Сл, spellsInfo.mod.customModifier — добавка к бонусу атаки. */
 export function spellCasting(c) {
   const d = c.data;

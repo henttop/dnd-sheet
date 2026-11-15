@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Toggle } from "./ui.jsx";
 
-/* Модалка ресурса — по образцу longstoryshort.app (?modal=resource) */
+/* Модалка ресурса (?modal=resource) */
 
 export default function ResourceModal({ resource, onChange, onDelete, onClose }) {
   const r = resource || {};

@@ -85,7 +85,7 @@ export function RollHost() {
         });
       }
     };
-    // бросок урона заклинания (как карточка в журнале кубиков у LSS)
+    // бросок урона заклинания (карточка в журнале кубиков)
     window.__rollSpell = (name, total, dmgType, rolls, extraOpts = {}) => {
       const char = window.__activeChar;
       const charName = char?.data?.name?.value || "Безымянный персонаж";
@@ -127,7 +127,7 @@ function RollCard({ st, ui, onClose, old }) {
   const allDice = (st.rolls || []).flatMap(r => (r.parts && r.parts.length ? r.parts : [r.value]));
   const cls = "roll-pop" + mood + (old ? " old" : "");
 
-  // карточка броска заклинания (журнал кубиков у LSS)
+  // карточка броска заклинания (журнал кубиков)
   if (st.spell) {
     const diceLine = (st.rolls || []).map(r => {
       const raw = r.parts && r.parts.length ? r.parts.join("+") : r.value;

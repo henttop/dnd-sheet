@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 
-/* Контекстное меню редактора текстового блока (ПКМ) — как на longstoryshort.app */
+/* Контекстное меню редактора текстового блока (ПКМ) */
 export default function TextMenu({ x, y, onClose, onFormat, onInsert, resources = [] }) {
   const ref = useRef(null);
   useEffect(() => {

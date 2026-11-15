@@ -239,7 +239,7 @@ function AcVital({ c, onSave }) {
   );
 }
 
-/* ===== Монеты (как на LSS: ?modal=coins) ===== */
+/* ===== Монеты (?modal=coins) ===== */
 function GoldPill({ c, onSave }) {
   const [open, setOpen] = useState(false);
   return (

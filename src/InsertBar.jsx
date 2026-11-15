@@ -1,6 +1,6 @@
 import React from "react";
 
-/* Вертикальные кнопки вставки в редакторе (как на longstoryshort.app) */
+/* Вертикальные кнопки вставки в редакторе */
 export default function InsertBar({ onFormat, onInsert }) {
   const btns = [
     { label: "Жирный", title: "Жирный текст", act: () => onFormat("**") },
