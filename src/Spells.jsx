@@ -72,11 +72,30 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
   if (others.length) groups.push({ lv: "?", list: others, title: "Прочее" });
 
   const togglePrepared = (id) => {
+    c.spells ||= {};
+    c.spells.prepared ||= [];
     const arr = c.spells.prepared;
     const i = arr.indexOf(id);
-    if (i >= 0) arr.splice(i, 1);
-    else arr.push(id);
+    if (i >= 0) {
+      arr.splice(i, 1);
+      if (c.spells.book) {
+        const bi = c.spells.book.indexOf(id);
+        if (bi >= 0) c.spells.book.splice(bi, 1);
+      }
+    } else {
+      arr.push(id);
+    }
     onSave();
+  };
+
+  const removePrepared = (id) => {
+    c.spells ||= {};
+    c.spells.prepared = (c.spells.prepared || []).filter(x => x !== id);
+    if (c.spells.book) {
+      c.spells.book = (c.spells.book || []).filter(x => x !== id);
+    }
+    onSave();
+    setModal(null);
   };
 
   const slotInfo = (lv) => {
@@ -325,7 +344,7 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
             </div>
             {g.list.map(s => (
               <SpellRow key={s.id} spell={s} dc={dc} atk={atk} onOpen={() => setModal(s)}
-                castLevel={castLevel} onCast={castSpell} />
+                castLevel={castLevel} onCast={castSpell} onRemove={removePrepared} />
             ))}
           </div>
         );
@@ -340,6 +359,7 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
           atk={atk}
           onClose={() => setModal(null)}
           onToggle={() => togglePrepared(modal.id)}
+          onRemove={removePrepared}
           prepared={prepared.includes(modal.id)}
           castLevel={castLevel}
           onCast={castSpell}
@@ -351,8 +371,41 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
 }
 
 /* ================= Строка заклинания ================= */
-function SpellRow({ spell, dc, atk, onOpen, castLevel, onCast }) {
+function SpellRow({ spell, dc, atk, onOpen, castLevel, onCast, onRemove }) {
   const s = spell;
+
+  if (s.level === "?") {
+    return (
+      <div className="sp-row sp-row-unknown" onClick={onOpen}>
+        <div className="sp-row-main">
+          <div className="sp-row-name" style={{ color: "var(--red)" }}>
+            {s.name}
+            <span className="sp-badge err" title={`ID: ${s.id}`}>нет в базе</span>
+          </div>
+          <div className="sp-row-sub" style={{ fontFamily: "Consolas, monospace", fontSize: "11px", opacity: 0.75 }}>
+            ID: {s.id}
+          </div>
+        </div>
+        <div className="sp-row-info">
+          <span className="sp-info">—</span>
+          <span className="sp-info">—</span>
+          <span className="sp-info">—</span>
+          <span className="sp-info">—</span>
+        </div>
+        <button
+          className="sp-remove-btn"
+          title="Удалить из подготовленных"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(s.id);
+          }}
+        >
+          ✕
+        </button>
+      </div>
+    );
+  }
+
   const dmg = s.dmg && s.dmg.length ? s.dmg : null;
   const useLevel = castLevel !== null && castLevel >= s.level ? castLevel : s.level;
   // заговоры ячейками не усиливаются (только особые умения классов)
@@ -403,8 +456,49 @@ export function upcastDice(dice, up) {
 }
 
 /* ================= Карточка заклинания ================= */
-function SpellModal({ spell, dc, atk, onClose, onToggle, prepared, castLevel, onCast }) {
+function SpellModal({ spell, dc, atk, onClose, onToggle, onRemove, prepared, castLevel, onCast }) {
   const s = spell;
+  if (!s) return null;
+
+  if (s.level === "?") {
+    return (
+      <div className="modal-back" onMouseDown={onClose}>
+        <div className="modal sp-modal" onMouseDown={e => e.stopPropagation()}>
+          <button className="modal-x" onClick={onClose}>×</button>
+          <h3 className="modal-title sp-modal-title" style={{ color: "var(--red)" }}>
+            Заклинание отсутствует в справочнике
+          </h3>
+          <div className="sp-modal-sub" style={{ fontFamily: "Consolas, monospace", fontSize: "11px", opacity: 0.8 }}>
+            ID в файле персонажа: {s.id}
+          </div>
+          <div className="sp-desc" style={{ marginTop: 14 }}>
+            <p style={{ color: "var(--text)" }}>
+              Это заклинание было сохранено в массиве персонажа при экспорте из внешнего источника (например, из Long Story Short или редакции D&D 2024), но его описания и параметров нет в локальном автономном справочнике SRD 5e.
+            </p>
+            <p className="hint">
+              Вы можете удалить эту пустую запись из листа персонажа в один клик, чтобы очистить секцию «Прочее», либо заменить её на заклинание через кнопку «Подготовить заклинания».
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+            <button
+              className="modal-btn"
+              style={{ background: "rgba(250,82,82,.15)", borderColor: "var(--red)", color: "var(--red)", fontWeight: 800 }}
+              onClick={() => {
+                onRemove(s.id);
+                onClose();
+              }}
+            >
+              🗑 Удалить из листа персонажа
+            </button>
+            <button className="modal-btn" onClick={onClose}>
+              Закрыть
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const useLevel = castLevel !== null && castLevel >= s.level ? castLevel : s.level;
   const up = s.level > 0 ? useLevel - s.level : 0;
   return (
@@ -471,6 +565,21 @@ function PrepareModal({ c, onSave, onClose }) {
     return [...uniq.values()];
   }, []);
 
+  // Неизвестные ID, которые сохранены в персонаже, но отсутствуют в справочнике
+  const unknownIds = useMemo(() => {
+    return prepList.filter(id => !SPELL_BY_ID.has(id));
+  }, [prepList]);
+
+  const clearAllUnknown = () => {
+    c.spells ||= {};
+    c.spells.prepared = (c.spells.prepared || []).filter(id => SPELL_BY_ID.has(id));
+    if (c.spells.book) {
+      c.spells.book = (c.spells.book || []).filter(id => SPELL_BY_ID.has(id));
+    }
+    setPrepList([...c.spells.prepared]);
+    onSave();
+  };
+
   const list = pool.filter(s => {
     if (lv !== "all" && String(s.level) !== lv) return false;
     if (q && !s.name.toLowerCase().includes(q.toLowerCase())) return false;
@@ -484,6 +593,10 @@ function PrepareModal({ c, onSave, onClose }) {
     const i = arr.indexOf(id);
     if (i >= 0) {
       arr.splice(i, 1);
+      if (c.spells.book) {
+        const bi = c.spells.book.indexOf(id);
+        if (bi >= 0) c.spells.book.splice(bi, 1);
+      }
     } else {
       arr.push(id);
     }
@@ -498,6 +611,14 @@ function PrepareModal({ c, onSave, onClose }) {
       <div className="modal sp-prep" onMouseDown={e => e.stopPropagation()}>
         <button className="modal-x" onClick={onClose}>×</button>
         <h3 className="modal-title">Подготовить заклинания</h3>
+        {unknownIds.length > 0 && (
+          <div className="sp-prep-unknown-banner">
+            <span>В листе есть неизвестные заклинания ({unknownIds.length})</span>
+            <button type="button" className="sp-prep-clean-btn" onClick={clearAllUnknown}>
+              🗑 Очистить из листа
+            </button>
+          </div>
+        )}
         <div className="sp-prep-tools">
           <input className="f-input" placeholder="Поиск…" value={q} onChange={e => setQ(e.target.value)} />
           <CustomSelect value={lv} onChange={e => setLv(e.target.value)}>
@@ -512,6 +633,29 @@ function PrepareModal({ c, onSave, onClose }) {
         </div>
         <SpellFilters value={filters} onChange={setFilters} levels={levels} showLevels={false} />
         <div className="sp-prep-list">
+          {unknownIds.map(id => (
+            <div
+              key={id}
+              className="sp-prep-item on"
+              style={{ borderLeft: "3px solid var(--red)" }}
+              onClick={() => toggle(id)}
+              title="Нажмите, чтобы снять подготовку и удалить из листа"
+            >
+              <div className="sp-prep-left">
+                <span className="sp-prep-cb checked" style={{ background: "var(--red)", borderColor: "var(--red)" }}>
+                  <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3.5 8.5 6.5 11.5 12.5 4.5" />
+                  </svg>
+                </span>
+                <span className="sp-prep-name" style={{ color: "var(--red)" }}>
+                  Заклинание (нет в справочнике) [{id.slice(0, 8)}…]
+                </span>
+              </div>
+              <div className="sp-prep-right">
+                <span className="sp-prep-badge" style={{ background: "var(--red)", color: "#fff" }}>?</span>
+              </div>
+            </div>
+          ))}
           {list.map(s => {
             const isPrep = prepList.includes(s.id);
             return (

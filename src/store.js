@@ -3,14 +3,25 @@ import spellsRaw from "../data/spells.js";
 
 export const SPELLS = spellsRaw.map(s => {
   if (!s) return s;
-  if (/\[.*\]/.test(s.name || "")) return s;
-  const en = (s.nameEn || "").trim();
-  if (en) {
-    return { ...s, name: `${s.name} [${en}]` };
+  let spell = s;
+  // Если у заклинания нет id, используем уникальный slug в качестве id
+  if (!spell.id) {
+    spell = { ...spell, id: spell.slug };
   }
-  return s;
+  if (!/\[.*\]/.test(spell.name || "")) {
+    const en = (spell.nameEn || "").trim();
+    if (en) {
+      spell = { ...spell, name: `${spell.name} [${en}]` };
+    }
+  }
+  return spell;
 });
-export const SPELL_BY_ID = new Map(SPELLS.map(s => [s.id, s]));
+
+export const SPELL_BY_ID = new Map();
+SPELLS.forEach(s => {
+  if (s.id) SPELL_BY_ID.set(s.id, s);
+  if (s.slug) SPELL_BY_ID.set(s.slug, s);
+});
 export const SPELL_BY_SLUG = new Map(SPELLS.map(s => [s.slug, s]));
 
 const LS_KEY = "dnd-sheet-v1";
