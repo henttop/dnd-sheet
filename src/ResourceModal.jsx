@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Toggle } from "./ui.jsx";
 import { evalStat } from "./dice.js";
+import { FormulaInput } from "./FormulaSuggest.jsx";
 
 /* Модалка ресурса (?modal=resource) */
 
@@ -67,8 +68,12 @@ export default function ResourceModal({ resource, onChange, onDelete, onClose })
                 onChange={e => { const v = e.target.value; setMax(v); commit({ max: v }); }} />
             </label>
             <label className="pop-field res-formula" title="формула, например 10 или [PROF]*2">ƒ
-              <input className="f-input" value={formula} placeholder="формула"
-                onChange={e => { setFormula(e.target.value); commit({ formula: e.target.value }); }} />
+              <FormulaInput
+                className="f-input"
+                value={formula}
+                placeholder="формула"
+                onChange={v => { setFormula(v); commit({ formula: v }); }}
+              />
             </label>
           </div>
           {formula ? (() => {

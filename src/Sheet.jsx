@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useRef } from "react";
+﻿import React, { useEffect, useState, useRef, useMemo } from "react";
 import { characters, save } from "./store.js";
 import { SPELL_BY_ID, SPELL_BY_SLUG } from "./store.js";
 import { Editable, Popover, ProfPopover, DieIcon, CreateModal, useAnchorPos, Toggle } from "./ui.jsx";
@@ -21,6 +21,7 @@ import {
   saveProf, saveBonus, passive, docOf, setDoc, levelOf,
 } from "./helpers.js";
 import { signed, parseNum, esc, evalStat } from "./dice.js";
+import { FormulaInput, SuggestDropdown, getVariableList, filterVariables } from "./FormulaSuggest.jsx";
 
 export default function Sheet({ idx, back, fresh, onFreshDone }) {
   const c = characters[idx];
@@ -255,12 +256,11 @@ function AcVital({ c, onSave }) {
         <Popover onClose={() => setOpen(false)} style={{ left: pos.left, top: pos.top, minWidth: 220 }}>
           <div className="pop-title">КД и щит</div>
           <label className="pop-field">КД (без щита)
-            <input
-              type="text"
-              className="edit-in"
+            <FormulaInput
               value={draft}
+              char={c}
               placeholder="10 или [dex] + [con] + 10"
-              onChange={e => setDraft(e.target.value)}
+              onChange={setDraft}
               onKeyDown={e => {
                 if (e.key === "Enter") {
                   commit(draft);
@@ -350,11 +350,15 @@ function SubVitals({ c, onSave }) {
         {initOpen && initPos ? (
           <Popover onClose={() => { setInitOpen(false); onSave(); }} style={{ left: initPos.left, top: initPos.top, minWidth: 220 }}>
             <div className="pop-title">Бонус инициативы</div>
-            <input type="text" className="edit-in" autoFocus value={initDraft}
+            <FormulaInput
+              autoFocus
+              value={initDraft}
+              char={c}
               placeholder="0 или [WIS]"
-              onChange={e => setInitDraft(e.target.value)}
+              onChange={setInitDraft}
               onKeyDown={e => { if (e.key === "Enter") { v.initiative = { value: initDraft.trim() }; onSave(); setInitOpen(false); } }}
-              onBlur={() => { v.initiative = { value: initDraft.trim() }; onSave(); }} />
+              onBlur={() => { v.initiative = { value: initDraft.trim() }; onSave(); }}
+            />
             {initCustom.isFormula ? (
               <div className="f-hint" style={{ marginTop: 4, color: "var(--purple2)" }}>
                 ƒ {initCustom.raw} → <b>{initCustom.resolved}</b> = <b>{initCustom.total}</b>
@@ -701,9 +705,68 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
   const [resModal, setResModal] = useState(null);
   const [diePick, setDiePick] = useState(null);   // {el, x, y, formula} — выбор кубика / формулы
   const [formulasActive, setFormulasActive] = useState(true);
+  const [richSuggest, setRichSuggest] = useState(null);
+  const allVars = useMemo(() => getVariableList(c), [c]);
   const richRef = useRef(null);
   const doc = docOf(c, blockKey);
   const resources = Object.values(c.data.resources || {});
+
+  const checkRichSuggest = () => {
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) {
+      setRichSuggest(null);
+      return;
+    }
+    const range = sel.getRangeAt(0);
+    const node = range.startContainer;
+    if (node.nodeType !== 3) {
+      setRichSuggest(null);
+      return;
+    }
+    const textBefore = node.textContent.slice(0, range.startOffset);
+    const lastOpen = textBefore.lastIndexOf("[");
+    if (lastOpen >= 0) {
+      const textAfterOpen = textBefore.slice(lastOpen + 1);
+      if (!textAfterOpen.includes("]") && !/[\r\n]/.test(textAfterOpen)) {
+        const query = textAfterOpen;
+        const matches = filterVariables(allVars, query);
+        if (matches.length > 0) {
+          const rect = range.getBoundingClientRect();
+          setRichSuggest(prev => ({
+            query,
+            node,
+            startOffset: lastOpen,
+            endOffset: range.startOffset,
+            matches,
+            activeIndex: prev ? Math.min(prev.activeIndex, matches.length - 1) : 0,
+            x: rect.left,
+            y: rect.bottom + 6
+          }));
+          return;
+        }
+      }
+    }
+    setRichSuggest(null);
+  };
+
+  const applyRichSuggest = (item) => {
+    if (!richSuggest) return;
+    const { node, startOffset, endOffset } = richSuggest;
+    const text = node.textContent;
+    let after = text.slice(endOffset);
+    if (after.startsWith("]")) after = after.slice(1);
+    const inserted = `[${item.code}]`;
+    const newText = text.slice(0, startOffset) + inserted + after;
+    node.textContent = newText;
+    setRichSuggest(null);
+
+    const sel = window.getSelection();
+    const newRange = document.createRange();
+    newRange.setStart(node, startOffset + inserted.length);
+    newRange.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+  };
 
   // один общий текстовый слой со встроенными спойлерами
   useEffect(() => {
@@ -756,6 +819,7 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
       g.classList.add("ed-p");
     }
     repairGuards();
+    checkRichSuggest();
   };
 
   /* защитные строки удалять нельзя — блокируем удаление */
@@ -939,6 +1003,28 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
   const insertRoll = () => withCaret(toggleRollFormula);
 
   const onEditorKeyDown = (e) => {
+    if (richSuggest && richSuggest.matches.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setRichSuggest(s => ({ ...s, activeIndex: (s.activeIndex + 1) % s.matches.length }));
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setRichSuggest(s => ({ ...s, activeIndex: (s.activeIndex - 1 + s.matches.length) % s.matches.length }));
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        applyRichSuggest(richSuggest.matches[richSuggest.activeIndex]);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setRichSuggest(null);
+        return;
+      }
+    }
     if ((e.ctrlKey || e.metaKey) && (e.key === "d" || e.key === "D" || e.key === "в" || e.key === "В")) {
       e.preventDefault();
       toggleRollFormula();
@@ -1152,12 +1238,22 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
               className="rt-rich"
               contentEditable
               suppressContentEditableWarning
+              onInput={onEditorInput}
+              onKeyUp={checkRichSuggest}
               onClick={onRichClick}
               onKeyDown={onEditorKeyDown}
               onContextMenu={e => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY }); }}
             />
             <InsertBar onFormat={onFormat} onInsert={onInsert} />
           </div>
+          {richSuggest ? (
+            <SuggestDropdown
+              items={richSuggest.matches}
+              activeIndex={richSuggest.activeIndex}
+              onSelect={applyRichSuggest}
+              position={{ left: richSuggest.x, top: richSuggest.y }}
+            />
+          ) : null}
           <div style={{ display: "flex", gap: 10, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
             <button className="save-btn" onClick={save}>Сохранить</button>
             <label className="ed-toggle-formulas" title="Деактивировать формулы для редактирования как [[текст]]">
@@ -1186,13 +1282,12 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
                 ))}
               </div>
               <div style={{ marginTop: 6 }}>
-                <input
-                  type="text"
+                <FormulaInput
                   className="die-pick-input"
                   value={diePick.formula ?? ""}
+                  char={c}
                   placeholder="1d20 + [STR] (Атака)"
-                  onChange={e => {
-                    const v = e.target.value;
+                  onChange={v => {
                     setDiePick(d => ({ ...d, formula: v }));
                     diePick.el.textContent = "🎲 " + (v || "1d20");
                   }}
