@@ -1,7 +1,15 @@
 import charactersRaw from "../data/characters.js";
 import spellsRaw from "../data/spells.js";
 
-export const SPELLS = spellsRaw;
+export const SPELLS = spellsRaw.map(s => {
+  if (!s) return s;
+  if (/\[.*\]/.test(s.name || "")) return s;
+  const en = (s.nameEn || "").trim();
+  if (en) {
+    return { ...s, name: `${s.name} [${en}]` };
+  }
+  return s;
+});
 export const SPELL_BY_ID = new Map(SPELLS.map(s => [s.id, s]));
 export const SPELL_BY_SLUG = new Map(SPELLS.map(s => [s.slug, s]));
 
