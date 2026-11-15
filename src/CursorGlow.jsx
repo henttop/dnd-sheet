@@ -5,61 +5,61 @@ export const CURSOR_COLORS = {
   purple: {
     id: "purple",
     name: "Магический аметист",
-    glow0: "rgba(147, 51, 234, 0.35)",
-    glow1: "rgba(124, 58, 237, 0.16)",
-    glow2: "rgba(168, 85, 247, 0.04)",
-    dotBase: [216, 180, 254], // #d8b4fe
-    dotCenter: [255, 255, 255],
-    core: "#e9d5ff",
-    ring: "#c084fc",
+    glow0: "rgba(124, 58, 237, 0.28)",
+    glow1: "rgba(109, 40, 217, 0.12)",
+    glow2: "rgba(139, 92, 246, 0.03)",
+    dotBase: [109, 40, 217], // глубокий фиолетовый
+    dotCenter: [168, 85, 247], // умеренный пурпурный
+    core: "#c084fc",
+    ring: "rgba(124, 58, 237, 0.35)",
     preview: "#a855f7",
   },
   cyan: {
     id: "cyan",
     name: "Лазурный шторм",
-    glow0: "rgba(6, 182, 212, 0.35)",
-    glow1: "rgba(59, 130, 246, 0.16)",
-    glow2: "rgba(14, 165, 233, 0.04)",
-    dotBase: [165, 243, 252],
-    dotCenter: [255, 255, 255],
-    core: "#cffafe",
-    ring: "#67e8f9",
+    glow0: "rgba(14, 116, 144, 0.28)",
+    glow1: "rgba(8, 145, 178, 0.12)",
+    glow2: "rgba(6, 182, 212, 0.03)",
+    dotBase: [14, 116, 144], // глубокий циан
+    dotCenter: [6, 182, 212],
+    core: "#22d3ee",
+    ring: "rgba(14, 165, 233, 0.35)",
     preview: "#06b6d4",
   },
   gold: {
     id: "gold",
     name: "Священный свет",
-    glow0: "rgba(234, 179, 8, 0.35)",
-    glow1: "rgba(245, 158, 11, 0.16)",
-    glow2: "rgba(217, 119, 6, 0.04)",
-    dotBase: [254, 240, 138],
-    dotCenter: [255, 255, 255],
-    core: "#fef08a",
-    ring: "#fde047",
+    glow0: "rgba(180, 83, 9, 0.28)",
+    glow1: "rgba(217, 119, 6, 0.12)",
+    glow2: "rgba(245, 158, 11, 0.03)",
+    dotBase: [161, 98, 7], // глубокий янтарный
+    dotCenter: [217, 119, 6],
+    core: "#fde047",
+    ring: "rgba(217, 119, 6, 0.35)",
     preview: "#eab308",
   },
   red: {
     id: "red",
     name: "Пламя дракона",
-    glow0: "rgba(239, 68, 68, 0.35)",
-    glow1: "rgba(220, 38, 38, 0.16)",
-    glow2: "rgba(185, 28, 28, 0.04)",
-    dotBase: [254, 202, 202],
-    dotCenter: [255, 255, 255],
-    core: "#fee2e2",
-    ring: "#f87171",
+    glow0: "rgba(185, 28, 28, 0.28)",
+    glow1: "rgba(220, 38, 38, 0.12)",
+    glow2: "rgba(239, 68, 68, 0.03)",
+    dotBase: [153, 27, 27], // глубокий рубиновый
+    dotCenter: [220, 38, 38],
+    core: "#f87171",
+    ring: "rgba(220, 38, 38, 0.35)",
     preview: "#ef4444",
   },
   green: {
     id: "green",
     name: "Изумрудный луч",
-    glow0: "rgba(34, 197, 94, 0.35)",
-    glow1: "rgba(16, 185, 129, 0.16)",
-    glow2: "rgba(5, 150, 105, 0.04)",
-    dotBase: [187, 247, 208],
-    dotCenter: [255, 255, 255],
-    core: "#dcfce7",
-    ring: "#4ade80",
+    glow0: "rgba(21, 128, 61, 0.28)",
+    glow1: "rgba(22, 163, 74, 0.12)",
+    glow2: "rgba(34, 197, 94, 0.03)",
+    dotBase: [21, 128, 61], // глубокий изумрудный
+    dotCenter: [34, 197, 94],
+    core: "#4ade80",
+    ring: "rgba(34, 197, 94, 0.35)",
     preview: "#22c55e",
   },
 };
@@ -115,8 +115,6 @@ export default function CursorGlow() {
     };
     window.addEventListener("resize", onResize);
 
-    const gridSize = 24; // Шаг сетки (пиксели)
-
     const render = () => {
       ctx.clearRect(0, 0, cssW, cssH);
 
@@ -150,8 +148,9 @@ export default function CursorGlow() {
         ctx.arc(px, py, radius, 0, Math.PI * 2);
         ctx.fill();
 
-        // 2. Интерактивная точечная сетка (Dot Matrix Grid)
+        // 2. Интерактивная точечная сетка (Dot Matrix Grid) с регулируемым шагом и затемнёнными точками
         if (currentUi.cursorDotGrid !== false) {
+          const gridSize = Math.max(14, Math.min(60, Number(currentUi.cursorDotSpacing) || 28));
           const minX = Math.max(0, Math.floor((px - radius) / gridSize) * gridSize);
           const maxX = Math.min(cssW, Math.ceil((px + radius) / gridSize) * gridSize);
           const minY = Math.max(0, Math.floor((py - radius) / gridSize) * gridSize);
@@ -162,14 +161,15 @@ export default function CursorGlow() {
               const dist = Math.hypot(x - px, y - py);
               if (dist <= radius) {
                 const factor = 1 - dist / radius; // 1 у курсора, 0 на границе
-                const alpha = 0.28 + Math.pow(factor, 1.2) * 0.72;
-                const dotR = 1.4 + factor * 1.8 + Math.pow(factor, 2.4) * 2.3;
+                // Тёмные, деликатные фоновые точки (не слепят глаза и не отвлекают от чтения листа)
+                const alpha = 0.14 + Math.pow(factor, 1.4) * 0.46; // макс ~0.60
+                const dotR = 1.0 + factor * 1.1 + Math.pow(factor, 2.2) * 1.2; // аккуратный радиус 1.0 - 3.3px
 
                 const [r, g, b] = factor > 0.65 ? activeColors.dotCenter : activeColors.dotBase;
                 ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
 
-                if (factor > 0.35) {
-                  ctx.shadowBlur = (factor - 0.25) * 12;
+                if (factor > 0.45) {
+                  ctx.shadowBlur = (factor - 0.4) * 5;
                   ctx.shadowColor = activeColors.ring;
                 } else {
                   ctx.shadowBlur = 0;

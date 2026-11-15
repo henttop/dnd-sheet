@@ -10,6 +10,7 @@ let state = {
   darkerBg: true,      // сверхтёмный фон (deep dark)
   cursorGlow: true,    // эффект мягкой подсветки за курсором
   cursorDotGrid: true, // сетка из точек вокруг курсора (dot matrix)
+  cursorDotSpacing: 28, // расстояние между точками сетки в пикселях (16 - 56)
   cursorRadius: 240,   // радиус круга подсветки в пикселях (120 - 450)
   cursorColor: "purple", // цвет подсветки (purple, cyan, gold, red, green)
   cursorRipple: true,  // эффект расходящейся волны при клике
