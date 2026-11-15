@@ -58,6 +58,44 @@ export function ThemeSettingsContent({ ui, setUi }) {
               })}
             </div>
 
+            <div className="theme-item-row" style={{ marginTop: 14, flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div className="theme-item-title" style={{ fontSize: 13 }}>Размер круга подсветки</div>
+                <div className="theme-slider-val">{ui.cursorRadius || 240} px</div>
+              </div>
+              <div className="theme-item-desc">
+                Регулирует радиус области, в которой подсвечиваются точки и фон вокруг курсора.
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
+                <input
+                  type="range"
+                  min="120"
+                  max="460"
+                  step="10"
+                  value={ui.cursorRadius || 240}
+                  onChange={(e) => setUi({ cursorRadius: Number(e.target.value) })}
+                  className="theme-range-slider"
+                />
+              </div>
+              <div className="theme-presets-row">
+                {[
+                  { label: "160 px", val: 160 },
+                  { label: "240 px", val: 240 },
+                  { label: "320 px", val: 320 },
+                  { label: "420 px", val: 420 },
+                ].map((p) => (
+                  <button
+                    key={p.val}
+                    type="button"
+                    className={"theme-preset-btn" + ((ui.cursorRadius || 240) === p.val ? " is-active" : "")}
+                    onClick={() => setUi({ cursorRadius: p.val })}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="theme-item-row" style={{ marginTop: 14 }}>
               <div className="theme-item-info">
                 <div className="theme-item-title" style={{ fontSize: 13 }}>Сетка из точек (Dot Matrix)</div>

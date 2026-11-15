@@ -39,11 +39,15 @@ img{display:block}
 .json-menu button{display:block;width:100%;text-align:left;padding:8px 12px;border-radius:6px}
 .json-menu button:hover{background:var(--accent);color:#fff}
 .char-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-.char-card{display:flex;gap:10px;background:var(--card);border:1px solid var(--border);
-  border-radius:12px;padding:10px;cursor:pointer;transition:border-color .15s}
-.char-card:hover{border-color:var(--accent)}
+.char-card{position:relative;display:flex;gap:10px;background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:10px;cursor:pointer;
+  transition:transform .22s cubic-bezier(0.16,1,0.3,1),border-color .22s ease,box-shadow .22s ease,background .22s ease}
+.char-card:hover{transform:translateY(-3px);border-color:var(--purple2);background:var(--card2);
+  box-shadow:0 12px 28px rgba(0,0,0,.5),0 0 20px rgba(139,92,246,.28)}
+.char-card:hover img,.char-card:hover .ph{box-shadow:0 0 14px rgba(139,92,246,.4);transform:scale(1.02);transition:all .2s ease}
 .char-card img,.char-card .ph{width:52px;height:52px;border-radius:10px;object-fit:cover;flex:none;
-  background:var(--card2);color:var(--dim);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px}
+  background:var(--card2);color:var(--dim);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;
+  transition:transform .2s ease,box-shadow .2s ease}
 .char-card .cc-name{font-weight:700;font-size:15px}
 .char-card .cc-sub{color:var(--dim);font-size:13px}
 .char-card .cc-hp{color:var(--green);font-size:12px;margin-top:4px}
@@ -58,13 +62,14 @@ img{display:block}
 .cc-pop button:hover{background:var(--accent);color:#fff}
 .cc-pop button.danger{color:var(--red)}
 .cc-pop button.danger:hover{background:var(--red);color:#fff}
-.char-card{position:relative}
 .ph-empty svg{opacity:.55}
 /* Кнопка создания персонажа (как на сайте — широкая под сеткой) */
 .new-char{width:100%;margin-top:2px;height:46px;border-radius:10px;background:transparent;
   border:1px solid var(--border2);color:var(--dim);font-size:22px;font-weight:300;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s}
-.new-char:hover{border-color:var(--accent);color:var(--text)}
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .2s cubic-bezier(0.16,1,0.3,1),border-color .2s ease,box-shadow .2s ease,color .2s ease,background .2s ease}
+.new-char:hover{transform:translateY(-2px);border-color:var(--purple2);color:#fff;background:rgba(139,92,246,.08);
+  box-shadow:0 8px 22px rgba(0,0,0,.4),0 0 16px rgba(139,92,246,.25)}
 .dropzone{margin-top:20px;border:2px dashed var(--border2);border-radius:12px;padding:22px;
   text-align:center;color:var(--dim);font-size:13px}
 .dropzone.drag{border-color:var(--accent);color:var(--text)}
@@ -104,26 +109,38 @@ img{display:block}
 .vital .ac-shield{width:32px;height:32px}
 .hp-box{border:1.5px solid var(--green);border-radius:10px;padding:6px 14px;font-size:18px;
   font-weight:800;color:var(--green);cursor:pointer;user-select:none;min-width:96px;text-align:center;
-  display:flex;align-items:center;justify-content:center;gap:6px}
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:transform .18s cubic-bezier(0.16,1,0.3,1),box-shadow .18s ease,border-color .18s ease}
+.hp-box:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(64,192,87,.38)}
 .hp-box .hp-heart{color:currentColor}
 .hp-box .hp-temp{color:var(--cyan);font-size:13px}
 .hp-box.low{border-color:var(--red);color:var(--red)}
-.gold-pill{display:flex;align-items:center;gap:6px;font-weight:700;font-size:15px;color:var(--gold);cursor:pointer}
+.hp-box.low:hover{box-shadow:0 6px 20px rgba(250,82,82,.38)}
+.gold-pill{display:flex;align-items:center;gap:6px;font-weight:700;font-size:15px;color:var(--gold);cursor:pointer;
+  transition:transform .15s ease}
+.gold-pill:hover{transform:translateY(-1px);filter:brightness(1.15)}
 
 /* ===== Вторая строка (инициатива, вдохновение, истощение, состояния) ===== */
 .subvitals{display:flex;align-items:center;gap:8px;margin-top:8px}
 .subvital{background:var(--card);border:1px solid var(--border2);border-radius:8px;
-  padding:4px 10px;text-align:center;cursor:pointer;min-width:56px;user-select:none}
+  padding:4px 10px;text-align:center;cursor:pointer;min-width:56px;user-select:none;
+  transition:transform .18s cubic-bezier(0.16,1,0.3,1),border-color .18s ease,box-shadow .18s ease,background .18s ease}
 .subvital .sv-v{font-size:15px;font-weight:800;display:flex;justify-content:center;align-items:center;min-height:18px}
 .subvital .sv-l{font-size:9px;color:var(--dim);font-weight:700;letter-spacing:.3px}
-.subvital:hover{border-color:var(--accent)}
+.subvital:hover{transform:translateY(-2px);border-color:var(--accent2);background:var(--card2);
+  box-shadow:0 6px 16px rgba(0,0,0,.35),0 0 12px rgba(92,124,250,.35)}
 .subvital.insp{border-color:var(--gold);color:var(--gold)}
+.subvital.insp:hover{border-color:var(--gold);box-shadow:0 6px 16px rgba(0,0,0,.35),0 0 14px rgba(250,176,5,.35)}
 .subvital.insp .sv-l{color:var(--gold)}
 .subvital.dim{opacity:.55}
 .cond-box{flex:1;border:1px solid var(--border2);border-radius:8px;padding:6px 10px;text-align:center;
-  color:var(--dim);font-size:11px;font-weight:700;cursor:pointer}
+  color:var(--dim);font-size:11px;font-weight:700;cursor:pointer;
+  transition:transform .18s cubic-bezier(0.16,1,0.3,1),border-color .18s ease,box-shadow .18s ease,color .18s ease}
+.cond-box:hover{transform:translateY(-2px);border-color:var(--purple2);color:var(--text);
+  box-shadow:0 6px 16px rgba(0,0,0,.35),0 0 12px rgba(139,92,246,.3)}
 .cond-box .chip{display:inline-block;background:var(--card2);border:1px solid var(--border2);
-  border-radius:20px;padding:1px 8px;margin:0 2px;color:var(--text)}
+  border-radius:20px;padding:1px 8px;margin:0 2px;color:var(--text);transition:border-color .15s}
+.cond-box:hover .chip{border-color:var(--purple2)}
 
 /* ===== Двухколоночный лист ===== */
 .sheet-cols{display:grid;grid-template-columns:minmax(0,470px) minmax(0,1fr);gap:18px;margin-top:14px}
@@ -260,7 +277,9 @@ img{display:block}
 .skill-row .roll-btn{background:rgba(255,255,255,.08);border:none;border-radius:999px;font-size:12px;font-weight:800;padding:2px 10px}
 
 /* ===== Панели (пассивки, владения, текстовые блоки) ===== */
-.panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:12px}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:12px;
+  transition:border-color .2s ease,box-shadow .2s ease}
+.panel:hover{border-color:var(--border2);box-shadow:0 6px 18px rgba(0,0,0,.3)}
 .panel h4{font-size:10.5px;font-weight:800;letter-spacing:.6px;color:var(--dim);margin:0 0 6px;
   display:flex;align-items:center;gap:6px}
 .passive-row{display:flex;gap:12px;align-items:center}
@@ -281,7 +300,8 @@ img{display:block}
 .passive:hover .pi{color:#fff}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip-sm{background:var(--card2);border:1px solid var(--border2);border-radius:20px;padding:2px 10px;
-  font-size:11px;font-weight:700;user-select:none}
+  font-size:11px;font-weight:700;user-select:none;transition:all .15s ease}
+.chip-sm:hover{transform:translateY(-1px);border-color:var(--purple2);box-shadow:0 0 8px rgba(139,92,246,.3)}
 .chip-sm.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .mini-label{font-size:9px;font-weight:800;letter-spacing:.5px;color:var(--dim)}
 
@@ -508,8 +528,9 @@ img{display:block}
 .slot-lvl{font-size:11px;color:var(--dim);font-weight:700;margin-right:4px}
 .spell-group h4{font-size:13px;font-weight:800;border-bottom:1px solid var(--border2);padding-bottom:4px;margin:12px 0 8px}
 .spell-row{display:flex;align-items:center;background:linear-gradient(90deg,#31407a,#2b3560);
-  border-radius:8px;padding:8px 12px;margin-bottom:6px}
-.spell-row:hover{filter:brightness(1.15)}
+  border-radius:8px;padding:8px 12px;margin-bottom:6px;
+  transition:transform .18s cubic-bezier(0.16,1,0.3,1),box-shadow .18s ease,filter .18s ease}
+.spell-row:hover{transform:translateY(-1.5px);filter:brightness(1.18);box-shadow:0 6px 16px rgba(0,0,0,.35),0 0 12px rgba(92,124,250,.3)}
 .spell-row .sp-name{font-weight:700}
 .spell-row .sp-sub{font-size:11px;color:#c4cbee}
 
@@ -1396,5 +1417,54 @@ body.darker-bg .modal {
   border-radius: 50%;
   flex: none;
 }
+
+/* Слайдер и пресеты размера круга подсветки */
+.theme-range-slider {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border2);
+  accent-color: var(--purple2);
+  cursor: pointer;
+  outline: none;
+}
+.theme-slider-val {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--purple2);
+  background: rgba(139, 92, 246, 0.15);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.theme-presets-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.theme-preset-btn {
+  flex: 1;
+  padding: 4px 6px;
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dim);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+.theme-preset-btn:hover {
+  color: var(--text);
+  border-color: var(--accent2);
+}
+.theme-preset-btn.is-active {
+  background: var(--card2);
+  border-color: var(--purple2);
+  color: #fff;
+  box-shadow: 0 0 0 1px var(--purple2);
+}
+
 
 

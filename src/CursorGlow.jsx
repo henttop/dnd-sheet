@@ -92,7 +92,7 @@ export default function CursorGlow() {
     };
     window.addEventListener("resize", onResize);
 
-    const radius = 240; // Радиус видимости свечения и точек вокруг курсора
+    const radius = Math.max(100, Math.min(500, Number(ui.cursorRadius) || 240)); // Радиус видимости свечения и точек вокруг курсора
     const gridSize = 24; // Шаг сетки из точек (в пикселях)
 
     const render = () => {
@@ -120,7 +120,7 @@ export default function CursorGlow() {
         ctx.arc(px, py, radius, 0, Math.PI * 2);
         ctx.fill();
 
-        // 2. Интерактивная сетка из точек (dot matrix grid)
+        // 2. Интерактивная сетка из точек (dot matrix grid) с увеличением точек к центру
         if (ui.cursorDotGrid !== false) {
           const minX = Math.max(0, Math.floor((px - radius) / gridSize) * gridSize);
           const maxX = Math.min(width, Math.ceil((px + radius) / gridSize) * gridSize);
@@ -132,24 +132,33 @@ export default function CursorGlow() {
               const dist = Math.hypot(x - px, y - py);
               if (dist <= radius) {
                 const factor = 1 - dist / radius; // 1 у курсора, 0 на границе
-                const alpha = Math.pow(factor, 1.5) * 0.9;
-                const dotR = 0.8 + factor * 1.8; // размер точки от 0.8px до 2.6px
+                const alpha = Math.pow(factor, 1.4) * 0.95;
+                // Точки заметно увеличиваются по мере приближения к курсору (от 0.8px до ~5.8px)
+                const sizeMultiplier = Math.pow(factor, 2.2);
+                const dotR = 0.8 + factor * 1.5 + sizeMultiplier * 3.5;
 
                 ctx.fillStyle = colorConfig.dotRgb(alpha.toFixed(3));
+                if (factor > 0.4) {
+                  ctx.shadowBlur = (factor - 0.35) * 14;
+                  ctx.shadowColor = colorConfig.core;
+                } else {
+                  ctx.shadowBlur = 0;
+                }
                 ctx.beginPath();
                 ctx.arc(x, y, dotR, 0, Math.PI * 2);
                 ctx.fill();
               }
             }
           }
+          ctx.shadowBlur = 0;
         }
 
         // 3. Центральное световое ядро
         ctx.fillStyle = colorConfig.core;
         ctx.shadowColor = colorConfig.core;
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 10;
         ctx.beginPath();
-        ctx.arc(px, py, 3, 0, Math.PI * 2);
+        ctx.arc(px, py, 3.5, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
       }
@@ -225,7 +234,7 @@ export default function CursorGlow() {
       window.removeEventListener("mousedown", onMouseDown);
       if (animFrameId.current) cancelAnimationFrame(animFrameId.current);
     };
-  }, [ui.cursorGlow, ui.cursorDotGrid, ui.cursorRipple, ui.cursorColor]);
+  }, [ui.cursorGlow, ui.cursorDotGrid, ui.cursorRadius, ui.cursorRipple, ui.cursorColor]);
 
   if (ui.cursorGlow === false) return null;
 
