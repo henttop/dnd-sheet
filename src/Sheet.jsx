@@ -440,8 +440,10 @@ function SaveBtn({ c, st, onSave }) {
   const b = saveBonus(c, st);
   return (
     <span style={{ position: "relative" }}>
-      <button className="roll-btn" onClick={e => window.__rollD20(`Спасбросок ${STAT_NAMES[st]}`, b, "")}>
-        <span className="dot-mini" onClick={e => { e.stopPropagation(); setAnchor(e.currentTarget); }}>◉</span>
+      <button className="roll-btn" onClick={e => window.__rollD20(`Спасбросок ${STAT_NAMES[st]}`, b, "")}
+        onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setAnchor(e.currentTarget); }}>
+        <span className="dot-mini" onClick={e => { e.stopPropagation(); setAnchor(e.currentTarget); }}
+          onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setAnchor(e.currentTarget); }}>◉</span>
         Спасбросок <b>{signed(b)}</b>
       </button>
       {anchor ? (
@@ -485,8 +487,12 @@ function SkillRow({ c, id, name, base, onSave }) {
   };
   return (
     <div className={"skill-row" + (p === 1 ? " p1" : p === 2 ? " p2" : "")}>
-      <span className="dot" title="владение (клик)" onClick={e => { e.stopPropagation(); setAnchor(e.currentTarget); }} />
-      <span className="s-name" onClick={e => setAnchor(e.currentTarget)}>{name}</span>
+      <span className="dot" title="владение (клик или ПКМ)"
+        onClick={e => { e.stopPropagation(); setAnchor(e.currentTarget); }}
+        onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setAnchor(e.currentTarget); }} />
+      <span className="s-name"
+        onClick={e => setAnchor(e.currentTarget)}
+        onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setAnchor(e.currentTarget); }}>{name}</span>
       <button className={"roll-btn" + (rolling ? " is-rolling" : "")} onClick={handleRoll}>{signed(b)}</button>
       {anchor ? (
         <ProfPopover anchor={anchor} value={p} withCustom customValue={custom} title={name}

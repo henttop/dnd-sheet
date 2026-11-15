@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { characters, importCharacters, exportCharacters, blankCharacter, addCharacter, removeCharacter, duplicateCharacter } from "./store.js";
 import { hp } from "./helpers.js";
 import { toast } from "./toast.jsx";
@@ -9,6 +9,17 @@ export default function List({ open }) {
   const [cardMenu, setCardMenu] = useState(null);
   const [, force] = useState(0);
   const rerender = () => force(x => x + 1);
+
+  useEffect(() => {
+    if (cardMenu == null && !menu) return;
+    const handleDown = (e) => {
+      if (e.target.closest(".cc-pop") || e.target.closest(".json-menu") || e.target.closest(".cc-menu")) return;
+      setCardMenu(null);
+      setMenu(false);
+    };
+    window.addEventListener("pointerdown", handleDown);
+    return () => window.removeEventListener("pointerdown", handleDown);
+  }, [cardMenu, menu]);
 
   const loadText = (t) => {
     try {
@@ -67,16 +78,45 @@ export default function List({ open }) {
       <div className="char-grid">
         {characters.map((c, i) => {
           const h = hp(c); const low = h.cur < h.max * .34;
+          const isMenuOpen = cardMenu === i;
           return (
-            <div className="char-card" key={i} onClick={() => open(i)}>
-              <Avatar c={c} />
+            <div
+              className={"char-card" + (isMenuOpen ? " menu-open" : "")}
+              key={i}
+              onClick={() => open(i)}
+              onContextMenu={e => {
+                e.preventDefault();
+                e.stopPropagation();
+                setCardMenu(prev => (prev === i ? null : i));
+              }}
+            >
+              <div
+                className="cc-avatar-wrap"
+                onContextMenu={e => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setCardMenu(prev => (prev === i ? null : i));
+                }}
+                title="Опции персонажа (ПКМ)"
+              >
+                <Avatar c={c} />
+              </div>
               <div className="cc-body">
                 <div className="cc-name">{c.data.name?.value || "Безымянный персонаж"}</div>
                 <div className="cc-sub">{raceClass(c)}</div>
                 <div className={"cc-hp" + (low ? " low" : "")}>♥ {h.cur}/{h.max}</div>
               </div>
-              <div className="cc-menu" onClick={e => { e.stopPropagation(); setCardMenu(cardMenu === i ? null : i); }}>⋯</div>
-              {cardMenu === i ? (
+              <div
+                className="cc-menu"
+                onClick={e => { e.stopPropagation(); setCardMenu(cardMenu === i ? null : i); }}
+                onContextMenu={e => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setCardMenu(prev => (prev === i ? null : i));
+                }}
+                title="Опции персонажа (ПКМ или клик)"
+              >⋯</div>
+              {isMenuOpen ? (
                 <div className="cc-pop" onClick={e => e.stopPropagation()}>
                   <button onClick={() => { duplicateCharacter(i); setCardMenu(null); rerender(); }}>Копировать</button>
                   <button onClick={() => { exportOne(i); setCardMenu(null); }}>Скачать .json</button>

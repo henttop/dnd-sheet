@@ -14,9 +14,16 @@ export function AvatarMenu({ c, onSave, onSettings, onPortrait }) {
   const ref = useRef(null);
   useEffect(() => {
     const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    const t = setTimeout(() => document.addEventListener("mousedown", close), 0);
-    return () => { clearTimeout(t); document.removeEventListener("mousedown", close); };
-  }, []);
+    const t = setTimeout(() => {
+      document.addEventListener("mousedown", close);
+      document.addEventListener("contextmenu", close);
+    }, 0);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("contextmenu", close);
+    };
+  }, [open]);
 
   const items = [
     { icon: <GearIcon />, label: "Настройки", onClick: () => { setOpen(false); onSettings(); } },
@@ -28,8 +35,16 @@ export function AvatarMenu({ c, onSave, onSettings, onPortrait }) {
   ];
 
   return (
-    <div className="ava-wrap" ref={ref}>
-      <div className="ava-btn" onClick={() => setOpen(o => !o)} title="Меню персонажа">
+    <div className={"ava-wrap" + (open ? " is-open" : "")} ref={ref}>
+      <div
+        className="ava-btn"
+        onClick={() => setOpen(o => !o)}
+        onContextMenu={e => {
+          e.preventDefault();
+          setOpen(o => !o);
+        }}
+        title="Меню персонажа (клик или ПКМ)"
+      >
         <AvatarImg c={c} />
       </div>
       {open ? (

@@ -82,13 +82,16 @@ select optgroup {
 .char-card{position:relative;z-index:2;display:flex;gap:10px;background:var(--card);border:1px solid var(--border);
   border-radius:12px;padding:10px;cursor:pointer;
   transition:transform .22s cubic-bezier(0.16,1,0.3,1),border-color .22s ease,box-shadow .22s ease,background .22s ease}
+.char-card.menu-open,
+.char-card:has(.cc-pop){z-index:120 !important}
 .char-card::before{content:"";position:absolute;inset:0;border-radius:inherit;
   background:radial-gradient(calc(var(--pill-spotlight-size, 130px) * 1.5) circle at var(--mx,50%) var(--my,50%),rgba(168,85,247,.35),rgba(99,102,241,.15) 50%,transparent 80%);
   opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:1}
 .char-card:hover{transform:translateY(calc(var(--pill-lift-y, -2px) * 1.5));border-color:var(--purple2);background:var(--card2);
   box-shadow:0 12px 28px rgba(0,0,0,.5),0 0 20px rgba(139,92,246,.28)}
 .char-card:hover::before{opacity:var(--pill-spotlight-alpha, 0.7)}
-.char-card img,.char-card .ph,.char-card .cc-body,.char-card .cc-menu,.char-card .cc-pop{position:relative;z-index:2}
+.char-card img,.char-card .ph,.char-card .cc-avatar-wrap,.char-card .cc-body,.char-card .cc-menu{position:relative;z-index:2}
+.char-card .cc-avatar-wrap{display:flex;flex:none}
 .char-card:hover img,.char-card:hover .ph{box-shadow:0 0 14px rgba(139,92,246,.4);transform:scale(1.02);transition:all .2s ease}
 .char-card img,.char-card .ph{width:52px;height:52px;border-radius:10px;object-fit:cover;flex:none;
   background:var(--card2);color:var(--dim);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;
@@ -100,8 +103,8 @@ select optgroup {
 .char-card .cc-menu{margin-left:auto;color:var(--dim);align-self:flex-start;cursor:pointer;
   font-size:16px;line-height:1;padding:2px 6px;border-radius:6px;position:relative}
 .char-card .cc-menu:hover{background:var(--card2);color:var(--text)}
-.cc-pop{position:absolute;right:8px;top:26px;z-index:20;background:var(--card2);
-  border:1px solid var(--border2);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.5);
+.cc-pop{position:absolute;right:8px;top:26px;z-index:1000 !important;background:var(--card2);
+  border:1px solid var(--border2);border-radius:8px;box-shadow:0 12px 32px rgba(0,0,0,.7),0 0 16px rgba(139,92,246,.25);
   padding:4px;min-width:130px;display:flex;flex-direction:column}
 .cc-pop button{text-align:left;padding:6px 10px;border-radius:6px;font-size:12px;font-weight:600;width:100%}
 .cc-pop button:hover{background:var(--accent);color:#fff}
@@ -126,6 +129,9 @@ select optgroup {
 .charbar{position:relative;z-index:2;display:flex;align-items:center;gap:14px;background:var(--panel);
   border:1px solid var(--border);border-radius:14px;padding:10px 16px;margin-top:12px;overflow:hidden;
   transition:border-color .2s ease,box-shadow .2s ease}
+.charbar:has(.ava-menu),
+.charbar:has(.is-open),
+.charbar.has-open-menu{overflow:visible !important;z-index:120 !important}
 .charbar::before{content:"";position:absolute;inset:0;border-radius:inherit;
   background:radial-gradient(calc(var(--pill-spotlight-size, 130px) * 1.5) circle at var(--mx,50%) var(--my,50%),rgba(168,85,247,.22),rgba(99,102,241,.08) 50%,transparent 80%);
   opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:1}
@@ -766,12 +772,13 @@ select optgroup {
 
 /* ===== Аватар и меню персонажа ===== */
 .ava-wrap{position:relative;flex:none}
+.ava-wrap.is-open{z-index:500 !important}
 .ava-btn{cursor:pointer;border-radius:12px;overflow:hidden;line-height:0}
 .ava-btn:hover .ava-img{filter:brightness(1.12)}
 .ava-img{width:64px;height:64px;border-radius:12px;object-fit:cover;background:var(--card2);display:block}
 .ava-empty{display:flex;align-items:center;justify-content:center;color:var(--dim2)}
-.ava-menu{position:absolute;left:0;top:70px;z-index:80;background:var(--card2);border:1px solid var(--border2);
-  border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.6);padding:6px;min-width:210px;display:flex;flex-direction:column}
+.ava-menu{position:absolute;left:0;top:70px;z-index:1000 !important;background:var(--card2);border:1px solid var(--border2);
+  border-radius:10px;box-shadow:0 16px 36px rgba(0,0,0,.7),0 0 20px rgba(139,92,246,.25);padding:6px;min-width:210px;display:flex;flex-direction:column}
 .ava-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:7px;font-size:13px;
   font-weight:600;text-align:left;width:100%;color:var(--text)}
 .ava-item:hover:not(.dis){background:var(--accent);color:#fff}
@@ -799,6 +806,8 @@ select optgroup {
 
 /* ===== Стилизованный выпадающий список (CustomSelect) ===== */
 .custom-select-wrap{position:relative;display:inline-flex;width:100%;box-sizing:border-box;vertical-align:middle}
+.custom-select-wrap:has(.custom-select-dropdown),
+.custom-select-wrap.is-open{z-index:500 !important}
 .custom-select-trigger{width:100%;background:var(--card);border:1px solid var(--border2);border-radius:8px;
   color:var(--text);padding:7px 10px;font:inherit;display:flex;align-items:center;justify-content:space-between;
   gap:8px;cursor:pointer;text-align:left;user-select:none;outline:none;
@@ -810,7 +819,7 @@ select optgroup {
 .custom-select-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;font-size:13px;font-weight:600}
 .custom-select-arrow{color:var(--dim);flex-shrink:0;transition:transform .2s ease,color .2s ease}
 .custom-select-arrow.open{transform:rotate(180deg);color:var(--purple2)}
-.custom-select-dropdown{position:absolute;left:0;right:0;z-index:320;background:var(--card2);
+.custom-select-dropdown{position:absolute;left:0;right:0;z-index:1000 !important;background:var(--card2);
   border:1px solid var(--border2);border-radius:10px;
   box-shadow:0 12px 32px rgba(0,0,0,.68),0 0 1px rgba(255,255,255,.14);
   padding:5px;max-height:240px;overflow-y:auto;overflow-x:hidden;
@@ -987,8 +996,8 @@ select optgroup {
 .tg-inline{width:auto;padding:4px 10px;font-size:11.5px}
 
 /* ===== Выбор кубика для броска ===== */
-.die-pick{position:fixed;z-index:220;background:var(--card2);border:1px solid var(--border2);border-radius:10px;
-  box-shadow:0 12px 32px rgba(0,0,0,.6);padding:10px;min-width:240px}
+.die-pick{position:fixed;z-index:1000 !important;background:var(--card2);border:1px solid var(--border2);border-radius:10px;
+  box-shadow:0 16px 36px rgba(0,0,0,.7),0 0 20px rgba(139,92,246,.25);padding:10px;min-width:240px}
 .die-pick-title{font-size:9px;font-weight:800;letter-spacing:.6px;color:var(--dim);margin-bottom:6px}
 .die-pick-row{display:flex;gap:5px;flex-wrap:wrap}
 .die-pick-btn{background:var(--card);border:1px solid var(--border2);border-radius:7px;padding:4px 8px;
@@ -1006,8 +1015,8 @@ select optgroup {
 .die-pick-act-ok:hover{background:var(--purple2)}
 
 /* ===== Контекстное меню редактора (ПКМ) ===== */
-.ctx-menu{position:fixed;z-index:220;background:var(--card2);border:1px solid var(--border2);
-  border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.6);padding:6px;min-width:210px}
+.ctx-menu{position:fixed;z-index:1000 !important;background:var(--card2);border:1px solid var(--border2);
+  border-radius:10px;box-shadow:0 16px 36px rgba(0,0,0,.7),0 0 20px rgba(139,92,246,.25);padding:6px;min-width:210px}
 .ctx-group{border-bottom:1px solid var(--border);padding-bottom:4px;margin-bottom:4px}
 .ctx-group:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
 .ctx-group-title{font-size:9px;font-weight:800;letter-spacing:.6px;color:var(--dim);padding:4px 8px 2px}
@@ -1036,8 +1045,8 @@ select optgroup {
 .modal-btn:hover{background:var(--purple2)}
 
 /* ===== Поповеры ===== */
-.popover{position:fixed;z-index:60;background:var(--card2);border:1px solid var(--border2);
-  border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.6);padding:10px}
+.popover{position:fixed;z-index:1000 !important;background:var(--card2);border:1px solid var(--border2);
+  border-radius:12px;box-shadow:0 16px 36px rgba(0,0,0,.7),0 0 20px rgba(139,92,246,.25);padding:10px}
 .pop-title{font-size:10px;font-weight:800;letter-spacing:.5px;color:var(--dim);text-transform:uppercase;margin-bottom:6px}
 .pop-field{display:flex;flex-direction:column;gap:3px;font-size:10px;font-weight:800;
   letter-spacing:.4px;color:var(--dim);margin-bottom:6px}
