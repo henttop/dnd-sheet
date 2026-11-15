@@ -36,13 +36,15 @@ export default function App() {
 
   return (
     <>
-      {idx != null
-        ? <Sheet idx={idx} fresh={fresh} onFreshDone={() => setFresh(false)} back={() => { setIdx(null); setFresh(false); }} />
-        : <List open={(i, isNew) => { setIdx(i); setFresh(!!isNew); }} />}
+      <CursorGlow />
+      <div className="app-main">
+        {idx != null
+          ? <Sheet idx={idx} fresh={fresh} onFreshDone={() => setFresh(false)} back={() => { setIdx(null); setFresh(false); }} />
+          : <List open={(i, isNew) => { setIdx(i); setFresh(!!isNew); }} />}
+      </div>
       <DiceTower />
       <RollHost />
       <Toaster />
-      <CursorGlow />
       {showTheme ? <ThemeModal onClose={() => setShowTheme(false)} /> : null}
     </>
   );

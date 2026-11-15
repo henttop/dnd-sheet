@@ -256,7 +256,7 @@ export default function CursorGlow() {
           position: "fixed",
           inset: 0,
           pointerEvents: "none",
-          zIndex: 9998,
+          zIndex: 1,
         }}
       />
 
