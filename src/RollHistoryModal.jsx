@@ -125,7 +125,7 @@ export default function RollHistoryDrawer({ onClose }) {
 
   return (
     <div className="drawer-back history-drawer-back" onMouseDown={onClose}>
-      <div className="drawer drawer-right history-drawer" onMouseDown={e => e.stopPropagation()}>
+      <div className="drawer history-drawer" onMouseDown={e => e.stopPropagation()}>
         {/* Заголовок */}
         <div className="drawer-head history-head">
           <div className="history-head-title">
