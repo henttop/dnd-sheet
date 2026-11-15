@@ -103,8 +103,8 @@ export function formatRollTitle(roll) {
   }
 
   // Дайсница
-  if (t === "Дайсница") {
-    return "Дайсница";
+  if (t === "Дайсница" || t === "Бросок из дайсницы" || t.startsWith("Дайсница")) {
+    return "Бросок из дайсницы";
   }
 
   // Кастомный бросок кубиков (например "Бросок 2d6")
@@ -130,8 +130,23 @@ export function formatRollDetails(roll) {
     } else {
       details = "Заклинание";
     }
-  } else if (roll.title === "Дайсница") {
-    details = roll.mods || "Бросок костей";
+  } else if (roll.title === "Дайсница" || roll.title === "Бросок из дайсницы" || roll.fromDiceTower) {
+    if (roll.mods) {
+      details = roll.mods;
+    } else if (roll.rolls && roll.rolls.length) {
+      const groups = {};
+      for (const r of roll.rolls) {
+        groups[r.faces] = groups[r.faces] || [];
+        groups[r.faces].push(r.value);
+      }
+      details = Object.entries(groups).map(([faces, vals]) => {
+        return `${vals.length}к${faces} (${vals.join("+")})`;
+      }).join(" + ");
+    } else {
+      details = "Бросок костей";
+    }
+    if (roll.crit) details += " (Критический успех!)";
+    else if (roll.fail) details += " (Критический провал!)";
   } else if (roll.die != null) {
     // к20 бросок
     let base = roll.mods || `${roll.die} на к20`;

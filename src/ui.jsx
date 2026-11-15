@@ -4,6 +4,7 @@ import { getUi, subscribeUi } from "./uistore.js";
 import { sendRollToWebhooks, getCharAvatarUrl } from "./webhooks.js";
 import { addRollHistory, getRollHistory, subscribeRollHistory } from "./rollHistory.js";
 import RollHistoryDrawer, { HistoryIcon } from "./RollHistoryModal.jsx";
+import { characters } from "./store.js";
 
 /* ================= Всплывающие результаты броска (стопка слева внизу) ================= */
 export function RollHost() {
@@ -31,7 +32,7 @@ export function RollHost() {
     document.addEventListener("click", onDocClick, true);
 
     window.__roll = (title, total, mods, opts = {}) => {
-      const char = window.__activeChar;
+      const char = window.__activeChar || (typeof characters !== "undefined" && characters.length ? characters[0] : null);
       const charName = char?.data?.name?.value || "Безымянный персонаж";
       const charAvatar = getCharAvatarUrl(char);
       const entry = { title, total, mods, charName, charAvatar, ...opts };
@@ -228,7 +229,24 @@ export function DiceTower() {
     if (!pool.length) return;
     const rolls = pool.map(f => { const r = 1 + Math.floor(Math.random() * f); return { faces: f, value: r }; });
     const total = rolls.reduce((s, p) => s + p.value, 0);
-    window.__roll("Дайсница", total, rolls.map(p => `к${p.faces}: ${p.value}`).join(" + "), { rolls });
+
+    // Группируем кости по граням для красивого отображения (например "1к20 (17) + 2к6 (4+5)")
+    const groups = {};
+    for (const r of rolls) {
+      groups[r.faces] = groups[r.faces] || [];
+      groups[r.faces].push(r.value);
+    }
+    const mods = Object.entries(groups).map(([faces, vals]) => {
+      const expr = `${vals.length}к${faces}`;
+      return `${expr} (${vals.join("+")})`;
+    }).join(" + ");
+
+    // Проверяем d20 на крит или провал
+    const d20Rolls = rolls.filter(r => r.faces === 20);
+    const crit = d20Rolls.some(r => r.value === 20);
+    const fail = !crit && d20Rolls.some(r => r.value === 1);
+
+    window.__roll("Бросок из дайсницы", total, mods, { rolls, crit, fail, fromDiceTower: true });
   };
   const DICE = [2, 4, 6, 8, 10, 12, 20, 100];
   const historyCount = historyList.length;

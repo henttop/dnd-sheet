@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { characters, importCharacters, exportCharacters, blankCharacter, addCharacter, removeCharacter, duplicateCharacter } from "./store.js";
 import { hp } from "./helpers.js";
-import { RollHost } from "./ui.jsx";
 import { toast } from "./toast.jsx";
 
 export default function List({ open }) {
@@ -109,7 +108,6 @@ export default function List({ open }) {
           </div>
         </div>
       ) : null}
-      <RollHost />
     </div>
   );
 }

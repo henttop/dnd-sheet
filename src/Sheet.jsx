@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useState, useRef } from "react";
 import { characters, save } from "./store.js";
 import { SPELL_BY_ID, SPELL_BY_SLUG } from "./store.js";
-import { RollHost, Editable, Popover, ProfPopover, DieIcon, CreateModal, useAnchorPos, Toggle } from "./ui.jsx";
+import { Editable, Popover, ProfPopover, DieIcon, CreateModal, useAnchorPos, Toggle } from "./ui.jsx";
 import SpellsTab from "./Spells.jsx";
 import WeaponModal, { weaponBonus, damageInfo } from "./WeaponModal.jsx";
 import { AvatarMenu, SettingsDrawer, PortraitDrawer } from "./panels.jsx";
@@ -105,7 +105,6 @@ export default function Sheet({ idx, back, fresh, onFreshDone }) {
           </div>
         </div>
       </div>
-      <RollHost />
     </div>
   );
 }
