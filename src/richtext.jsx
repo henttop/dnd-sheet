@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { previewFormula } from "./dice.js";
 // Рендер tiptap-документа и конвертация doc ↔ plain text.
 // Поддерживаются маркеры:
 //   **жирный**  *курсив*  __подчёркнутый__  ~~зачёркнутый~~  `код`
@@ -70,8 +71,26 @@ function Node({ n, ctx = {} }) {
     case "text": return <Inline t={n} ctx={ctx} />;
     case "roller": {
       const e = n.attrs?.expr || n.attrs?.formula || "";
-      return <button className="roller-btn" title="бросить"
-        onClick={() => window.__rollExpr?.(`Бросок ${e}`, e)}>🎲 {e}</button>;
+      const char = ctx.char || (typeof window !== "undefined" ? window.__activeChar : null);
+      const tip = previewFormula(e, char);
+      return (
+        <button
+          type="button"
+          className="roller-btn"
+          title={tip}
+          onClick={(ev) => {
+            ev.stopPropagation();
+            if (window.__rollFormula) {
+              window.__rollFormula(e);
+            } else if (window.__rollExpr) {
+              window.__rollExpr(`Бросок ${e}`, e);
+            }
+          }}
+        >
+          <span className="roller-btn__icon">🎲</span>
+          <span className="roller-btn__text">{e}</span>
+        </button>
+      );
     }
     case "formula": return <code>{n.attrs?.formula || n.attrs?.expr || ""}</code>;
     case "resource": {
@@ -158,41 +177,76 @@ function Spoiler({ summary, children, editable, onUnwrap }) {
 }
 
 /* ---------- Разбор инлайновых маркеров в текст ---------- */
-const INLINE_RE = /(\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|`[^`]+`|\*[^*\n]+\*|\{\{[^}]+\}\}?|\[\[[^\]]+\]\]|\[[^\]]+\]\([^)]+\))/g;
+const INLINE_RE = /(\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|`[^`]+`|\*[^*\n]+\*|\{\{[^}]+\}\}?|\[[^\]]+\]\([^)]+\))/g;
 
-function parseInline(text) {
+export function parseInline(text) {
+  if (!text) return [];
   const out = [];
   const push = (t, marks = []) => { if (t) out.push({ type: "text", text: t, marks }); };
-  let last = 0, m;
-  INLINE_RE.lastIndex = 0;
-  while ((m = INLINE_RE.exec(text))) {
-    push(text.slice(last, m.index));
-    const tok = m[0];
-    const mark = (type) => [{ type }];
-    if (tok.startsWith("**")) push(tok.slice(2, -2), mark("bold"));
-    else if (tok.startsWith("__")) push(tok.slice(2, -2), mark("underline"));
-    else if (tok.startsWith("~~")) push(tok.slice(2, -2), mark("strike"));
-    else if (tok.startsWith("`")) push(tok.slice(1, -1), mark("code"));
-    else if (tok.startsWith("{{")) {
-      const raw = tok.slice(2, -1).replace(/\}$/, "").trim();
-      const sep = raw.indexOf("::");
-      const id = sep >= 0 ? raw.slice(0, sep) : "";
-      const name = sep >= 0 ? raw.slice(sep + 2) : raw;
-      out.push({ type: "resource", attrs: { id, name } });
+
+  // 1. Извлекаем формулы в двойных квадратных скобках с учётом вложенных одиночных скобок [[1d20 + [STR]]]
+  const segments = [];
+  let i = 0;
+  let last = 0;
+  while (i < text.length - 1) {
+    if (text[i] === "[" && text[i + 1] === "[") {
+      let depth = 2;
+      let start = i;
+      i += 2;
+      while (i < text.length && depth > 0) {
+        if (text[i] === "[") depth++;
+        else if (text[i] === "]") depth--;
+        i++;
+      }
+      if (depth === 0) {
+        if (start > last) segments.push({ type: "raw", text: text.slice(last, start) });
+        segments.push({ type: "roller", expr: text.slice(start + 2, i - 2) });
+        last = i;
+      }
+    } else {
+      i++;
     }
-    else if (tok.startsWith("[[")) {
-      out.push({ type: "roller", attrs: { expr: tok.slice(2, -2) } });
-    }
-    else if (tok.startsWith("[")) {
-      const mm = tok.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-      if (mm) push(mm[1], [{ type: "link", attrs: { href: mm[2] } }]);
-      else push(tok);
-    }
-    else if (tok.startsWith("*")) push(tok.slice(1, -1), mark("italic"));
-    else push(tok);
-    last = m.index + tok.length;
   }
-  push(text.slice(last));
+  if (last < text.length) {
+    segments.push({ type: "raw", text: text.slice(last) });
+  }
+
+  // 2. Для сырых текстовых сегментов разбираем остальные маркеры (жирный, курсив, ссылки, ресурсы)
+  for (const seg of segments) {
+    if (seg.type === "roller") {
+      out.push({ type: "roller", attrs: { expr: seg.expr } });
+      continue;
+    }
+    const rawText = seg.text;
+    let segLast = 0, m;
+    INLINE_RE.lastIndex = 0;
+    while ((m = INLINE_RE.exec(rawText))) {
+      push(rawText.slice(segLast, m.index));
+      const tok = m[0];
+      const mark = (type) => [{ type }];
+      if (tok.startsWith("**")) push(tok.slice(2, -2), mark("bold"));
+      else if (tok.startsWith("__")) push(tok.slice(2, -2), mark("underline"));
+      else if (tok.startsWith("~~")) push(tok.slice(2, -2), mark("strike"));
+      else if (tok.startsWith("`")) push(tok.slice(1, -1), mark("code"));
+      else if (tok.startsWith("{{")) {
+        const raw = tok.slice(2, -1).replace(/\}$/, "").trim();
+        const sep = raw.indexOf("::");
+        const id = sep >= 0 ? raw.slice(0, sep) : "";
+        const name = sep >= 0 ? raw.slice(sep + 2) : raw;
+        out.push({ type: "resource", attrs: { id, name } });
+      }
+      else if (tok.startsWith("[")) {
+        const mm = tok.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+        if (mm) push(mm[1], [{ type: "link", attrs: { href: mm[2] } }]);
+        else push(tok);
+      }
+      else if (tok.startsWith("*")) push(tok.slice(1, -1), mark("italic"));
+      else push(tok);
+      segLast = m.index + tok.length;
+    }
+    push(rawText.slice(segLast));
+  }
+
   return out;
 }
 
@@ -391,6 +445,9 @@ function inlineToHtml(nodes, ctx = {}) {
     }
     if (ch.type === "roller") {
       const e = ch.attrs?.expr || ch.attrs?.formula || "";
+      if (ctx.deactivateFormulas) {
+        return `[[${escHtml(e)}]]`;
+      }
       return `<span class="ed-roller" contenteditable="false">🎲 ${escHtml(e)}</span>`;
     }
     return "";
@@ -404,7 +461,13 @@ function htmlToInline(node) {
     if (!n) return;
     if (n.nodeType === 3) {
       const t = n.textContent;
-      if (t) out.push({ type: "text", text: t, marks });
+      if (t) {
+        if (t.includes("[[")) {
+          out.push(...parseInline(t));
+        } else {
+          out.push({ type: "text", text: t, marks });
+        }
+      }
       return;
     }
     if (n.nodeType !== 1) return;
@@ -444,7 +507,13 @@ function collectParagraphs(container) {
   if (!container) return out;
   for (const node of Array.from(container.childNodes)) {
     if (node.nodeType === 3) {
-      if (node.textContent.trim()) buf.push({ type: "text", text: node.textContent, marks: [] });
+      if (node.textContent.trim()) {
+        if (node.textContent.includes("[[")) {
+          buf.push(...parseInline(node.textContent));
+        } else {
+          buf.push({ type: "text", text: node.textContent, marks: [] });
+        }
+      }
       continue;
     }
     if (node.nodeType !== 1) continue;
@@ -511,7 +580,13 @@ export function editorToDoc(root) {
   for (const node of Array.from(root.childNodes)) {
     // голый текст в корне — тоже абзац
     if (node.nodeType === 3) {
-      if (node.textContent.trim()) buf.push({ type: "text", text: node.textContent, marks: [] });
+      if (node.textContent.trim()) {
+        if (node.textContent.includes("[[")) {
+          buf.push(...parseInline(node.textContent));
+        } else {
+          buf.push({ type: "text", text: node.textContent, marks: [] });
+        }
+      }
       continue;
     }
     if (node.nodeType !== 1) continue;

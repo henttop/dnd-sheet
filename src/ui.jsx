@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { rollDiceExpr, d20, signed } from "./dice.js";
+import { rollDiceExpr, d20, signed, evaluateFormula } from "./dice.js";
 import { getUi, subscribeUi } from "./uistore.js";
 import { sendRollToWebhooks, getCharAvatarUrl } from "./webhooks.js";
 import { addRollHistory, getRollHistory, subscribeRollHistory } from "./rollHistory.js";
@@ -85,6 +85,25 @@ export function RollHost() {
         });
       }
     };
+    // вычисление и бросок произвольной формулы D&D 5e (переменные, if, kh/kl, crits)
+    window.__rollFormula = (rawExpr, extraOpts = {}) => {
+      const char = window.__activeChar || (typeof characters !== "undefined" && characters.length ? characters[0] : null);
+      const res = evaluateFormula(rawExpr, char);
+      if (!res) return;
+      const title = res.title || "Бросок";
+      const mods = res.details || res.resolvedExpr || rawExpr;
+      window.__roll(title, res.total, mods, {
+        isFormula: true,
+        formula: res.formula,
+        resolvedExpr: res.resolvedExpr,
+        crit: res.crit,
+        fail: res.fail,
+        rolls: (res.rolls || []).map(r => ({ value: r.val, faces: r.faces, kept: r.kept, dropped: r.dropped })),
+        sub: res.sub,
+        ...extraOpts
+      });
+    };
+
     // бросок урона заклинания (карточка в журнале кубиков)
     window.__rollSpell = (name, total, dmgType, rolls, extraOpts = {}) => {
       const char = window.__activeChar;
@@ -126,6 +145,32 @@ function RollCard({ st, ui, onClose, old }) {
   const mood = ui.critColors === false ? "" : (st.crit ? " crit" : st.fail ? " fail" : "");
   const allDice = (st.rolls || []).flatMap(r => (r.parts && r.parts.length ? r.parts : [r.value]));
   const cls = "roll-pop" + mood + (old ? " old" : "");
+
+  // бросок формулы из текстового редактора
+  if (st.isFormula) {
+    return (
+      <div className={cls + " formula-pop"}>
+        <button className="rp-close" onClick={onClose}>×</button>
+        <div className="rp-title">{st.title}</div>
+        {st.sub ? <div className="rp-sub">{st.sub}</div> : null}
+        <div className="rp-body">
+          {st.rolls && st.rolls.length > 0 ? (
+            <div className="rp-glyphs">
+              {st.rolls.slice(0, 8).map((r, i) => (
+                <span className={"rp-glyph" + (r.dropped ? " is-dropped" : "")} key={i} title={r.dropped ? "Сброшен" : ""}>
+                  <DieShape faces={r.faces || 20} size={26} />
+                  <span className="rp-glyph-n">{r.value}</span>
+                </span>
+              ))}
+              {st.rolls.length > 8 ? <span className="rp-glyph-more">+{st.rolls.length - 8}</span> : null}
+            </div>
+          ) : null}
+          <div className={"rp-total" + mood + (typeof st.total === "string" && isNaN(Number(st.total)) ? " text-total" : "")}>{st.total}</div>
+        </div>
+        {st.mods ? <div className="rp-roll-line">{st.mods}</div> : null}
+      </div>
+    );
+  }
 
   // карточка броска заклинания (журнал кубиков)
   if (st.spell) {

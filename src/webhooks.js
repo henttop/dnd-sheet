@@ -107,6 +107,14 @@ export function formatRollTitle(roll) {
     return "Бросок из дайсницы";
   }
 
+  // Формула из редактора
+  if (roll.isFormula) {
+    if (t && t !== "Бросок" && t !== "Формула") {
+      return t;
+    }
+    return roll.formula ? `Бросок: ${roll.formula}` : "Бросок формулы";
+  }
+
   // Кастомный бросок кубиков (например "Бросок 2d6")
   if (t.startsWith("Бросок ")) {
     return `Бросок костей: ${t.replace(/^Бросок\s+/, "")}`;
@@ -150,6 +158,18 @@ export function formatRollDetails(roll) {
   } else if (roll.die != null) {
     // к20 бросок
     let base = roll.mods || `${roll.die} на к20`;
+    if (roll.crit) {
+      details = `${base} (Критический успех!)`;
+    } else if (roll.fail) {
+      details = `${base} (Критический провал!)`;
+    } else {
+      details = base;
+    }
+  } else if (roll.isFormula) {
+    let base = roll.mods || roll.resolvedExpr || roll.formula || "Бросок";
+    if (roll.sub && !base.includes(roll.sub)) {
+      base = `${base} (${roll.sub})`;
+    }
     if (roll.crit) {
       details = `${base} (Критический успех!)`;
     } else if (roll.fail) {

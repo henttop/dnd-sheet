@@ -3,6 +3,7 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+scratch/
 
 # Храним автономный билд и документацию в dist/
 dist/*

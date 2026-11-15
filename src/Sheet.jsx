@@ -20,7 +20,7 @@ import {
   hp, profOf, coinsTotal, statMod, skillProf, skillCustom, skillBonus,
   saveProf, saveBonus, passive, docOf, setDoc, levelOf,
 } from "./helpers.js";
-import { signed, parseNum } from "./dice.js";
+import { signed, parseNum, esc } from "./dice.js";
 
 export default function Sheet({ idx, back, fresh, onFreshDone }) {
   const c = characters[idx];
@@ -573,7 +573,7 @@ function AttacksTab({ c, onSave }) {
 
 const fmtMod = (n) => (n >= 0 ? "+" + n : "−" + Math.abs(n));
 
-const RT_HINT = "ПКМ — меню: спойлер, ресурс, бросок · **жирный**, *курсив*, ||спойлер||, {{ресурс}}, [[1d6]]";
+const RT_HINT = "ПКМ — меню: спойлер, ресурс, бросок · Ctrl+D — формула ([[1d20 + [STR]]]) · **жирный**, *курсив*, ||спойлер||, {{ресурс}}";
 
 /* ---------- Защитные пустые строки вокруг спойлера ---------- */
 const isGuard = (el) => !!(el && el.nodeType === 1 && el.classList.contains("ed-guard"));
@@ -637,7 +637,8 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
   const [edit, setEdit] = useState(false);
   const [menu, setMenu] = useState(null);
   const [resModal, setResModal] = useState(null);
-  const [diePick, setDiePick] = useState(null);   // {el, x, y} — выбор кубика для броска
+  const [diePick, setDiePick] = useState(null);   // {el, x, y, formula} — выбор кубика / формулы
+  const [formulasActive, setFormulasActive] = useState(true);
   const richRef = useRef(null);
   const doc = docOf(c, blockKey);
   const resources = Object.values(c.data.resources || {});
@@ -646,9 +647,25 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
   useEffect(() => {
     if (!edit || !richRef.current) return;
     if (richRef.current.dataset.filled === "1") return;
-    richRef.current.innerHTML = docToEditorHtml(doc, { resources: c.data.resources || {} });
+    richRef.current.innerHTML = docToEditorHtml(doc, {
+      resources: c.data.resources || {},
+      deactivateFormulas: !formulasActive
+    });
     richRef.current.dataset.filled = "1";
-  }, [edit, doc]);
+  }, [edit, doc, formulasActive]);
+
+  const toggleFormulasActive = () => {
+    const next = !formulasActive;
+    setFormulasActive(next);
+    if (richRef.current) {
+      const currentDoc = editorToDoc(richRef.current);
+      richRef.current.innerHTML = docToEditorHtml(currentDoc, {
+        resources: c.data.resources || {},
+        deactivateFormulas: !next
+      });
+      repairGuards();
+    }
+  };
 
   /* перед и после каждого спойлера должна быть пустая защитная строка,
      иначе поле «ломается» — восстанавливаем структуру */
@@ -802,9 +819,70 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
     if (created) { onSave(); setResModal({ id: r.id }); }
   });
 
-  const insertRoll = () => withCaret(() => {
-    document.execCommand("insertHTML", false, '<span class="ed-roller" contenteditable="false">🎲 1d6</span>');
-  });
+  const toggleRollFormula = () => {
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) {
+      withCaret(() => {
+        document.execCommand("insertHTML", false, '<span class="ed-roller" contenteditable="false">🎲 1d20 + [STR]</span>');
+      });
+      return;
+    }
+    const range = sel.getRangeAt(0);
+    const root = richRef.current;
+    if (!root || !root.contains(range.commonAncestorContainer)) {
+      withCaret(() => {
+        document.execCommand("insertHTML", false, '<span class="ed-roller" contenteditable="false">🎲 1d20 + [STR]</span>');
+      });
+      return;
+    }
+
+    // Проверяем, находится ли курсор внутри .ed-roller
+    let roller = null;
+    let node = range.commonAncestorContainer;
+    while (node && node !== root) {
+      if (node.nodeType === 1 && node.classList.contains("ed-roller")) {
+        roller = node;
+        break;
+      }
+      node = node.parentNode;
+    }
+
+    if (roller) {
+      // Разворачиваем формулу в текст
+      const raw = roller.textContent.replace(/^🎲\s*/, "");
+      const textNode = document.createTextNode(raw);
+      roller.parentNode.replaceChild(textNode, roller);
+      const newRange = document.createRange();
+      newRange.selectNodeContents(textNode);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+      return;
+    }
+
+    // Если выделен текст — оборачиваем в формулу
+    const selectedText = sel.toString().trim();
+    if (selectedText) {
+      let cleanText = selectedText;
+      if (cleanText.startsWith("[[") && cleanText.endsWith("]]")) {
+        cleanText = cleanText.slice(2, -2).trim();
+      }
+      const html = `<span class="ed-roller" contenteditable="false">🎲 ${esc(cleanText)}</span>`;
+      document.execCommand("insertHTML", false, html);
+    } else {
+      const html = `<span class="ed-roller" contenteditable="false">🎲 1d20 + [STR]</span>`;
+      document.execCommand("insertHTML", false, html);
+    }
+  };
+
+  const insertRoll = () => withCaret(toggleRollFormula);
+
+  const onEditorKeyDown = (e) => {
+    if ((e.ctrlKey || e.metaKey) && (e.key === "d" || e.key === "D" || e.key === "в" || e.key === "В")) {
+      e.preventDefault();
+      toggleRollFormula();
+      return;
+    }
+  };
 
   const insertDivider = () => {
     richRef.current?.focus();
@@ -838,7 +916,8 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
     if (roller) {
       e.preventDefault();
       const r = roller.getBoundingClientRect();
-      setDiePick({ el: roller, x: r.left, y: r.bottom });
+      const formula = roller.textContent.replace(/^🎲\s*/, "");
+      setDiePick({ el: roller, x: r.left, y: r.bottom, formula });
       return;
     }
     const resPlus = el.closest?.(".ed-sp-res [data-type=increment]");
@@ -973,12 +1052,29 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
   };
 
   const resCtx = {
+    char: c,
     resources: c.data.resources || {},
     onResource: onResourceChange,
     onResourceOpen: (id) => setResModal({ id }),
     onSpoilerUnwrap: spoilerUnwrap,
     onSpoilerTrash: spoilerTrash,
   };
+
+  useEffect(() => {
+    if (!diePick) return;
+    const close = (e) => {
+      if (!e.target.closest(".die-pick") && !e.target.closest(".ed-roller")) {
+        setDiePick(null);
+      }
+    };
+    const key = (e) => { if (e.key === "Escape") setDiePick(null); };
+    window.addEventListener("mousedown", close);
+    window.addEventListener("keydown", key);
+    return () => {
+      window.removeEventListener("mousedown", close);
+      window.removeEventListener("keydown", key);
+    };
+  }, [diePick]);
 
   return (
     <div className="panel">
@@ -995,12 +1091,17 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
               contentEditable
               suppressContentEditableWarning
               onClick={onRichClick}
+              onKeyDown={onEditorKeyDown}
               onContextMenu={e => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY }); }}
             />
             <InsertBar onFormat={onFormat} onInsert={onInsert} />
           </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 10, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
             <button className="save-btn" onClick={save}>Сохранить</button>
+            <label className="ed-toggle-formulas" title="Деактивировать формулы для редактирования как [[текст]]">
+              <input type="checkbox" checked={formulasActive} onChange={toggleFormulasActive} />
+              Формулы активны (Ctrl+D)
+            </label>
             <span className="hint">{RT_HINT}</span>
           </div>
           {menu ? (
@@ -1010,15 +1111,61 @@ function RtBlock({ c, title, blockKey, onSave, compact }) {
           {diePick ? (
             <div className="die-pick" style={{ left: diePick.x, top: diePick.y }}
               onMouseDown={e => e.stopPropagation()}>
-              <div className="die-pick-title">КАКОЙ КУБИК</div>
+              <div className="die-pick-title">ФОРМУЛА БРОСКА</div>
               <div className="die-pick-row">
                 {[4, 6, 8, 10, 12, 20, 100].map(f => (
                   <button key={f} className="die-pick-btn"
                     onClick={() => {
-                      diePick.el.textContent = "🎲 1d" + f;
-                      setDiePick(null);
-                    }}>d{f}</button>
+                      const cur = diePick.formula || "";
+                      const next = cur ? cur + ` + 1d${f}` : `1d${f}`;
+                      diePick.el.textContent = "🎲 " + next;
+                      setDiePick(d => ({ ...d, formula: next }));
+                    }}>+d{f}</button>
                 ))}
+              </div>
+              <div style={{ marginTop: 6 }}>
+                <input
+                  type="text"
+                  className="die-pick-input"
+                  value={diePick.formula ?? ""}
+                  placeholder="1d20 + [STR] (Атака)"
+                  onChange={e => {
+                    const v = e.target.value;
+                    setDiePick(d => ({ ...d, formula: v }));
+                    diePick.el.textContent = "🎲 " + (v || "1d20");
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") setDiePick(null);
+                  }}
+                  autoFocus
+                />
+              </div>
+              <div className="die-pick-actions" style={{ marginTop: 6, display: "flex", gap: 6, justifyContent: "space-between" }}>
+                <button
+                  type="button"
+                  className="die-pick-act-btn"
+                  title="Превратить в обычный текст [[текст]]"
+                  onClick={() => {
+                    const raw = diePick.formula || diePick.el.textContent.replace(/^🎲\s*/, "");
+                    const textNode = document.createTextNode(`[[${raw}]]`);
+                    diePick.el.parentNode.replaceChild(textNode, diePick.el);
+                    setDiePick(null);
+                  }}
+                >Текст</button>
+                <button
+                  type="button"
+                  className="die-pick-act-btn die-pick-act-del"
+                  title="Удалить формулу"
+                  onClick={() => {
+                    diePick.el.parentNode.removeChild(diePick.el);
+                    setDiePick(null);
+                  }}
+                >Удалить</button>
+                <button
+                  type="button"
+                  className="die-pick-act-btn die-pick-act-ok"
+                  onClick={() => setDiePick(null)}
+                >Готово</button>
               </div>
             </div>
           ) : null}
