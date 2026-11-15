@@ -98,7 +98,7 @@ export default function Sheet({ idx, back, fresh, onFreshDone }) {
             {tab === "attacks" && <AttacksTab c={c} onSave={rerender} />}
             {tab === "abilities" && <TextTab c={c} onSave={rerender} blocks={[["Умения и способности", "traits"], ["Черты", "feats"], ["Особенности", "features"]]} />}
             {tab === "gear" && <GearTab c={c} onSave={rerender} />}
-            {tab === "persona" && <TextTab c={c} onSave={rerender} blocks={[["Внешний вид", "appearance"], ["Предыстория", "background"], ["Узы", "bonds"], ["Пороки", "flaws"], ["Союзники и организации", "allies"]]} />}
+            {tab === "persona" && <TextTab c={c} onSave={rerender} blocks={[["Внешний вид", "appearance"], ["Предыстория", "background"], ["Узы", "bonds"], ["Слабости", "flaws"], ["Союзники и организации", "allies"]]} />}
             {tab === "goals" && <TextTab c={c} onSave={rerender} blocks={[["Цели и задания", "quests"]]} />}
             {tab === "notes" && <TextTab c={c} onSave={rerender} blocks={[["Заметки", "notes-1"]]} />}
             {tab === "spells" && <SpellsTab c={c} onSave={rerender} ui={ui} />}
