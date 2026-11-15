@@ -147,7 +147,7 @@ export function ThemeSettingsContent({ ui, setUi, initialTab = "cursor" }) {
               </div>
 
               {ui.cursorDotGrid !== false && (
-                <div className="theme-item-row" style={{ marginTop: 8, flexDirection: "column", alignItems: "stretch", gap: 8, paddingLeft: 12, borderLeft: "2px solid rgba(139, 92, 246, 0.35)" }}>
+                <div className="theme-item-row" style={{ marginTop: 8, flexDirection: "column", alignItems: "stretch", gap: 8, paddingLeft: 12, borderLeft: "2px solid var(--theme-soft-border2)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div className="theme-item-title" style={{ fontSize: 12.5 }}>Расстояние между точками</div>
                     <div className="theme-slider-val">{ui.cursorDotSpacing || 28} px</div>

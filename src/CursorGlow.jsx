@@ -13,6 +13,20 @@ export const CURSOR_COLORS = {
     core: "#c084fc",
     ring: "rgba(124, 58, 237, 0.35)",
     preview: "#a855f7",
+    accent: "#8b5cf6",
+    accent2: "#a78bfa",
+    accentDark: "#7c3aed",
+    btn: "#6366f1",
+    btn2: "#818cf8",
+    glow: "rgba(139, 92, 246, 0.32)",
+    glowSm: "rgba(139, 92, 246, 0.18)",
+    glowLg: "rgba(139, 92, 246, 0.55)",
+    spotlight1: "rgba(168, 85, 247, 0.35)",
+    spotlight2: "rgba(99, 102, 241, 0.15)",
+    softBg: "rgba(139, 92, 246, 0.08)",
+    softBg2: "rgba(139, 92, 246, 0.16)",
+    softBorder: "rgba(139, 92, 246, 0.25)",
+    softBorder2: "rgba(167, 139, 250, 0.5)",
   },
   cyan: {
     id: "cyan",
@@ -25,6 +39,20 @@ export const CURSOR_COLORS = {
     core: "#22d3ee",
     ring: "rgba(14, 165, 233, 0.35)",
     preview: "#06b6d4",
+    accent: "#06b6d4",
+    accent2: "#22d3ee",
+    accentDark: "#0891b2",
+    btn: "#0284c7",
+    btn2: "#38bdf8",
+    glow: "rgba(6, 182, 212, 0.32)",
+    glowSm: "rgba(6, 182, 212, 0.18)",
+    glowLg: "rgba(34, 211, 238, 0.55)",
+    spotlight1: "rgba(6, 182, 212, 0.35)",
+    spotlight2: "rgba(14, 165, 233, 0.15)",
+    softBg: "rgba(6, 182, 212, 0.08)",
+    softBg2: "rgba(6, 182, 212, 0.16)",
+    softBorder: "rgba(6, 182, 212, 0.25)",
+    softBorder2: "rgba(34, 211, 238, 0.5)",
   },
   gold: {
     id: "gold",
@@ -37,6 +65,20 @@ export const CURSOR_COLORS = {
     core: "#fde047",
     ring: "rgba(217, 119, 6, 0.35)",
     preview: "#eab308",
+    accent: "#f59e0b",
+    accent2: "#fbbf24",
+    accentDark: "#d97706",
+    btn: "#d97706",
+    btn2: "#f59e0b",
+    glow: "rgba(245, 158, 11, 0.32)",
+    glowSm: "rgba(245, 158, 11, 0.18)",
+    glowLg: "rgba(251, 191, 36, 0.55)",
+    spotlight1: "rgba(245, 158, 11, 0.35)",
+    spotlight2: "rgba(217, 119, 6, 0.15)",
+    softBg: "rgba(245, 158, 11, 0.08)",
+    softBg2: "rgba(245, 158, 11, 0.16)",
+    softBorder: "rgba(245, 158, 11, 0.25)",
+    softBorder2: "rgba(251, 191, 36, 0.5)",
   },
   red: {
     id: "red",
@@ -49,6 +91,20 @@ export const CURSOR_COLORS = {
     core: "#f87171",
     ring: "rgba(220, 38, 38, 0.35)",
     preview: "#ef4444",
+    accent: "#ef4444",
+    accent2: "#f87171",
+    accentDark: "#dc2626",
+    btn: "#dc2626",
+    btn2: "#ef4444",
+    glow: "rgba(239, 68, 68, 0.32)",
+    glowSm: "rgba(239, 68, 68, 0.18)",
+    glowLg: "rgba(248, 113, 113, 0.55)",
+    spotlight1: "rgba(239, 68, 68, 0.35)",
+    spotlight2: "rgba(220, 38, 38, 0.15)",
+    softBg: "rgba(239, 68, 68, 0.08)",
+    softBg2: "rgba(239, 68, 68, 0.16)",
+    softBorder: "rgba(239, 68, 68, 0.25)",
+    softBorder2: "rgba(248, 113, 113, 0.5)",
   },
   green: {
     id: "green",
@@ -61,6 +117,20 @@ export const CURSOR_COLORS = {
     core: "#4ade80",
     ring: "rgba(34, 197, 94, 0.35)",
     preview: "#22c55e",
+    accent: "#10b981",
+    accent2: "#34d399",
+    accentDark: "#059669",
+    btn: "#059669",
+    btn2: "#10b981",
+    glow: "rgba(16, 185, 129, 0.32)",
+    glowSm: "rgba(16, 185, 129, 0.18)",
+    glowLg: "rgba(52, 211, 153, 0.55)",
+    spotlight1: "rgba(16, 185, 129, 0.35)",
+    spotlight2: "rgba(5, 150, 105, 0.15)",
+    softBg: "rgba(16, 185, 129, 0.08)",
+    softBg2: "rgba(16, 185, 129, 0.16)",
+    softBorder: "rgba(16, 185, 129, 0.25)",
+    softBorder2: "rgba(52, 211, 153, 0.5)",
   },
 };
 
@@ -277,6 +347,30 @@ export default function CursorGlow() {
   useEffect(() => {
     const root = document.documentElement;
     const body = document.body;
+    const colorId = ui.cursorColor || "purple";
+    const cfg = CURSOR_COLORS[colorId] || CURSOR_COLORS.purple;
+
+    root.dataset.theme = colorId;
+    body.dataset.theme = colorId;
+
+    root.style.setProperty("--theme-accent", cfg.accent);
+    root.style.setProperty("--theme-accent2", cfg.accent2);
+    root.style.setProperty("--theme-accent-dark", cfg.accentDark);
+    root.style.setProperty("--theme-btn", cfg.btn);
+    root.style.setProperty("--theme-btn2", cfg.btn2);
+    root.style.setProperty("--theme-glow", cfg.glow);
+    root.style.setProperty("--theme-glow-sm", cfg.glowSm);
+    root.style.setProperty("--theme-glow-lg", cfg.glowLg);
+    root.style.setProperty("--theme-spotlight-1", cfg.spotlight1);
+    root.style.setProperty("--theme-spotlight-2", cfg.spotlight2);
+    root.style.setProperty("--theme-soft-bg", cfg.softBg);
+    root.style.setProperty("--theme-soft-bg2", cfg.softBg2);
+    root.style.setProperty("--theme-soft-border", cfg.softBorder);
+    root.style.setProperty("--theme-soft-border2", cfg.softBorder2);
+    root.style.setProperty("--purple", cfg.accent);
+    root.style.setProperty("--purple2", cfg.accent2);
+    root.style.setProperty("--accent", cfg.btn);
+    root.style.setProperty("--accent2", cfg.btn2);
 
     root.style.setProperty("--pill-spotlight-size", `${ui.pillSpotlightRadius || 130}px`);
     const alpha = (ui.pillHover === false || ui.pillSpotlight === false) ? 0 : ((ui.pillSpotlightIntensity || 70) / 100);

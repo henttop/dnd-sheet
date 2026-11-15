@@ -6,7 +6,7 @@ import { Toaster } from "./toast.jsx";
 import { setSpellIndex } from "./helpers.js";
 import { SPELL_BY_ID, SPELL_BY_SLUG } from "./store.js";
 import { getUi, subscribeUi } from "./uistore.js";
-import CursorGlow from "./CursorGlow.jsx";
+import CursorGlow, { CURSOR_COLORS } from "./CursorGlow.jsx";
 import ThemeModal from "./ThemeModal.jsx";
 
 setSpellIndex(new Map([...SPELL_BY_ID, ...SPELL_BY_SLUG]));
@@ -26,6 +26,33 @@ export default function App() {
       document.body.classList.remove("darker-bg");
     }
   }, [ui.darkerBg]);
+
+  useEffect(() => {
+    const colorId = ui.cursorColor || "purple";
+    const cfg = CURSOR_COLORS[colorId] || CURSOR_COLORS.purple;
+    const root = document.documentElement;
+    root.dataset.theme = colorId;
+    document.body.dataset.theme = colorId;
+
+    root.style.setProperty("--theme-accent", cfg.accent);
+    root.style.setProperty("--theme-accent2", cfg.accent2);
+    root.style.setProperty("--theme-accent-dark", cfg.accentDark);
+    root.style.setProperty("--theme-btn", cfg.btn);
+    root.style.setProperty("--theme-btn2", cfg.btn2);
+    root.style.setProperty("--theme-glow", cfg.glow);
+    root.style.setProperty("--theme-glow-sm", cfg.glowSm);
+    root.style.setProperty("--theme-glow-lg", cfg.glowLg);
+    root.style.setProperty("--theme-spotlight-1", cfg.spotlight1);
+    root.style.setProperty("--theme-spotlight-2", cfg.spotlight2);
+    root.style.setProperty("--theme-soft-bg", cfg.softBg);
+    root.style.setProperty("--theme-soft-bg2", cfg.softBg2);
+    root.style.setProperty("--theme-soft-border", cfg.softBorder);
+    root.style.setProperty("--theme-soft-border2", cfg.softBorder2);
+    root.style.setProperty("--purple", cfg.accent);
+    root.style.setProperty("--purple2", cfg.accent2);
+    root.style.setProperty("--accent", cfg.btn);
+    root.style.setProperty("--accent2", cfg.btn2);
+  }, [ui.cursorColor]);
 
   useEffect(() => {
     window.__openThemeModal = () => setShowTheme(true);
