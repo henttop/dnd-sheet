@@ -1170,7 +1170,8 @@ img{display:block}
 .hc-badge{font-size:10px;font-weight:800;border-radius:4px;padding:1px 6px}
 .hc-badge.crit{background:rgba(64,192,87,.2);color:var(--green);border:1px solid var(--green)}
 .hc-badge.fail{background:rgba(250,82,82,.2);color:var(--red);border:1px solid var(--red)}
-.hc-char{font-size:11px;color:var(--dim2)}
+.hc-char{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--dim2)}
+.hc-char-ava{width:16px;height:16px;border-radius:50%;object-fit:cover;border:1px solid var(--border2);flex:none}
 
 .hc-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}
 .hc-total{font-size:22px;font-weight:900;line-height:1;color:var(--text);min-width:44px;text-align:right}

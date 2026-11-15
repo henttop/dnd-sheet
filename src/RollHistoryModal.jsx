@@ -232,7 +232,14 @@ function RollHistoryCard({ entry, onReroll }) {
           {detailsText ? <span className="hc-formula">{detailsText}</span> : null}
           {isCrit && <span className="hc-badge crit">Критический успех!</span>}
           {isFail && <span className="hc-badge fail">Критический провал!</span>}
-          {entry.charName && <span className="hc-char">[{entry.charName}]</span>}
+          {entry.charName && (
+            <span className="hc-char">
+              {entry.charAvatar && (
+                <img src={entry.charAvatar} alt="" className="hc-char-ava" onError={e => { e.target.style.display = "none"; }} />
+              )}
+              <span>[{entry.charName}]</span>
+            </span>
+          )}
         </div>
       </div>
 

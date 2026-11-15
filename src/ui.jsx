@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { rollDiceExpr, d20, signed } from "./dice.js";
 import { getUi, subscribeUi } from "./uistore.js";
-import { sendRollToWebhooks } from "./webhooks.js";
+import { sendRollToWebhooks, getCharAvatarUrl } from "./webhooks.js";
 import { addRollHistory, getRollHistory, subscribeRollHistory } from "./rollHistory.js";
 import RollHistoryDrawer, { HistoryIcon } from "./RollHistoryModal.jsx";
 
@@ -31,8 +31,10 @@ export function RollHost() {
     document.addEventListener("click", onDocClick, true);
 
     window.__roll = (title, total, mods, opts = {}) => {
-      const charName = window.__activeChar?.data?.name?.value || "Безымянный персонаж";
-      const entry = { title, total, mods, charName, ...opts };
+      const char = window.__activeChar;
+      const charName = char?.data?.name?.value || "Безымянный персонаж";
+      const charAvatar = getCharAvatarUrl(char);
+      const entry = { title, total, mods, charName, charAvatar, ...opts };
       push(entry);
       sendRollToWebhooks(entry);
       addRollHistory(entry);
@@ -84,7 +86,9 @@ export function RollHost() {
     };
     // бросок урона заклинания (как карточка в журнале кубиков у LSS)
     window.__rollSpell = (name, total, dmgType, rolls, extraOpts = {}) => {
-      const charName = window.__activeChar?.data?.name?.value || "Безымянный персонаж";
+      const char = window.__activeChar;
+      const charName = char?.data?.name?.value || "Безымянный персонаж";
+      const charAvatar = getCharAvatarUrl(char);
       const entry = {
         title: name,
         total,
@@ -93,6 +97,7 @@ export function RollHost() {
         rolls: rolls || [],
         spell: true,
         charName,
+        charAvatar,
         ...extraOpts
       };
       push(entry);

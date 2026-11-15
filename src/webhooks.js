@@ -155,31 +155,113 @@ export function formatRollDetails(roll) {
   return details;
 }
 
+export function getCharAvatarUrl(char) {
+  if (!char) return "";
+  const d = char.data || char;
+  const av = d.avatar;
+  if (!av) return "";
+  if (typeof av === "string") return av;
+  return av.jpeg || av.webp || av.png || av.url || "";
+}
+
+function dataUrlToBlob(dataUrl) {
+  try {
+    const arr = dataUrl.split(",");
+    const mimeMatch = arr[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  } catch (e) {
+    console.warn("Failed to convert dataUrl to blob:", e);
+    return null;
+  }
+}
+
 export async function testDiscordWebhook(preset, charName = "") {
   if (!preset.url || !preset.url.trim()) {
     toast("Ошибка: Укажите URL вебхука Discord", "err");
     return { ok: false, error: "Укажите URL вебхука" };
   }
 
-  const name = charName || window.__activeChar?.data?.name?.value || "Безымянный персонаж";
-
-  const payload = {
-    embeds: [
-      {
-        author: { name: name },
-        title: "Проверка систем",
-        description: "Всё работает в штатном режиме 👍",
-        color: hexToColorInt(preset.color)
-      }
-    ]
-  };
+  const char = window.__activeChar;
+  const name = charName || char?.data?.name?.value || "Безымянный персонаж";
+  const avatarUrl = getCharAvatarUrl(char);
+  const isHttp = (url) => url && /^https?:\/\//i.test(url);
+  const isData = (url) => url && /^data:/i.test(url);
 
   try {
-    const res = await fetch(preset.url.trim(), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+    let res;
+    if (isHttp(avatarUrl)) {
+      const payload = {
+        avatar_url: avatarUrl,
+        embeds: [
+          {
+            author: { name: name, icon_url: avatarUrl },
+            title: "Проверка систем",
+            description: "Всё работает в штатном режиме 👍",
+            color: hexToColorInt(preset.color)
+          }
+        ]
+      };
+      res = await fetch(preset.url.trim(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    } else if (isData(avatarUrl)) {
+      const blob = dataUrlToBlob(avatarUrl);
+      if (blob) {
+        const formData = new FormData();
+        const payload = {
+          embeds: [
+            {
+              author: { name: name, icon_url: "attachment://avatar.jpg" },
+              title: "Проверка систем",
+              description: "Всё работает в штатном режиме 👍",
+              color: hexToColorInt(preset.color)
+            }
+          ]
+        };
+        formData.append("payload_json", JSON.stringify(payload));
+        formData.append("files[0]", blob, "avatar.jpg");
+        res = await fetch(preset.url.trim(), { method: "POST", body: formData });
+      } else {
+        res = await fetch(preset.url.trim(), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            embeds: [
+              {
+                author: { name: name },
+                title: "Проверка систем",
+                description: "Всё работает в штатном режиме 👍",
+                color: hexToColorInt(preset.color)
+              }
+            ]
+          })
+        });
+      }
+    } else {
+      res = await fetch(preset.url.trim(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          embeds: [
+            {
+              author: { name: name },
+              title: "Проверка систем",
+              description: "Всё работает в штатном режиме 👍",
+              color: hexToColorInt(preset.color)
+            }
+          ]
+        })
+      });
+    }
 
     if (res.ok || res.status === 204) {
       toast("Тестовое сообщение успешно отправлено в Discord!", "ok");
@@ -200,7 +282,8 @@ export async function sendRollToWebhooks(roll) {
   if (!presets.length) return;
 
   const char = window.__activeChar;
-  const charName = char?.data?.name?.value || "Безымянный персонаж";
+  const charName = roll.charName || char?.data?.name?.value || "Безымянный персонаж";
+  const avatarUrl = roll.charAvatar || getCharAvatarUrl(char);
 
   const rollTitle = formatRollTitle(roll);
   const details = formatRollDetails(roll);
@@ -215,26 +298,96 @@ export async function sendRollToWebhooks(roll) {
   }
 
   const description = details ? `${details}\n${resultLine}` : resultLine;
+  const isHttp = (url) => url && /^https?:\/\//i.test(url);
+  const isData = (url) => url && /^data:/i.test(url);
 
   for (const p of presets) {
     const embedColor = (roll.crit ? 0x40c057 : roll.fail ? 0xfa5252 : hexToColorInt(p.color));
-    const payload = {
-      embeds: [
-        {
-          author: { name: charName },
-          title: rollTitle,
-          description: description,
-          color: embedColor
-        }
-      ]
-    };
 
-    fetch(p.url.trim(), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    }).catch(err => {
-      console.warn("Failed to send roll to Discord preset:", p.name, err);
-    });
+    if (isHttp(avatarUrl)) {
+      const payload = {
+        avatar_url: avatarUrl,
+        embeds: [
+          {
+            author: {
+              name: charName,
+              icon_url: avatarUrl
+            },
+            title: rollTitle,
+            description: description,
+            color: embedColor
+          }
+        ]
+      };
+
+      fetch(p.url.trim(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }).catch(err => {
+        console.warn("Failed to send roll to Discord preset:", p.name, err);
+      });
+    } else if (isData(avatarUrl)) {
+      const blob = dataUrlToBlob(avatarUrl);
+      if (blob) {
+        const formData = new FormData();
+        const payload = {
+          embeds: [
+            {
+              author: {
+                name: charName,
+                icon_url: "attachment://avatar.jpg"
+              },
+              title: rollTitle,
+              description: description,
+              color: embedColor
+            }
+          ]
+        };
+        formData.append("payload_json", JSON.stringify(payload));
+        formData.append("files[0]", blob, "avatar.jpg");
+
+        fetch(p.url.trim(), {
+          method: "POST",
+          body: formData
+        }).catch(err => {
+          console.warn("Failed to send multipart roll to Discord preset:", p.name, err);
+        });
+      } else {
+        fetch(p.url.trim(), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            embeds: [
+              {
+                author: { name: charName },
+                title: rollTitle,
+                description: description,
+                color: embedColor
+              }
+            ]
+          })
+        }).catch(err => {
+          console.warn("Failed to send roll to Discord preset:", p.name, err);
+        });
+      }
+    } else {
+      fetch(p.url.trim(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          embeds: [
+            {
+              author: { name: charName },
+              title: rollTitle,
+              description: description,
+              color: embedColor
+            }
+          ]
+        })
+      }).catch(err => {
+        console.warn("Failed to send roll to Discord preset:", p.name, err);
+      });
+    }
   }
 }
