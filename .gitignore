@@ -1,6 +1,11 @@
 node_modules/
-dist/
 .vite/
 *.log
 .DS_Store
 Thumbs.db
+
+# Храним автономный билд и документацию в dist/
+dist/*
+!dist/index.html
+!dist/dnd-sheet.html
+!dist/DOCUMENTATION.md

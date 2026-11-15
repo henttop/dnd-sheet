@@ -7,12 +7,17 @@
 
 ## Как запустить
 
+### 1. Автономный запуск (без сервера, 1 файл):
+Просто откройте `dist/index.html` (или `dist/dnd-sheet.html`) двойным кликом в любом браузере. Все стили, скрипты и база встроены в один файл.
+
+### 2. Режим разработки:
 ```bash
 npm install        # один раз
 npm run dev        # откроется на http://localhost:5173
+npm run build      # сборка проекта в единый автономный HTML-файл (dist/index.html)
 ```
 
-Прод-сборка: `npm run build` (результат в `dist/`).
+Полная документация по архитектуре, модели данных и вайбкодингу: [DOCUMENTATION.md](file:///C:/Users/henttop/dnd-sheet/DOCUMENTATION.md).
 
 ## Данные
 - `data/characters.js` — ваши персонажи, выгруженные с longstoryshort.app («.json → Скачать .json» на странице «Мои персонажи»).
