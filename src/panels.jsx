@@ -6,6 +6,7 @@ import { Toggle } from "./ui.jsx";
 import { getRollPresets, saveRollPresets, testDiscordWebhook } from "./webhooks.js";
 import { toast } from "./toast.jsx";
 import { ThemeSettingsContent } from "./ThemeModal.jsx";
+import CustomSelect from "./CustomSelect.jsx";
 
 /* ================= Меню под аватаром (как на сайте) ================= */
 export function AvatarMenu({ c, onSave, onSettings, onPortrait }) {
@@ -161,10 +162,10 @@ export function SettingsDrawer({ c, onSave, onClose, onOpenWizard, ui, setUi }) 
 
       <div style={{ marginBottom: 16 }}>
         <div className="f-label">ПЕРЕВОД</div>
-        <select className="f-input" value={ui.lang || "srd"} onChange={e => setUi({ lang: e.target.value })}>
+        <CustomSelect value={ui.lang || "srd"} onChange={e => setUi({ lang: e.target.value })}>
           <option value="srd">Dungeons &amp; Dragons 5e (SRD)</option>
           <option value="ru">ДнД 5e (русский)</option>
-        </select>
+        </CustomSelect>
       </div>
 
       <div className="settings-nav-list">
@@ -368,15 +369,14 @@ export function RollsSettingsContent({ c, ui, setUi }) {
       {showForm && (
         <div className="preset-form">
           <div className="f-label">ТИП ПРЕСЕТА</div>
-          <select
-            className="f-input"
+          <CustomSelect
             value={formState.type}
             onChange={e => setFormState(s => ({ ...s, type: e.target.value }))}
             style={{ marginBottom: 12 }}
           >
             <option value="discord">Discord</option>
             <option value="telegram">Telegram</option>
-          </select>
+          </CustomSelect>
 
           <div className="f-label">НАЗВАНИЕ ПРЕСЕТА</div>
           <input

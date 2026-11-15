@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { SPELL_BY_ID, SPELL_BY_SLUG } from "./store.js";
 import { Popover, Toggle } from "./ui.jsx";
+import CustomSelect from "./CustomSelect.jsx";
 import { statMod, profOf, levelOf, XP, spellCasting } from "./helpers.js";
 import { SpellFilters, emptyFilters, spellMatches, filterSummary } from "./SpellFilters.jsx";
 import { rollDiceExpr } from "./dice.js";
@@ -185,7 +186,7 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
       {showCast ? (
         <div className="sp-cast-set">
           <div className="f-label">ЗАКЛИНАТЕЛЬНАЯ ХАРАКТЕРИСТИКА</div>
-          <select className="f-input" value={abil} onChange={e => {
+          <CustomSelect value={abil} onChange={e => {
             const d = c.data;
             d.spellsInfo = d.spellsInfo || {};
             d.spellsInfo.base = d.spellsInfo.base || { name: "base", value: "" };
@@ -195,7 +196,7 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
             <option value="int">Интеллект</option>
             <option value="wis">Мудрость</option>
             <option value="cha">Харизма</option>
-          </select>
+          </CustomSelect>
           <div className="sp-cast-set-row">
             <label className="pop-field">Сл спасброска
               <input type="number" className="edit-in" defaultValue={cast.saveCustom}
@@ -499,15 +500,15 @@ function PrepareModal({ c, onSave, onClose }) {
         <h3 className="modal-title">Подготовить заклинания</h3>
         <div className="sp-prep-tools">
           <input className="f-input" placeholder="Поиск…" value={q} onChange={e => setQ(e.target.value)} />
-          <select className="f-input" value={lv} onChange={e => setLv(e.target.value)}>
+          <CustomSelect value={lv} onChange={e => setLv(e.target.value)}>
             <option value="all">Все уровни</option>
             {levels.map(l => <option key={l} value={l}>{l === 0 ? "Заговоры" : l + "-й уровень"}</option>)}
-          </select>
-          <select className="f-input" value={(filters.classes || []).length === 1 ? filters.classes[0] : ""}
+          </CustomSelect>
+          <CustomSelect value={(filters.classes || []).length === 1 ? filters.classes[0] : ""}
             onChange={e => setFilters({ ...filters, classes: e.target.value ? [e.target.value] : [] })}>
             <option value="">{filters.classes && filters.classes.length > 1 ? `Выбрано: ${filters.classes.length}` : "Все классы"}</option>
             {Object.entries(CLASS_RU).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
+          </CustomSelect>
         </div>
         <SpellFilters value={filters} onChange={setFilters} levels={levels} showLevels={false} />
         <div className="sp-prep-list">

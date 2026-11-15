@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { statMod, profOf } from "./helpers.js";
 import { Toggle } from "./ui.jsx";
 import { rollDiceExpr } from "./dice.js";
+import CustomSelect from "./CustomSelect.jsx";
 
 /* Модалка настройки оружия (?modal=weapon) */
 
@@ -140,9 +141,9 @@ export default function WeaponModal({ c, weapon, onChange, onDelete, onClose }) 
             </label>
           </div>
           <div className="wpn-sub-label">ХАРАКТЕРИСТИКА</div>
-          <select className="f-input" value={ability} onChange={e => patch({ ability: e.target.value })}>
+          <CustomSelect value={ability} onChange={e => patch({ ability: e.target.value })}>
             {ABILITIES.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
+          </CustomSelect>
           {weapon.modBonus?.value ? (
             <div className="wpn-bonus-row">
               <span>Свой бонус атаки</span>

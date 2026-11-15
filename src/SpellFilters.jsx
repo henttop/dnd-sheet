@@ -1,4 +1,5 @@
 import React from "react";
+import CustomSelect from "./CustomSelect.jsx";
 
 /* Фильтры заклинаний — как на dnd.su: уровень, школа, компоненты,
    концентрация, ритуал, время наложения, тип урона */
@@ -114,10 +115,10 @@ export function SpellFilters({ value, onChange, levels, showLevels = true, showC
 
       <div className="sp-frow">
         <span className="sp-flabel">Школа</span>
-        <select className="f-input sp-fsel" value={f.school} onChange={e => set({ school: e.target.value })}>
+        <CustomSelect className="sp-fsel" value={f.school} onChange={e => set({ school: e.target.value })}>
           <option value="">Любая</option>
           {SCHOOLS.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
+        </CustomSelect>
       </div>
 
       {showClasses ? (
@@ -156,18 +157,18 @@ export function SpellFilters({ value, onChange, levels, showLevels = true, showC
 
       <div className="sp-frow">
         <span className="sp-flabel">Время наложения</span>
-        <select className="f-input sp-fsel" value={f.castTime} onChange={e => set({ castTime: e.target.value })}>
+        <CustomSelect className="sp-fsel" value={f.castTime} onChange={e => set({ castTime: e.target.value })}>
           <option value="">Любое</option>
           {CAST_TIMES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-        </select>
+        </CustomSelect>
       </div>
 
       <div className="sp-frow">
         <span className="sp-flabel">Тип урона</span>
-        <select className="f-input sp-fsel" value={f.dmgType} onChange={e => set({ dmgType: e.target.value })}>
+        <CustomSelect className="sp-fsel" value={f.dmgType} onChange={e => set({ dmgType: e.target.value })}>
           <option value="">Любой</option>
           {DMG_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
+        </CustomSelect>
       </div>
 
       <div className="sp-frow">
