@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { previewFormula } from "./dice.js";
+import { previewFormula, evalStat } from "./dice.js";
 // Рендер tiptap-документа и конвертация doc ↔ plain text.
 // Поддерживаются маркеры:
 //   **жирный**  *курсив*  __подчёркнутый__  ~~зачёркнутый~~  `код`
@@ -98,7 +98,8 @@ function Node({ n, ctx = {} }) {
       const live = a.id && ctx.resources ? ctx.resources[a.id] : null;
       const name = live ? (live.name || "ресурс") : (a.name || "ресурс");
       const cur = live ? (live.current ?? 0) : (a.current ?? 0);
-      const mx = live ? (live.resolvedMax ?? live.max ?? 0) : (a.max ?? 0);
+      const rawMax = live ? (live.formula || live.max || 0) : (a.max || 0);
+      const mx = evalStat(rawMax, ctx.char || (typeof window !== "undefined" ? window.__activeChar : null), 0).total;
       const val = mx > 0 ? `${cur}/${mx}` : cur;
       const step = (d) => {
         if (!a.id || !ctx.onResource) return;
@@ -440,7 +441,8 @@ function inlineToHtml(nodes, ctx = {}) {
       const live = a.id && ctx.resources ? ctx.resources[a.id] : null;
       const nm = live ? (live.name || "ресурс") : (a.name || "ресурс");
       const cv = live ? (live.current ?? 0) : (a.current ?? 0);
-      const mx = live ? (live.resolvedMax ?? live.max ?? 0) : (a.max ?? 0);
+      const rawMax = live ? (live.formula || live.max || 0) : (a.max ?? 0);
+      const mx = evalStat(rawMax, ctx.char || (typeof window !== "undefined" ? window.__activeChar : null), 0).total;
       return resourceBlockHtml(a.id, nm, cv, mx);
     }
     if (ch.type === "roller") {
@@ -555,7 +557,8 @@ export function docToEditorHtml(doc, ctx = {}) {
       const live = a.id && ctx.resources ? ctx.resources[a.id] : null;
       const nm = live ? (live.name || "ресурс") : (a.name || "ресурс");
       const cv = live ? (live.current ?? 0) : (a.current ?? 0);
-      const mx = live ? (live.resolvedMax ?? live.max ?? 0) : (a.max ?? 0);
+      const rawMax = live ? (live.formula || live.max || 0) : (a.max || 0);
+      const mx = evalStat(rawMax, ctx.char || (typeof window !== "undefined" ? window.__activeChar : null), 0).total;
       parts.push(resourceBlockHtml(a.id, nm, cv, mx));
     } else if (node.type === "divider") {
       parts.push(`<hr class="ed-divider">`);

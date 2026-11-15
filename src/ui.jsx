@@ -365,7 +365,7 @@ function DieShape({ faces, size = 24 }) {
 }
 
 /* ================= Инлайн-редактирование значения ================= */
-export function Editable({ value, onSave, className = "", title = "изменить", width, type = "text" }) {
+export function Editable({ value, displayValue, onSave, className = "", title = "изменить", width, type = "text" }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const ref = useRef(null);
@@ -380,10 +380,11 @@ export function Editable({ value, onSave, className = "", title = "измени�
         onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }} />
     );
   }
+  const rendered = displayValue != null ? displayValue : value;
   return (
     <span className={"editable " + className} title={title}
       onClick={e => { e.stopPropagation(); setDraft(value == null ? "" : String(value)); setEditing(true); }}>
-      {value}
+      {rendered}
     </span>
   );
 }

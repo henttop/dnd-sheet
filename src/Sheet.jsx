@@ -20,7 +20,7 @@ import {
   hp, profOf, coinsTotal, statMod, skillProf, skillCustom, skillBonus,
   saveProf, saveBonus, passive, docOf, setDoc, levelOf,
 } from "./helpers.js";
-import { signed, parseNum, esc } from "./dice.js";
+import { signed, parseNum, esc, evalStat } from "./dice.js";
 
 export default function Sheet({ idx, back, fresh, onFreshDone }) {
   const c = characters[idx];
@@ -140,7 +140,24 @@ function CharBar({ c, onSave, onSettings, onPortrait }) {
       </div>
       <div className="vitals">
         <AcVital c={c} onSave={onSave} />
-        <div className="vital"><div><div className="v-main"><Editable value={v.speed?.value ?? 0} onSave={x => { v.speed = { value: +x || 0 }; onSave(); }} width={56} /></div><div className="v-sub">скорость</div></div></div>
+        {(() => {
+          const speedInfo = evalStat(v.speed?.value ?? 30, c, 30);
+          return (
+            <div className="vital" title={speedInfo.isFormula ? `Скорость: ${speedInfo.raw} → ${speedInfo.resolved} = ${speedInfo.total}` : "скорость"}>
+              <div>
+                <div className="v-main">
+                  <Editable
+                    value={v.speed?.value ?? 30}
+                    displayValue={speedInfo.total}
+                    onSave={x => { v.speed = { value: x }; onSave(); }}
+                    width={56}
+                  />
+                </div>
+                <div className="v-sub">скорость{speedInfo.isFormula ? " ƒ" : ""}</div>
+              </div>
+            </div>
+          );
+        })()}
         <div className="vital" title="Бонус мастерства (по уровню). Поставь 0 — вернётся автоматический.">
           <div><div className="v-main"><Editable value={signed(profOf(c))} onSave={x => { const n = parseNum(x); d.proficiencyCustom = { value: n > 0 ? n : 0 }; onSave(); }} width={56} /></div><div className="v-sub">владение</div></div>
         </div>
@@ -188,19 +205,35 @@ function LevelChip({ c, lvl, onSave }) {
 function AcVital({ c, onSave }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  const pos = useAnchorPos(open, ref, { dx: -70, dy: 8, width: 190 });
+  const pos = useAnchorPos(open, ref, { dx: -70, dy: 8, width: 220 });
   const v = c.data.vitality ||= {};
-  const base = v.ac?.value;
+  const rawAc = v.ac?.value ?? 10;
+  const acInfo = evalStat(rawAc, c, 10);
+  const base = acInfo.total;
   const shield = !!v.shield?.value;
-  const total = (base ?? 0) + (shield ? 2 : 0);
+  const total = base + (shield ? 2 : 0);
+  const [draft, setDraft] = useState(String(rawAc));
+
+  useEffect(() => {
+    setDraft(String(rawAc));
+  }, [rawAc]);
+
   const toggleShield = (e) => {
     e.stopPropagation();
     v.shield = { value: !shield };
     onSave();
   };
+
+  const commit = (val) => {
+    const trimmed = String(val ?? "").trim();
+    v.ac = { value: trimmed };
+    onSave();
+  };
+
   return (
     <div style={{ position: "relative" }}>
-      <div className="vital" ref={ref} onClick={() => setOpen(!open)} title="КД и щит">
+      <div className="vital" ref={ref} onClick={() => setOpen(!open)}
+        title={acInfo.isFormula ? `КД: ${acInfo.raw} → ${acInfo.resolved} = ${base}${shield ? ` (+2 щит = ${total})` : ""}` : "КД и щит"}>
         <svg className={"icon ac-shield" + (shield ? " on" : "")} viewBox="0 0 24 24" fill="none"
           stroke="currentColor" strokeWidth="1.6" onClick={toggleShield} style={{ cursor: "pointer" }}>
           <path d="M12 2l9 5v6c0 5-4 8-9 9-5-1-9-4-9-9V7l9-5z" />
@@ -208,27 +241,43 @@ function AcVital({ c, onSave }) {
         </svg>
         <div>
           <div className="v-main">
-            {shield && base != null ? (
+            {shield ? (
               <>
                 <span className="ac-old">{base}</span>
                 <span className="ac-new">{total}</span>
               </>
-            ) : (base ?? "—")}
+            ) : base}
           </div>
-          <div className="v-sub">КД</div>
+          <div className="v-sub">КД{acInfo.isFormula ? " ƒ" : ""}</div>
         </div>
       </div>
       {open && pos ? (
-        <Popover onClose={() => setOpen(false)} style={{ left: pos.left, top: pos.top, minWidth: 190 }}>
+        <Popover onClose={() => setOpen(false)} style={{ left: pos.left, top: pos.top, minWidth: 220 }}>
           <div className="pop-title">КД и щит</div>
           <label className="pop-field">КД (без щита)
-            <input type="number" className="edit-in" defaultValue={v.ac?.value ?? 10}
-              onKeyDown={e => { if (e.key === "Enter") { v.ac = { value: +e.target.value || 0 }; onSave(); setOpen(false); } }}
-              onBlur={e => { v.ac = { value: +e.target.value || 0 }; onSave(); }} />
+            <input
+              type="text"
+              className="edit-in"
+              value={draft}
+              placeholder="10 или [dex] + [con] + 10"
+              onChange={e => setDraft(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  commit(draft);
+                  setOpen(false);
+                }
+              }}
+              onBlur={() => commit(draft)}
+            />
           </label>
+          {acInfo.isFormula ? (
+            <div className="f-hint" style={{ marginTop: 4, marginBottom: 6, color: "var(--purple2)" }}>
+              ƒ {acInfo.raw} → <b>{acInfo.resolved}</b> = <b>{base}</b>
+            </div>
+          ) : null}
           <Toggle checked={!!v.shield?.value} label="Щит (+2 КД)"
             onChange={val => { v.shield = { value: val }; onSave(); }} />
-          {shield && base != null ? (
+          {shield ? (
             <div className="f-hint" style={{ marginTop: 6 }}>
               Итоговое КД: <b>{base}</b> + 2 = <b>{total}</b>
             </div>
@@ -275,29 +324,42 @@ function HeartIcon() {
 /* ================= Вторая строка ================= */
 function SubVitals({ c, onSave }) {
   const d = c.data, v = d.vitality ||= {};
-  const initCustom = v.initiative?.value ? parseNum(v.initiative.value) : 0;
-  const initBonus = statMod(c, "dex") + initCustom;
+  const initCustom = evalStat(v.initiative?.value, c, 0);
+  const initBonus = statMod(c, "dex") + initCustom.total;
+  const [initDraft, setInitDraft] = useState(String(v.initiative?.value ?? ""));
+
+  useEffect(() => {
+    setInitDraft(String(v.initiative?.value ?? ""));
+  }, [v.initiative?.value]);
+
   const conds = d.conditions ||= [];
   const [condOpen, setCondOpen] = useState(false);
   const [initOpen, setInitOpen] = useState(false);
   const initRef = useRef(null);
   const condRef = useRef(null);
-  const initPos = useAnchorPos(initOpen, initRef, { dx: 0, dy: 8, width: 200 });
+  const initPos = useAnchorPos(initOpen, initRef, { dx: 0, dy: 8, width: 220 });
   const condPos = useAnchorPos(condOpen, condRef, { dx: 0, dy: 8, width: 240 });
   return (
     <div className="subvitals">
       <div style={{ position: "relative" }}>
-        <div className="subvital" ref={initRef} title="клик — бросок; правый клик — правка"
+        <div className="subvital" ref={initRef} title={initCustom.isFormula ? `Инициатива: [dex] (${signed(statMod(c, "dex"))}) + ${initCustom.raw} (${initCustom.total}) = ${signed(initBonus)}` : "клик — бросок; правый клик — правка"}
           onClick={e => window.__rollD20("Инициатива", initBonus, "")}
           onContextMenu={e => { e.preventDefault(); setInitOpen(true); }}>
-          <div className="sv-v">{signed(initBonus)}</div><div className="sv-l">Инициатива</div>
+          <div className="sv-v">{signed(initBonus)}</div><div className="sv-l">Инициатива{initCustom.isFormula ? " ƒ" : ""}</div>
         </div>
         {initOpen && initPos ? (
-          <Popover onClose={() => { setInitOpen(false); onSave(); }} style={{ left: initPos.left, top: initPos.top }}>
+          <Popover onClose={() => { setInitOpen(false); onSave(); }} style={{ left: initPos.left, top: initPos.top, minWidth: 220 }}>
             <div className="pop-title">Бонус инициативы</div>
-            <input type="number" className="edit-in" autoFocus defaultValue={initCustom}
-              onKeyDown={e => { if (e.key === "Enter") { v.initiative = { value: +e.target.value || 0 }; onSave(); setInitOpen(false); } }}
-              onBlur={e => { v.initiative = { value: +e.target.value || 0 }; onSave(); }} />
+            <input type="text" className="edit-in" autoFocus value={initDraft}
+              placeholder="0 или [WIS]"
+              onChange={e => setInitDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") { v.initiative = { value: initDraft.trim() }; onSave(); setInitOpen(false); } }}
+              onBlur={() => { v.initiative = { value: initDraft.trim() }; onSave(); }} />
+            {initCustom.isFormula ? (
+              <div className="f-hint" style={{ marginTop: 4, color: "var(--purple2)" }}>
+                ƒ {initCustom.raw} → <b>{initCustom.resolved}</b> = <b>{initCustom.total}</b>
+              </div>
+            ) : null}
           </Popover>
         ) : null}
       </div>

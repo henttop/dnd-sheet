@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Toggle } from "./ui.jsx";
+import { evalStat } from "./dice.js";
 
 /* Модалка ресурса (?modal=resource) */
 
@@ -70,6 +71,14 @@ export default function ResourceModal({ resource, onChange, onDelete, onClose })
                 onChange={e => { setFormula(e.target.value); commit({ formula: e.target.value }); }} />
             </label>
           </div>
+          {formula ? (() => {
+            const fi = evalStat(formula, typeof window !== "undefined" ? window.__activeChar : null, 0);
+            return fi.isFormula ? (
+              <div className="f-hint" style={{ marginTop: 6, color: "var(--purple2)" }}>
+                ƒ {fi.raw} → <b>{fi.resolved}</b> = <b>{fi.total}</b>
+              </div>
+            ) : null;
+          })() : null}
         </div>
 
         <div className="res-block">

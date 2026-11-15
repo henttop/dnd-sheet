@@ -1,4 +1,4 @@
-import { mod, parseNum, signed } from "./dice.js";
+import { mod, parseNum, signed, evalStat } from "./dice.js";
 
 export const SKILLS = [
   ["acrobatics", "Акробатика", "dex"], ["sleight-of-hand", "Ловкость рук", "dex"], ["stealth", "Скрытность", "dex"],
@@ -19,7 +19,16 @@ export const TABS = [
 
 export const hp = (c) => {
   const v = c.data.vitality || {};
-  return { cur: v["hp-current"]?.value ?? 0, max: v["hp-max"]?.value ?? 0, temp: v["hp-temp"]?.value ?? 0 };
+  const cur = v["hp-current"]?.value ?? 0;
+  const max = evalStat(v["hp-max"]?.value, c, 0).total;
+  const temp = evalStat(v["hp-temp"]?.value, c, 0).total;
+  return { cur, max, temp };
+};
+
+export const resolveResourceMax = (r, c) => {
+  if (!r) return 0;
+  const expr = r.formula || r.max || 0;
+  return evalStat(expr, c, 0).total;
 };
 
 /* Бонус мастерства зависит от уровня (Player's Handbook):

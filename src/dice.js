@@ -428,3 +428,26 @@ export function rollDiceExpr(expr) {
     details: res.details
   };
 }
+
+/**
+ * Вычисляет значение числового поля персонажа, поддерживающего формулы
+ * (КД, скорость, максимум хитов, максимум ресурса, инициатива и др.)
+ */
+export function evalStat(val, char = null, def = 0) {
+  if (val == null || val === "") return { total: def, isFormula: false, raw: val, resolved: String(def) };
+  if (typeof val === "number") return { total: isNaN(val) ? def : val, isFormula: false, raw: val, resolved: String(val) };
+  const s = String(val).trim();
+  if (/^-?\d+(\.\d+)?$/.test(s)) {
+    return { total: Number(s), isFormula: false, raw: s, resolved: s };
+  }
+  const activeChar = char || (typeof window !== "undefined" ? window.__activeChar : null);
+  const res = evaluateFormula(s, activeChar);
+  if (!res) return { total: def, isFormula: true, raw: s, resolved: s };
+  return {
+    total: res.total,
+    isFormula: true,
+    raw: s,
+    resolved: res.resolvedExpr || s,
+    details: res.details || ""
+  };
+}
