@@ -213,13 +213,13 @@ export async function testDiscordWebhook(preset, charName = "") {
     let res;
     if (isHttp(avatarUrl)) {
       const payload = {
-        avatar_url: avatarUrl,
         embeds: [
           {
-            author: { name: name, icon_url: avatarUrl },
+            author: { name: name },
             title: "Проверка систем",
             description: "Всё работает в штатном режиме 👍",
-            color: hexToColorInt(preset.color)
+            color: hexToColorInt(preset.color),
+            thumbnail: { url: avatarUrl }
           }
         ]
       };
@@ -235,10 +235,11 @@ export async function testDiscordWebhook(preset, charName = "") {
         const payload = {
           embeds: [
             {
-              author: { name: name, icon_url: "attachment://avatar.jpg" },
+              author: { name: name },
               title: "Проверка систем",
               description: "Всё работает в штатном режиме 👍",
-              color: hexToColorInt(preset.color)
+              color: hexToColorInt(preset.color),
+              thumbnail: { url: "attachment://avatar.jpg" }
             }
           ]
         };
@@ -321,16 +322,13 @@ export async function sendRollToWebhooks(roll) {
 
     if (isHttp(avatarUrl)) {
       const payload = {
-        avatar_url: avatarUrl,
         embeds: [
           {
-            author: {
-              name: charName,
-              icon_url: avatarUrl
-            },
+            author: { name: charName },
             title: rollTitle,
             description: description,
-            color: embedColor
+            color: embedColor,
+            thumbnail: { url: avatarUrl }
           }
         ]
       };
@@ -349,13 +347,11 @@ export async function sendRollToWebhooks(roll) {
         const payload = {
           embeds: [
             {
-              author: {
-                name: charName,
-                icon_url: "attachment://avatar.jpg"
-              },
+              author: { name: charName },
               title: rollTitle,
               description: description,
-              color: embedColor
+              color: embedColor,
+              thumbnail: { url: "attachment://avatar.jpg" }
             }
           ]
         };
