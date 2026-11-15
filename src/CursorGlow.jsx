@@ -68,6 +68,9 @@ export default function CursorGlow() {
   const [ui, setUiState] = useState(getUi());
   useEffect(() => subscribeUi(setUiState), []);
 
+  const uiRef = useRef(ui);
+  uiRef.current = ui;
+
   const canvasRef = useRef(null);
   const curPos = useRef({ x: -1000, y: -1000 });
   const targetPos = useRef({ x: -1000, y: -1000 });
@@ -75,13 +78,14 @@ export default function CursorGlow() {
   const isRunning = useRef(false);
   const animFrameId = useRef(null);
 
-  // DOM-волны при кликах (гарантированная яркость и анимация)
+  // DOM-волны при кликах
   const [ripples, setRipples] = useState([]);
 
   const colorConfig = CURSOR_COLORS[ui.cursorColor] || CURSOR_COLORS.purple;
 
+  const startLoopRef = useRef(null);
+
   useEffect(() => {
-    if (ui.cursorGlow === false) return;
     if (window.matchMedia("(pointer: coarse)").matches) return;
 
     const canvas = canvasRef.current;
@@ -111,11 +115,19 @@ export default function CursorGlow() {
     };
     window.addEventListener("resize", onResize);
 
-    const radius = Math.max(100, Math.min(500, Number(ui.cursorRadius) || 240));
     const gridSize = 24; // Шаг сетки (пиксели)
 
     const render = () => {
       ctx.clearRect(0, 0, cssW, cssH);
+
+      const currentUi = uiRef.current;
+      if (currentUi.cursorGlow === false) {
+        isRunning.current = false;
+        return;
+      }
+
+      const activeColors = CURSOR_COLORS[currentUi.cursorColor] || CURSOR_COLORS.purple;
+      const radius = Math.max(100, Math.min(500, Number(currentUi.cursorRadius) || 240));
 
       const dx = targetPos.current.x - curPos.current.x;
       const dy = targetPos.current.y - curPos.current.y;
@@ -128,9 +140,9 @@ export default function CursorGlow() {
       if (isInside.current && px > -radius && px < cssW + radius && py > -radius && py < cssH + radius) {
         // 1. Мягкое радиальное фоновое свечение
         const grad = ctx.createRadialGradient(px, py, 0, px, py, radius);
-        grad.addColorStop(0, colorConfig.glow0);
-        grad.addColorStop(0.4, colorConfig.glow1);
-        grad.addColorStop(0.8, colorConfig.glow2);
+        grad.addColorStop(0, activeColors.glow0);
+        grad.addColorStop(0.4, activeColors.glow1);
+        grad.addColorStop(0.8, activeColors.glow2);
         grad.addColorStop(1, "rgba(0, 0, 0, 0)");
 
         ctx.fillStyle = grad;
@@ -139,7 +151,7 @@ export default function CursorGlow() {
         ctx.fill();
 
         // 2. Интерактивная точечная сетка (Dot Matrix Grid)
-        if (ui.cursorDotGrid !== false) {
+        if (currentUi.cursorDotGrid !== false) {
           const minX = Math.max(0, Math.floor((px - radius) / gridSize) * gridSize);
           const maxX = Math.min(cssW, Math.ceil((px + radius) / gridSize) * gridSize);
           const minY = Math.max(0, Math.floor((py - radius) / gridSize) * gridSize);
@@ -150,17 +162,15 @@ export default function CursorGlow() {
               const dist = Math.hypot(x - px, y - py);
               if (dist <= radius) {
                 const factor = 1 - dist / radius; // 1 у курсора, 0 на границе
-                // Высокая контрастность: альфа от 0.28 на краю до 1.0 в центре
                 const alpha = 0.28 + Math.pow(factor, 1.2) * 0.72;
-                // Точки заметно увеличиваются: от 1.4px на краю до ~5.5px около курсора
                 const dotR = 1.4 + factor * 1.8 + Math.pow(factor, 2.4) * 2.3;
 
-                const [r, g, b] = factor > 0.65 ? colorConfig.dotCenter : colorConfig.dotBase;
+                const [r, g, b] = factor > 0.65 ? activeColors.dotCenter : activeColors.dotBase;
                 ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
 
                 if (factor > 0.35) {
                   ctx.shadowBlur = (factor - 0.25) * 12;
-                  ctx.shadowColor = colorConfig.ring;
+                  ctx.shadowColor = activeColors.ring;
                 } else {
                   ctx.shadowBlur = 0;
                 }
@@ -175,8 +185,8 @@ export default function CursorGlow() {
         }
 
         // 3. Центральное световое ядро
-        ctx.fillStyle = colorConfig.core;
-        ctx.shadowColor = colorConfig.core;
+        ctx.fillStyle = activeColors.core;
+        ctx.shadowColor = activeColors.core;
         ctx.shadowBlur = 12;
         ctx.beginPath();
         ctx.arc(px, py, 4, 0, Math.PI * 2);
@@ -184,7 +194,7 @@ export default function CursorGlow() {
         ctx.shadowBlur = 0;
       }
 
-      // Цикл засыпает при неподвижности (0% нагрузки на CPU)
+      // Цикл засыпает при полной неподвижности мыши (0% CPU в простое)
       if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
         animFrameId.current = requestAnimationFrame(render);
       } else {
@@ -198,6 +208,8 @@ export default function CursorGlow() {
         animFrameId.current = requestAnimationFrame(render);
       }
     };
+
+    startLoopRef.current = startLoop;
 
     const onMouseMove = (e) => {
       targetPos.current = { x: e.clientX, y: e.clientY };
@@ -216,9 +228,8 @@ export default function CursorGlow() {
       startLoop();
     };
 
-    // Слушатель кликов с capture: true — перехватывает клики везде (даже при stopPropagation)
     const onMouseDown = (e) => {
-      if (ui.cursorRipple === false) return;
+      if (uiRef.current.cursorRipple === false) return;
       const ripId = Date.now() + Math.random();
       setRipples((prev) => [...prev.slice(-4), { id: ripId, x: e.clientX, y: e.clientY }]);
       setTimeout(() => {
@@ -242,8 +253,21 @@ export default function CursorGlow() {
       window.removeEventListener("mousedown", onMouseDown, { capture: true });
       window.removeEventListener("pointerdown", onMouseDown, { capture: true });
       if (animFrameId.current) cancelAnimationFrame(animFrameId.current);
+      isRunning.current = false;
     };
-  }, [ui.cursorGlow, ui.cursorDotGrid, ui.cursorRadius, ui.cursorRipple, ui.cursorColor]);
+  }, []); // Слушатели событий монтируются один раз!
+
+  // При любом изменении настроек в модалке мгновенно запускаем перерисовку кадра без перезагрузки
+  useEffect(() => {
+    if (ui.cursorGlow === false) {
+      if (canvasRef.current) {
+        const ctx = canvasRef.current.getContext("2d");
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      }
+    } else {
+      startLoopRef.current?.();
+    }
+  }, [ui.cursorGlow, ui.cursorDotGrid, ui.cursorRadius, ui.cursorColor]);
 
   if (ui.cursorGlow === false) return null;
 
@@ -260,7 +284,7 @@ export default function CursorGlow() {
         }}
       />
 
-      {/* Магические волны при клике (DOM-анимация с высоким контрастом) */}
+      {/* Магические волны при клике */}
       {ripples.map((r) => (
         <div
           key={r.id}
