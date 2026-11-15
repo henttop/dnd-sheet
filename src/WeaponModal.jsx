@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { statMod, profOf } from "./helpers.js";
 import { Toggle } from "./ui.jsx";
-import { rollDiceExpr } from "./dice.js";
+import { rollDiceExpr, resolveVariables } from "./dice.js";
 import CustomSelect from "./CustomSelect.jsx";
 
 /* Модалка настройки оружия (?modal=weapon) */
@@ -14,38 +14,146 @@ const ABILITIES = [
 const DMG_TYPES = ["", "дробящий", "рубящий", "колющий", "огнём", "холодом", "молнией", "некротической",
   "излучением", "силовой", "психическим", "ядом", "кислотой", "звуком"];
 
-/* разбор "1d6 дробящий" → {dice:"1d6", type:"дробящий", min:1, max:6, avg:4} */
-export function parseDmg(text) {
-  const s = String(text || "").trim();
+/* разбор "1d6 дробящий", "2d6+[str]", "2d6 + 2 дробящий" → {dice:"1d6", type:"дробящий", min:1, max:6, avg:4} */
+export function parseDmg(text, char = null) {
+  let s = String(text || "").trim();
+  if (char) {
+    try {
+      s = resolveVariables(s, char);
+    } catch {}
+  }
   const m = s.match(/^([-+]?\d*[dкк]\d+)\s*(.*)$/i);
   if (!m) return { dice: "", type: "", min: 0, max: 0, avg: 0, ok: false, hasMod: false, mod: 0 };
   const dice = m[1];
-  const type = (m[2] || "").trim();
+  let rest = (m[2] || "").trim();
   const dm = dice.match(/(\d*)[dкк](\d+)/i);
   const n = +(dm[1] || 1);
   const faces = +dm[2];
   const min = n;
   const max = n * faces;
   const avg = Math.round((min + max) / 2);
-  // явный модификатор в строке урона (например «1d6+2») — тогда характеристику не добавляем
-  const hasMod = /[+-]\s*\d+\s*$/.test(type) || /[+-]\s*\d+\s*$/.test(dice);
-  const modM = type.match(/([+-])\s*(\d+)\s*$/);
-  const mod = modM ? (modM[1] === "-" ? -1 : 1) * (+modM[2]) : 0;
+
+  // Явный модификатор в строке урона (например «1d6+2», «2d6 + 2 дробящий», «1d6-1 колющий»)
+  let hasMod = false;
+  let mod = 0;
+  const modM = rest.match(/^([+-])\s*(\d+)\s*(.*)$/);
+  let type = rest;
+  if (modM) {
+    hasMod = true;
+    mod = (modM[1] === "-" ? -1 : 1) * (+modM[2]);
+    type = (modM[3] || "").trim();
+  } else {
+    const endModM = rest.match(/^(.*?)\s*([+-])\s*(\d+)\s*$/);
+    if (endModM && endModM[1] !== "") {
+      hasMod = true;
+      mod = (endModM[2] === "-" ? -1 : 1) * (+endModM[3]);
+      type = (endModM[1] || "").trim();
+    }
+  }
   return { dice, type, min, max, avg, ok: true, hasMod, mod };
 }
 
-/* полный урон: кости + модификатор характеристики (если модификатор не задан явно) */
-export function damageInfo(text, abilMod = 0) {
-  const d = parseDmg(text);
-  if (!d.ok) return { ...d, total: 0, abil: 0 };
+/* разбор строки доп. урона: "+ 2", "2", "+ 1d4", "+ 2 + 1d4", "+ [prof]" и т.д. */
+export function parseExtraDmg(str, char = null) {
+  if (!str) return { num: 0, hasNum: false, dice: "", raw: "" };
+  let s = String(str).trim();
+  if (char) {
+    try {
+      s = resolveVariables(s, char);
+    } catch {}
+  }
+  const diceMatches = [];
+  const withoutDice = s.replace(/(\d*)[dкк](\d+)/gi, (m) => {
+    diceMatches.push(m);
+    return "";
+  });
+  let num = 0;
+  let hasNum = false;
+  const numRegex = /([+-]?\s*\d+)/g;
+  let m;
+  while ((m = numRegex.exec(withoutDice)) !== null) {
+    const val = parseInt(m[1].replace(/\s+/g, ""), 10);
+    if (!isNaN(val)) {
+      num += val;
+      hasNum = true;
+    }
+  }
+  const dice = diceMatches.join("+");
+  return { num, hasNum, dice, raw: s };
+}
+
+/* полный урон: кости + модификатор характеристики + доп. урон */
+export function damageInfo(text, abilMod = 0, extraDamage = "", char = null) {
+  const d = parseDmg(text, char);
+  if (!d.ok) {
+    return {
+      ...d,
+      total: 0,
+      abil: 0,
+      baseMod: 0,
+      extraNum: 0,
+      extraDice: "",
+      totalMod: 0,
+      displayMod: "",
+    };
+  }
+
+  // Модификатор характеристики (если модификатор не был явно записан в самой строке костей)
   const abil = d.hasMod ? 0 : abilMod;
+  const baseMod = d.hasMod ? d.mod : abilMod;
+
+  // Дополнительный урон
+  const extra = parseExtraDmg(extraDamage, char);
+  const extraNum = extra.num || 0;
+  const extraDice = extra.dice || "";
+
+  // Итоговый модификатор к урону
+  const totalMod = baseMod + extraNum;
+
+  // Расчет костей доп. урона для мин/макс/среднего
+  let extraDiceMin = 0;
+  let extraDiceMax = 0;
+  let extraDiceAvg = 0;
+  if (extraDice) {
+    const diceGroups = extraDice.split("+").filter(Boolean);
+    for (const dg of diceGroups) {
+      const dm = dg.match(/(\d*)[dкк](\d+)/i);
+      if (dm) {
+        const n = +(dm[1] || 1);
+        const faces = +dm[2];
+        extraDiceMin += n;
+        extraDiceMax += n * faces;
+        extraDiceAvg += Math.round((n + n * faces) / 2);
+      }
+    }
+  }
+
+  const min = d.min + totalMod + extraDiceMin;
+  const max = d.max + totalMod + extraDiceMax;
+  const avg = Math.round(d.avg + totalMod + extraDiceAvg);
+  const total = d.avg + totalMod + extraDiceAvg;
+
+  // Форматирование для бейджа
+  let displayMod = "";
+  if (totalMod !== 0) {
+    displayMod = totalMod > 0 ? `+${totalMod}` : `${totalMod}`;
+  }
+  if (extraDice) {
+    displayMod = displayMod ? `${displayMod}+${extraDice}` : `+${extraDice}`;
+  }
+
   return {
     ...d,
     abil,
-    min: d.min + abil,
-    max: d.max + abil,
-    avg: Math.round(d.avg + abil),
-    total: d.avg + abil,
+    baseMod,
+    extraNum,
+    extraDice,
+    totalMod,
+    displayMod,
+    min,
+    max,
+    avg,
+    total,
   };
 }
 
@@ -70,8 +178,8 @@ export default function WeaponModal({ c, weapon, onChange, onDelete, onClose }) 
     return () => document.removeEventListener("keydown", key);
   }, [onClose]);
 
-  const dmg = useMemo(() => damageInfo(weapon.dmg?.value, statMod(c, weapon.ability || "str")),
-    [weapon.dmg?.value, weapon.ability, c]);
+  const dmg = useMemo(() => damageInfo(weapon.dmg?.value, statMod(c, weapon.ability || "str"), extraDmg, c),
+    [weapon.dmg?.value, weapon.ability, extraDmg, c]);
   const ability = weapon.ability || "str";
   const isProf = !!weapon.isProf;
   const bonus = weaponBonus(c, weapon);
@@ -85,7 +193,7 @@ export default function WeaponModal({ c, weapon, onChange, onDelete, onClose }) 
   };
   // полная строка урона в поле «УРОН», вид урона — отдельное поле
   const setDmgFull = (text) => {
-    const p = parseDmg(text);
+    const p = parseDmg(text, c);
     patch({ dmg: { value: p.ok ? [p.dice, p.type].filter(Boolean).join(" ") : text } });
   };
   const setDmgType = (type) => {
@@ -97,8 +205,9 @@ export default function WeaponModal({ c, weapon, onChange, onDelete, onClose }) 
     patch({ modBonus: { value: cur + 1 } });
   };
   const addDmgBonus = () => {
-    setExtraDmg(v => (v ? v + " + 1" : " + 1"));
-    patch({ extraDamage: extraDmg ? extraDmg + " + 1" : " + 1" });
+    const next = extraDmg ? extraDmg + " + 1" : " + 1";
+    setExtraDmg(next);
+    patch({ extraDamage: next });
   };
 
   return (
@@ -109,7 +218,28 @@ export default function WeaponModal({ c, weapon, onChange, onDelete, onClose }) 
         <div className="wpn-head">
           <div className="wpn-head-text">
             <div className="wpn-title">{(weapon.name?.value || "БЕЗ НАЗВАНИЯ").toUpperCase()}</div>
-            {weapon.dmg?.value ? <div className="wpn-dmg">{weapon.dmg.value}{dmg.abil ? ` + ${dmg.abil}` : ""}</div> : null}
+            {weapon.dmg?.value ? (
+              <div
+                className="wpn-dmg"
+                title="нажмите, чтобы совершить бросок урона"
+                style={{ cursor: "pointer" }}
+                onClick={() => {
+                  if (dmg.ok) {
+                    const parts = [];
+                    const abilName = ABILITIES.find(a => a[0] === ability)?.[1] || ability;
+                    const baseMod = dmg.abil || dmg.mod || 0;
+                    if (baseMod) parts.push(abilName);
+                    if (dmg.extraNum) parts.push("Доп. урон");
+                    const modLabel = parts.join(" + ");
+                    const diceExpr = dmg.extraDice ? `${dmg.dice}+${dmg.extraDice}` : dmg.dice;
+                    window.__rollExpr(`Урон: ${weapon.name?.value || "оружие"}`, diceExpr, dmg.totalMod, modLabel, { sub: dmg.type });
+                  }
+                }}
+              >
+                {weapon.dmg.value}
+                {dmg.displayMod ? ` ${dmg.displayMod}` : ""}
+              </div>
+            ) : null}
             {dmg.ok ? <div className="wpn-range">Урон: {dmg.min}–{dmg.max} (→{dmg.avg})</div> : null}
           </div>
           <button className="wpn-atk" title="бросок атаки"
@@ -175,16 +305,26 @@ export default function WeaponModal({ c, weapon, onChange, onDelete, onClose }) 
                 onChange={e => setDmgType(e.target.value)} />
             </div>
           </div>
-          {extraDmg ? (
+          {extraDmg !== undefined && extraDmg !== null && extraDmg !== "" ? (
             <div className="wpn-bonus-row">
               <span>Доп. урон</span>
-              <input className="edit-in" style={{ width: 120 }} value={extraDmg}
+              <input className="edit-in" style={{ width: 120 }} value={extraDmg} placeholder="+ 1"
                 onChange={e => { setExtraDmg(e.target.value); patch({ extraDamage: e.target.value }); }} />
+              <button
+                type="button"
+                className="row-del"
+                title="Удалить доп. урон"
+                style={{ width: 22, height: 22, padding: 0, lineHeight: 1, fontSize: 13, cursor: "pointer" }}
+                onClick={() => { setExtraDmg(""); patch({ extraDamage: "" }); }}
+              >×</button>
             </div>
           ) : null}
           <div className="f-hint" style={{ marginTop: 8 }}>
             {dmg.ok
-              ? `Урон: ${dmg.min}–${dmg.max} (→${dmg.avg})` + (dmg.abil ? ` = кости ${dmg.min - dmg.abil}–${dmg.max - dmg.abil} + ${dmg.abil} (${ABILITIES.find(a => a[0] === ability)?.[1] || ability})` : "")
+              ? `Урон: ${dmg.min}–${dmg.max} (→${dmg.avg})` +
+                ((dmg.abil || dmg.mod) ? ` = кости + ${dmg.abil || dmg.mod} (${ABILITIES.find(a => a[0] === ability)?.[1] || ability})` : "") +
+                (dmg.extraNum ? ` + ${dmg.extraNum} (доп. урон)` : "") +
+                (dmg.extraDice ? ` + ${dmg.extraDice}` : "")
               : "Укажите кости урона, например 1d6"}
           </div>
         </div>

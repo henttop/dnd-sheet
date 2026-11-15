@@ -621,12 +621,34 @@ function AttacksTab({ c, onSave }) {
                   <span className="atk-mod">
                     <button className="atk-val wide" title="бросок урона"
                       onClick={() => {
-                        const info = damageInfo(w.dmg?.value, statMod(c, w.ability || "str"));
-                        if (info.ok) window.__rollExpr(`Урон: ${w.name?.value || "оружие"}`, info.dice, info.abil, STAT_NAMES[w.ability || "str"], { sub: info.type });
+                        const info = damageInfo(w.dmg?.value, statMod(c, w.ability || "str"), w.extraDamage, c);
+                        if (info.ok) {
+                          const parts = [];
+                          const abilName = STAT_NAMES[w.ability || "str"] || "Характеристика";
+                          const baseMod = info.abil || info.mod || 0;
+                          if (baseMod) parts.push(abilName);
+                          if (info.extraNum) parts.push("Доп. урон");
+                          const modLabel = parts.join(" + ");
+                          const diceExpr = info.extraDice ? `${info.dice}+${info.extraDice}` : info.dice;
+                          window.__rollExpr(`Урон: ${w.name?.value || "оружие"}`, diceExpr, info.totalMod, modLabel, { sub: info.type });
+                        }
                       }}>
                       {w.dmg?.value || "—"}
-                      {w.dmg?.value && damageInfo(w.dmg?.value, statMod(c, w.ability || "str")).abil
-                        ? <span className="atk-dmg-mod">+{damageInfo(w.dmg?.value, statMod(c, w.ability || "str")).abil}</span> : null}
+                      {(() => {
+                        const info = damageInfo(w.dmg?.value, statMod(c, w.ability || "str"), w.extraDamage, c);
+                        if (!w.dmg?.value || !info.displayMod) return null;
+                        const tooltipParts = [];
+                        const abilName = STAT_NAMES[w.ability || "str"] || "Характеристика";
+                        const baseMod = info.abil || info.mod || 0;
+                        if (baseMod) tooltipParts.push(`${abilName} (${baseMod >= 0 ? "+" + baseMod : baseMod})`);
+                        if (info.extraNum) tooltipParts.push(`Доп. урон (${info.extraNum >= 0 ? "+" + info.extraNum : info.extraNum})`);
+                        if (info.extraDice) tooltipParts.push(`Доп. кости (${info.extraDice})`);
+                        return (
+                          <span className="atk-dmg-mod" title={tooltipParts.join(" + ")}>
+                            {info.displayMod}
+                          </span>
+                        );
+                      })()}
                     </button>
                   </span>
                 </td>
