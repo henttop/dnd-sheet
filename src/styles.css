@@ -1228,3 +1228,173 @@ img{display:block}
 .var-suggest-footer{font-size:9.5px;color:var(--dim);padding:4px 8px 2px;border-top:1px solid var(--border);
   display:flex;justify-content:space-between}
 
+/* ===== Сверхтёмная тема (Deep Dark) ===== */
+body.darker-bg {
+  --bg: #090a12;
+  --bg2: #0e101d;
+  --panel: #131627;
+  --card: #171b30;
+  --card2: #1f243f;
+  --border: #222744;
+  --border2: #2d345a;
+}
+body.darker-bg .topbar {
+  background: #080911;
+  border-bottom-color: var(--border);
+}
+body.darker-bg .xp-track {
+  background: #090b14;
+}
+body.darker-bg .drawer,
+body.darker-bg .modal {
+  background: var(--bg2);
+}
+
+/* ===== Эффект подсветки за курсором ===== */
+.cursor-glow-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  overflow: hidden;
+  transition: opacity 0.3s ease;
+}
+.cursor-glow-ambient {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 450px;
+  height: 450px;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform;
+  mix-blend-mode: screen;
+  opacity: 0.85;
+  filter: blur(16px);
+}
+.cursor-glow-core {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform;
+  opacity: 0.8;
+  mix-blend-mode: screen;
+}
+.cursor-glow-ripple {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border: 2px solid;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: cursorRipple 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+  mix-blend-mode: screen;
+}
+@keyframes cursorRipple {
+  0% {
+    transform: scale(0.3);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(3.5);
+    opacity: 0;
+  }
+}
+
+/* ===== Стили модалки оформления ===== */
+.theme-modal {
+  width: 500px;
+  max-width: 95vw;
+}
+.theme-settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 0;
+}
+.theme-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.theme-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.theme-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.theme-item-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.theme-item-desc {
+  font-size: 12px;
+  color: var(--dim);
+  line-height: 1.4;
+}
+.theme-suboptions {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.theme-color-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--dim2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.theme-color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+.theme-color-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  transition: all 0.15s ease;
+  text-align: left;
+}
+.theme-color-btn:hover {
+  background: var(--card2);
+  border-color: var(--accent2);
+}
+.theme-color-btn.is-active {
+  background: var(--card2);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.theme-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+
+

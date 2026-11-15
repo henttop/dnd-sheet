@@ -52,7 +52,10 @@ export default function List({ open }) {
     <div className="list-wrap">
       <h1 className="list-title">Мои персонажи <small>({characters.length}/30)</small></h1>
       <div className="list-tools" style={{ position: "relative" }}>
-        <button className="btn-json" onClick={(e) => { e.stopPropagation(); setMenu(!menu); }}>.json</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="btn-json" onClick={(e) => { e.stopPropagation(); setMenu(!menu); }}>.json</button>
+          <button className="btn-json" onClick={() => window.__openThemeModal?.()} title="Настройки оформления и эффектов">🎨 Оформление</button>
+        </div>
         {menu ? (
           <div className="json-menu">
             <button onClick={doExport}>Скачать .json</button>

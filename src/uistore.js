@@ -7,6 +7,10 @@ let state = {
   showFeatures: true,  // вкладка «Способности»
   srd52: true,         // справочник заклинаний SRD 5.2 вместо 5.1
   lang: "srd",
+  darkerBg: true,      // сверхтёмный фон (deep dark)
+  cursorGlow: true,    // эффект мягкой подсветки за курсором
+  cursorColor: "purple", // цвет подсветки (purple, cyan, gold, red, green)
+  cursorRipple: true,  // эффект расходящейся волны при клике
 };
 
 try {

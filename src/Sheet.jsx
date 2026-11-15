@@ -68,6 +68,15 @@ export default function Sheet({ idx, back, fresh, onFreshDone }) {
           <span>История бросков</span>
           {historyCount > 0 && <span className="top-history-badge">{historyCount > 99 ? "99+" : historyCount}</span>}
         </button>
+        <button
+          type="button"
+          className="top-history-btn"
+          onClick={() => window.__openThemeModal?.()}
+          title="Настройки оформления и эффектов"
+        >
+          <span>🎨</span>
+          <span>Тема</span>
+        </button>
         <GoldPill c={c} onSave={rerender} />
       </div>
       <CharBar c={c} onSave={rerender} onSettings={() => setShowSettings(true)} onPortrait={() => setShowPortrait(true)} />

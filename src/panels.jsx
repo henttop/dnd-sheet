@@ -5,6 +5,7 @@ import ImageCropper from "./ImageCropper.jsx";
 import { Toggle } from "./ui.jsx";
 import { getRollPresets, saveRollPresets, testDiscordWebhook } from "./webhooks.js";
 import { toast } from "./toast.jsx";
+import { ThemeSettingsContent } from "./ThemeModal.jsx";
 
 /* ================= Меню под аватаром (как на сайте) ================= */
 export function AvatarMenu({ c, onSave, onSettings, onPortrait }) {
@@ -110,6 +111,14 @@ export function SettingsDrawer({ c, onSave, onClose, onOpenWizard, ui, setUi }) 
     );
   }
 
+  if (subView === "theme") {
+    return (
+      <Drawer title="Оформление и эффекты" onClose={onClose} onBack={() => setSubView(null)}>
+        <ThemeSettingsContent ui={ui} setUi={setUi} />
+      </Drawer>
+    );
+  }
+
   if (subView === "srd") {
     return (
       <Drawer title="База знаний" onClose={onClose} onBack={() => setSubView(null)}>
@@ -159,6 +168,10 @@ export function SettingsDrawer({ c, onSave, onClose, onOpenWizard, ui, setUi }) 
       </div>
 
       <div className="settings-nav-list">
+        <button className="settings-nav-btn" onClick={() => setSubView("theme")}>
+          <span>🎨 Оформление и эффекты</span>
+          <span className="chev">›</span>
+        </button>
         <button className="settings-nav-btn" onClick={onOpenWizard}>
           <span>Конструктор персонажа</span>
           <span className="chev">›</span>
