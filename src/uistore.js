@@ -14,6 +14,10 @@ let state = {
   cursorRadius: 240,   // радиус круга подсветки в пикселях (120 - 450)
   cursorColor: "purple", // цвет подсветки (purple, cyan, gold, red, green)
   cursorRipple: true,  // эффект расходящейся волны при клике
+  pillSpotlight: true,         // интерактивный спотлайт и эффекты на всех плашках
+  pillSpotlightIntensity: 70,  // интенсивность/яркость спотлайта на плашках (20 - 100%)
+  pillSpotlightRadius: 130,    // радиус светового пятна на плашках в пикселях (70 - 220)
+  pillHoverLift: true,         // тактильный подъём плашек при наведении
 };
 
 try {

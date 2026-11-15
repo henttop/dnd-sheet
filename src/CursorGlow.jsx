@@ -217,13 +217,15 @@ export default function CursorGlow() {
       startLoop();
 
       // Динамический эффект светового пятна (spotlight) при вождении курсора по плашкам и карточкам
-      const pill = e.target.closest?.(
-        ".skill-row, .stat-roll .roll-btn, .passive, .subvital, .char-card, .charbar, .cond-box, .hp-box, .tab"
-      );
-      if (pill) {
-        const rect = pill.getBoundingClientRect();
-        pill.style.setProperty("--mx", `${(e.clientX - rect.left).toFixed(1)}px`);
-        pill.style.setProperty("--my", `${(e.clientY - rect.top).toFixed(1)}px`);
+      if (uiRef.current.pillSpotlight !== false) {
+        const pill = e.target.closest?.(
+          ".skill-row, .stat-roll .roll-btn, .passive, .subvital, .char-card, .charbar, .cond-box, .hp-box, .tab, .vital, .lvl-chip, .gold-pill, .panel, .att-table tbody tr, .sp-item, .feat-item, .inv-row, .wpn-card, .pill-hover"
+        );
+        if (pill) {
+          const rect = pill.getBoundingClientRect();
+          pill.style.setProperty("--mx", `${(e.clientX - rect.left).toFixed(1)}px`);
+          pill.style.setProperty("--my", `${(e.clientY - rect.top).toFixed(1)}px`);
+        }
       }
     };
 
@@ -269,19 +271,48 @@ export default function CursorGlow() {
     };
   }, []); // Слушатели событий монтируются один раз!
 
-  // При любом изменении настроек в модалке мгновенно запускаем перерисовку кадра без перезагрузки
+  // При любом изменении настроек в модалке мгновенно синхронизируем стили и запускаем перерисовку
   useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+
+    root.style.setProperty("--pill-spotlight-size", `${ui.pillSpotlightRadius || 130}px`);
+    const alpha = ui.pillSpotlight === false ? 0 : ((ui.pillSpotlightIntensity || 70) / 100);
+    root.style.setProperty("--pill-spotlight-alpha", alpha.toFixed(2));
+    root.style.setProperty("--pill-lift-x", ui.pillHoverLift === false ? "0px" : "4px");
+    root.style.setProperty("--pill-lift-y", ui.pillHoverLift === false ? "0px" : "-2px");
+
+    if (ui.pillSpotlight === false) {
+      body.classList.add("no-pill-spotlight");
+    } else {
+      body.classList.remove("no-pill-spotlight");
+    }
+
+    if (ui.pillHoverLift === false) {
+      body.classList.add("no-pill-lift");
+    } else {
+      body.classList.remove("no-pill-lift");
+    }
+
     if (ui.cursorGlow === false) {
       if (canvasRef.current) {
         const ctx = canvasRef.current.getContext("2d");
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
       }
     } else {
       startLoopRef.current?.();
     }
-  }, [ui.cursorGlow, ui.cursorDotGrid, ui.cursorRadius, ui.cursorColor]);
-
-  if (ui.cursorGlow === false) return null;
+  }, [
+    ui.cursorGlow,
+    ui.cursorDotGrid,
+    ui.cursorDotSpacing,
+    ui.cursorRadius,
+    ui.cursorColor,
+    ui.pillSpotlight,
+    ui.pillSpotlightIntensity,
+    ui.pillSpotlightRadius,
+    ui.pillHoverLift,
+  ]);
 
   return (
     <>
@@ -293,6 +324,7 @@ export default function CursorGlow() {
           inset: 0,
           pointerEvents: "none",
           zIndex: 1,
+          display: ui.cursorGlow === false ? "none" : "block",
         }}
       />
 
