@@ -9,6 +9,7 @@ let state = {
   lang: "srd",
   darkerBg: true,      // сверхтёмный фон (deep dark)
   cursorGlow: true,    // эффект мягкой подсветки за курсором
+  cursorDotGrid: true, // сетка из точек вокруг курсора (dot matrix)
   cursorColor: "purple", // цвет подсветки (purple, cyan, gold, red, green)
   cursorRipple: true,  // эффект расходящейся волны при клике
 };

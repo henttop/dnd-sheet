@@ -60,6 +60,19 @@ export function ThemeSettingsContent({ ui, setUi }) {
 
             <div className="theme-item-row" style={{ marginTop: 14 }}>
               <div className="theme-item-info">
+                <div className="theme-item-title" style={{ fontSize: 13 }}>Сетка из точек (Dot Matrix)</div>
+                <div className="theme-item-desc">
+                  Подсвечивает координатную точечную сетку вокруг курсора при его движении.
+                </div>
+              </div>
+              <Toggle
+                checked={ui.cursorDotGrid !== false}
+                onChange={(v) => setUi({ cursorDotGrid: v })}
+              />
+            </div>
+
+            <div className="theme-item-row" style={{ marginTop: 14 }}>
+              <div className="theme-item-info">
                 <div className="theme-item-title" style={{ fontSize: 13 }}>Волна при клике</div>
                 <div className="theme-item-desc">
                   Пульсирующая магическая волна при каждом нажатии мыши.
