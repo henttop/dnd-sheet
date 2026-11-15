@@ -15,10 +15,11 @@ let state = {
   cursorColor: "purple", // цвет подсветки (purple, cyan, gold, red, green)
   cursorRipple: true,  // эффект расходящейся волны при клике
   cursorCenterDot: false, // световая точка на острие курсора (по умолчанию выключена)
+  pillHover: true,             // эффекты при наведении (on hover) на плашки и карточки
+  pillHoverLift: true,         // тактильный подъём плашек при наведении
   pillSpotlight: true,         // интерактивный спотлайт и эффекты на всех плашках
   pillSpotlightIntensity: 70,  // интенсивность/яркость спотлайта на плашках (20 - 100%)
   pillSpotlightRadius: 130,    // радиус светового пятна на плашках в пикселях (70 - 220)
-  pillHoverLift: true,         // тактильный подъём плашек при наведении
 };
 
 try {

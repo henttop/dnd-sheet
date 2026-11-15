@@ -219,7 +219,7 @@ export default function CursorGlow() {
       startLoop();
 
       // Динамический эффект светового пятна (spotlight) при вождении курсора по плашкам и карточкам
-      if (uiRef.current.pillSpotlight !== false) {
+      if (uiRef.current.pillHover !== false && uiRef.current.pillSpotlight !== false) {
         const pill = e.target.closest?.(
           ".skill-row, .stat-roll .roll-btn, .passive, .subvital, .char-card, .charbar, .cond-box, .hp-box, .tab, .vital, .lvl-chip, .gold-pill, .panel, .att-table tbody tr, .sp-item, .feat-item, .inv-row, .wpn-card, .pill-hover"
         );
@@ -279,18 +279,24 @@ export default function CursorGlow() {
     const body = document.body;
 
     root.style.setProperty("--pill-spotlight-size", `${ui.pillSpotlightRadius || 130}px`);
-    const alpha = ui.pillSpotlight === false ? 0 : ((ui.pillSpotlightIntensity || 70) / 100);
+    const alpha = (ui.pillHover === false || ui.pillSpotlight === false) ? 0 : ((ui.pillSpotlightIntensity || 70) / 100);
     root.style.setProperty("--pill-spotlight-alpha", alpha.toFixed(2));
-    root.style.setProperty("--pill-lift-x", ui.pillHoverLift === false ? "0px" : "4px");
-    root.style.setProperty("--pill-lift-y", ui.pillHoverLift === false ? "0px" : "-2px");
+    root.style.setProperty("--pill-lift-x", (ui.pillHover === false || ui.pillHoverLift === false) ? "0px" : "4px");
+    root.style.setProperty("--pill-lift-y", (ui.pillHover === false || ui.pillHoverLift === false) ? "0px" : "-2px");
 
-    if (ui.pillSpotlight === false) {
+    if (ui.pillHover === false) {
+      body.classList.add("no-pill-hover");
+    } else {
+      body.classList.remove("no-pill-hover");
+    }
+
+    if (ui.pillHover === false || ui.pillSpotlight === false) {
       body.classList.add("no-pill-spotlight");
     } else {
       body.classList.remove("no-pill-spotlight");
     }
 
-    if (ui.pillHoverLift === false) {
+    if (ui.pillHover === false || ui.pillHoverLift === false) {
       body.classList.add("no-pill-lift");
     } else {
       body.classList.remove("no-pill-lift");
@@ -311,6 +317,7 @@ export default function CursorGlow() {
     ui.cursorRadius,
     ui.cursorColor,
     ui.cursorCenterDot,
+    ui.pillHover,
     ui.pillSpotlight,
     ui.pillSpotlightIntensity,
     ui.pillSpotlightRadius,

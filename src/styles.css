@@ -1729,7 +1729,7 @@ body.darker-bg .modal {
   box-shadow: 0 0 0 1px var(--purple2);
 }
 
-/* ===== Отключение подсветки и подъема плашек через настройки темы ===== */
+/* ===== Отключение подсветки, подъема и hover-эффектов плашек через настройки темы ===== */
 body.no-pill-spotlight .skill-row::before,
 body.no-pill-spotlight .skill-row::after,
 body.no-pill-spotlight .stat-roll .roll-btn::before,
@@ -1744,11 +1744,27 @@ body.no-pill-spotlight .tabs .tab::before,
 body.no-pill-spotlight .att-table tbody tr::before,
 body.no-pill-spotlight .char-card::before,
 body.no-pill-spotlight .charbar::before,
-body.no-pill-spotlight .panel::before {
+body.no-pill-spotlight .panel::before,
+body.no-pill-hover .skill-row::before,
+body.no-pill-hover .skill-row::after,
+body.no-pill-hover .stat-roll .roll-btn::before,
+body.no-pill-hover .subvital::before,
+body.no-pill-hover .cond-box::before,
+body.no-pill-hover .hp-box::before,
+body.no-pill-hover .vital::before,
+body.no-pill-hover .lvl-chip::before,
+body.no-pill-hover .gold-pill::before,
+body.no-pill-hover .passive::before,
+body.no-pill-hover .tabs .tab::before,
+body.no-pill-hover .att-table tbody tr::before,
+body.no-pill-hover .char-card::before,
+body.no-pill-hover .charbar::before,
+body.no-pill-hover .panel::before {
   display: none !important;
   opacity: 0 !important;
 }
 
+/* Полное отключение движения при выключении Lift */
 body.no-pill-lift .skill-row:hover,
 body.no-pill-lift .stat-roll .roll-btn:hover,
 body.no-pill-lift .subvital:hover,
@@ -1760,8 +1776,134 @@ body.no-pill-lift .gold-pill:hover,
 body.no-pill-lift .passive:hover,
 body.no-pill-lift .tabs .tab:hover,
 body.no-pill-lift .att-table tbody tr:hover,
-body.no-pill-lift .char-card:hover {
+body.no-pill-lift .char-card:hover,
+body.no-pill-lift .char-card:hover img,
+body.no-pill-lift .char-card:hover .ph,
+body.no-pill-lift .skill-row:hover .dot {
   transform: none !important;
+}
+
+/* Полное отключение ВСЕХ эффектов наведения при выключении On Hover */
+body.no-pill-hover .skill-row:hover,
+body.no-pill-hover .stat-roll .roll-btn:hover,
+body.no-pill-hover .subvital:hover,
+body.no-pill-hover .cond-box:hover,
+body.no-pill-hover .hp-box:hover,
+body.no-pill-hover .vital:hover,
+body.no-pill-hover .lvl-chip:hover,
+body.no-pill-hover .gold-pill:hover,
+body.no-pill-hover .passive:hover,
+body.no-pill-hover .tabs .tab:hover,
+body.no-pill-hover .att-table tbody tr:hover,
+body.no-pill-hover .char-card:hover,
+body.no-pill-hover .charbar:hover,
+body.no-pill-hover .panel:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  border-color: inherit !important;
+}
+
+body.no-pill-hover .char-card:hover {
+  border-color: var(--border) !important;
+  background: var(--card) !important;
+  box-shadow: none !important;
+}
+body.no-pill-hover .char-card:hover img,
+body.no-pill-hover .char-card:hover .ph {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+body.no-pill-hover .skill-row:hover {
+  background: linear-gradient(90deg,#303f77,#29335b) !important;
+  border-color: rgba(139,92,246,.22) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+body.no-pill-hover .skill-row:hover .dot {
+  transform: none !important;
+  box-shadow: none !important;
+}
+body.no-pill-hover .skill-row:hover .s-name {
+  text-shadow: none !important;
+  color: var(--text) !important;
+}
+body.no-pill-hover .skill-row:not(.p1):not(.p2):hover .s-name {
+  color: var(--dim) !important;
+}
+body.no-pill-hover .skill-row:hover .roll-btn {
+  background: rgba(255,255,255,.08) !important;
+  border-color: rgba(255,255,255,.12) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+body.no-pill-hover .subvital:hover {
+  border-color: var(--border2) !important;
+  background: var(--card) !important;
+  box-shadow: none !important;
+}
+body.no-pill-hover .subvital.insp:hover {
+  border-color: var(--gold) !important;
+}
+
+body.no-pill-hover .cond-box:hover {
+  border-color: var(--border2) !important;
+  color: var(--dim) !important;
+  box-shadow: none !important;
+}
+body.no-pill-hover .cond-box:hover .chip {
+  border-color: var(--border2) !important;
+}
+
+body.no-pill-hover .hp-box:hover {
+  box-shadow: none !important;
+}
+
+body.no-pill-hover .vital:hover {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.no-pill-hover .vital:hover .v-main {
+  color: inherit !important;
+}
+
+body.no-pill-hover .lvl-chip:hover {
+  background: var(--purple) !important;
+  box-shadow: none !important;
+}
+
+body.no-pill-hover .gold-pill:hover {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+body.no-pill-hover .stat-roll .roll-btn:hover {
+  border-color: var(--border2) !important;
+  color: var(--text) !important;
+  box-shadow: none !important;
+}
+
+body.no-pill-hover .passive:hover {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+body.no-pill-hover .tabs .tab:hover {
+  background: transparent !important;
+}
+
+body.no-pill-hover .att-table tbody tr:hover {
+  background: transparent !important;
+}
+
+body.no-pill-hover .panel:hover {
+  border-color: var(--border) !important;
+  box-shadow: none !important;
 }
 
 

@@ -25,7 +25,7 @@ export function ThemeSettingsContent({ ui, setUi, initialTab = "cursor" }) {
           className={"theme-nav-tab" + (tab === "pills" ? " is-active" : "")}
           onClick={() => setTab("pills")}
         >
-          ✨ Плашки (Spotlight)
+          ✨ Плашки и ховер
         </button>
         <button
           type="button"
@@ -218,102 +218,26 @@ export function ThemeSettingsContent({ ui, setUi, initialTab = "cursor" }) {
         </div>
       )}
 
-      {/* Секция: Эффекты и подсветка плашек (Spotlight) */}
+      {/* Секция: Эффекты при наведении и подсветка плашек (On Hover & Spotlight) */}
       {showPills && (
         <div className="theme-section">
           <div className="theme-item-row">
             <div className="theme-item-info">
-              <div className="theme-item-title">Эффекты подсветки плашек (Spotlight)</div>
+              <div className="theme-item-title">Эффекты при наведении (On Hover)</div>
               <div className="theme-item-desc">
-                Динамический луч света, следующий за курсором по плашкам навыков, спасбросков, атак, вкладок и панелей.
+                Анимации, подсветка, свечение контура и смена фона плашек и карточек при наведении мыши.
               </div>
             </div>
             <Toggle
-              checked={ui.pillSpotlight !== false}
-              onChange={(v) => setUi({ pillSpotlight: v })}
+              checked={ui.pillHover !== false}
+              onChange={(v) => setUi({ pillHover: v })}
             />
           </div>
 
-          {ui.pillSpotlight !== false && (
+          {ui.pillHover !== false && (
             <div className="theme-suboptions">
-              {/* Яркость подсветки плашек */}
-              <div className="theme-item-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div className="theme-item-title" style={{ fontSize: 13 }}>Яркость подсветки плашек</div>
-                  <div className="theme-slider-val">{ui.pillSpotlightIntensity || 70} %</div>
-                </div>
-                <div className="theme-item-desc">
-                  Регулирует силу и контрастность светового блика на поверхности плашек.
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
-                  <input
-                    type="range"
-                    min="20"
-                    max="100"
-                    step="5"
-                    value={ui.pillSpotlightIntensity || 70}
-                    onChange={(e) => setUi({ pillSpotlightIntensity: Number(e.target.value) })}
-                    className="theme-range-slider"
-                  />
-                </div>
-                <div className="theme-presets-row">
-                  {[
-                    { label: "35% (мягкая)", val: 35 },
-                    { label: "70% (стандарт)", val: 70 },
-                    { label: "100% (яркая)", val: 100 },
-                  ].map((p) => (
-                    <button
-                      key={p.val}
-                      type="button"
-                      className={"theme-preset-btn" + ((ui.pillSpotlightIntensity || 70) === p.val ? " is-active" : "")}
-                      onClick={() => setUi({ pillSpotlightIntensity: p.val })}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Размер луча спотлайта на плашках */}
-              <div className="theme-item-row" style={{ marginTop: 14, flexDirection: "column", alignItems: "stretch", gap: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div className="theme-item-title" style={{ fontSize: 13 }}>Размер луча на плашках</div>
-                  <div className="theme-slider-val">{ui.pillSpotlightRadius || 130} px</div>
-                </div>
-                <div className="theme-item-desc">
-                  Ширина светового пятна, освещающего плашку под курсором.
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
-                  <input
-                    type="range"
-                    min="70"
-                    max="220"
-                    step="10"
-                    value={ui.pillSpotlightRadius || 130}
-                    onChange={(e) => setUi({ pillSpotlightRadius: Number(e.target.value) })}
-                    className="theme-range-slider"
-                  />
-                </div>
-                <div className="theme-presets-row">
-                  {[
-                    { label: "80 px", val: 80 },
-                    { label: "130 px", val: 130 },
-                    { label: "180 px", val: 180 },
-                  ].map((p) => (
-                    <button
-                      key={p.val}
-                      type="button"
-                      className={"theme-preset-btn" + ((ui.pillSpotlightRadius || 130) === p.val ? " is-active" : "")}
-                      onClick={() => setUi({ pillSpotlightRadius: p.val })}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Тактильный подъём плашек */}
-              <div className="theme-item-row" style={{ marginTop: 14 }}>
+              <div className="theme-item-row">
                 <div className="theme-item-info">
                   <div className="theme-item-title" style={{ fontSize: 13 }}>Тактильный подъём (Hover Lift)</div>
                   <div className="theme-item-desc">
@@ -325,6 +249,100 @@ export function ThemeSettingsContent({ ui, setUi, initialTab = "cursor" }) {
                   onChange={(v) => setUi({ pillHoverLift: v })}
                 />
               </div>
+
+              {/* Световой луч (Spotlight) */}
+              <div className="theme-item-row" style={{ marginTop: 14 }}>
+                <div className="theme-item-info">
+                  <div className="theme-item-title" style={{ fontSize: 13 }}>Световой спотлайт (Spotlight)</div>
+                  <div className="theme-item-desc">
+                    Динамический луч света, следующий за курсором по плашкам навыков, атак, вкладок и панелей.
+                  </div>
+                </div>
+                <Toggle
+                  checked={ui.pillSpotlight !== false}
+                  onChange={(v) => setUi({ pillSpotlight: v })}
+                />
+              </div>
+
+              {ui.pillSpotlight !== false && (
+                <>
+                  {/* Яркость подсветки плашек */}
+                  <div className="theme-item-row" style={{ marginTop: 14, flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div className="theme-item-title" style={{ fontSize: 12.5 }}>Яркость подсветки плашек</div>
+                      <div className="theme-slider-val">{ui.pillSpotlightIntensity || 70} %</div>
+                    </div>
+                    <div className="theme-item-desc">
+                      Регулирует силу и контрастность светового блика на поверхности плашек.
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
+                      <input
+                        type="range"
+                        min="20"
+                        max="100"
+                        step="5"
+                        value={ui.pillSpotlightIntensity || 70}
+                        onChange={(e) => setUi({ pillSpotlightIntensity: Number(e.target.value) })}
+                        className="theme-range-slider"
+                      />
+                    </div>
+                    <div className="theme-presets-row">
+                      {[
+                        { label: "35% (мягкая)", val: 35 },
+                        { label: "70% (стандарт)", val: 70 },
+                        { label: "100% (яркая)", val: 100 },
+                      ].map((p) => (
+                        <button
+                          key={p.val}
+                          type="button"
+                          className={"theme-preset-btn" + ((ui.pillSpotlightIntensity || 70) === p.val ? " is-active" : "")}
+                          onClick={() => setUi({ pillSpotlightIntensity: p.val })}
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Размер луча спотлайта на плашках */}
+                  <div className="theme-item-row" style={{ marginTop: 14, flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div className="theme-item-title" style={{ fontSize: 12.5 }}>Размер луча на плашках</div>
+                      <div className="theme-slider-val">{ui.pillSpotlightRadius || 130} px</div>
+                    </div>
+                    <div className="theme-item-desc">
+                      Ширина светового пятна, освещающего плашку под курсором.
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
+                      <input
+                        type="range"
+                        min="70"
+                        max="220"
+                        step="10"
+                        value={ui.pillSpotlightRadius || 130}
+                        onChange={(e) => setUi({ pillSpotlightRadius: Number(e.target.value) })}
+                        className="theme-range-slider"
+                      />
+                    </div>
+                    <div className="theme-presets-row">
+                      {[
+                        { label: "80 px", val: 80 },
+                        { label: "130 px", val: 130 },
+                        { label: "180 px", val: 180 },
+                      ].map((p) => (
+                        <button
+                          key={p.val}
+                          type="button"
+                          className={"theme-preset-btn" + ((ui.pillSpotlightRadius || 130) === p.val ? " is-active" : "")}
+                          onClick={() => setUi({ pillSpotlightRadius: p.val })}
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -356,6 +374,7 @@ export default function ThemeModal({ onClose }) {
         cursorColor: "purple",
         cursorRipple: true,
         cursorCenterDot: false,
+        pillHover: true,
         pillSpotlight: true,
         pillSpotlightIntensity: 70,
         pillSpotlightRadius: 130,
