@@ -24,7 +24,7 @@ SPELLS.forEach(s => {
 });
 export const SPELL_BY_SLUG = new Map(SPELLS.map(s => [s.slug, s]));
 
-const LS_KEY = "dnd-sheet-v3";
+const LS_KEY = "dnd-sheet-v4";
 
 export let characters = load();
 
@@ -34,8 +34,25 @@ function unpack(doc) {
 
 function load() {
   try {
-    const saved = localStorage.getItem(LS_KEY);
-    if (saved) return JSON.parse(saved).map(unpack);
+    const saved = localStorage.getItem(LS_KEY) || localStorage.getItem("dnd-sheet-v3");
+    if (saved) {
+      const list = JSON.parse(saved).map(unpack);
+      // Гарантируем, что оба дефолтных персонажа (За-яйц и Шлек) всегда присутствуют в списке
+      const existingKeys = new Set(list.map(charKey));
+      let changed = false;
+      for (const defChar of charactersRaw.map(unpack)) {
+        if (!existingKeys.has(charKey(defChar))) {
+          list.push(defChar);
+          changed = true;
+        }
+      }
+      if (changed || !localStorage.getItem(LS_KEY)) {
+        try {
+          localStorage.setItem(LS_KEY, JSON.stringify(list.map(c => ({ ...c, data: c.data }))));
+        } catch {}
+      }
+      return list;
+    }
   } catch (e) { console.warn("localStorage restore failed", e); }
   return charactersRaw.map(unpack);
 }

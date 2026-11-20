@@ -428,8 +428,48 @@ export function RollsSettingsContent({ c, ui, setUi }) {
                 placeholder="https://discord.com/api/webhooks/..."
                 value={formState.url}
                 onChange={e => setFormState(s => ({ ...s, url: e.target.value }))}
-                style={{ marginBottom: 14 }}
+                style={{ marginBottom: 6 }}
               />
+              {(() => {
+                const u = (formState.url || "").trim();
+                if (!u) return null;
+                const m = u.match(/discord(?:app)?\.com\/api\/webhooks\/(\d+)\/([^/?#]+)/i);
+                if (m && m[2].length < 40) {
+                  return (
+                    <div style={{
+                      background: "rgba(250, 82, 82, 0.15)",
+                      border: "1px solid #fa5252",
+                      borderRadius: 6,
+                      padding: "8px 10px",
+                      fontSize: 12,
+                      color: "#ff8787",
+                      marginBottom: 12,
+                      lineHeight: 1.4
+                    }}>
+                      ⚠️ <strong>Ссылка скопирована не полностью!</strong>
+                      <br />
+                      Токен в конце ссылки Discord содержит ~68 символов (у вас всего {m[2].length}). Скопируйте ссылку в Discord заново кнопкой «Копировать URL вебхука».
+                    </div>
+                  );
+                }
+                if (!u.startsWith("https://") || (!u.includes("discord.com") && !u.includes("discordapp.com"))) {
+                  return (
+                    <div style={{
+                      background: "rgba(255, 193, 7, 0.15)",
+                      border: "1px solid #ffc107",
+                      borderRadius: 6,
+                      padding: "6px 10px",
+                      fontSize: 12,
+                      color: "#ffd43b",
+                      marginBottom: 12,
+                      lineHeight: 1.4
+                    }}>
+                      Ссылка должна начинаться с <code>https://discord.com/api/webhooks/...</code>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </>
           )}
 
