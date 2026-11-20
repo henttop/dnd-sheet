@@ -134,7 +134,8 @@ export function formatRollDetails(roll) {
         const raw = (r.parts && r.parts.length ? r.parts.join("+") : r.value);
         return r.expr ? `${r.expr} (${raw})` : raw;
       }).join(" + ");
-      details = parts + (roll.sub ? ` (${roll.sub})` : "");
+      const modStr = roll.mod ? (roll.mod > 0 ? ` + ${roll.mod}` : ` - ${Math.abs(roll.mod)}`) + (roll.modLabel ? ` (${roll.modLabel})` : "") : "";
+      details = parts + modStr + (roll.sub ? ` (${roll.sub})` : "");
     } else if (roll.sub) {
       details = roll.sub;
     } else {

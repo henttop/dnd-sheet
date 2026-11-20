@@ -59,7 +59,9 @@ export default function RollHistoryDrawer({ onClose }) {
       // Перезапуск заклинания через __rollSpell
       window.__rollSpell?.(entry.title, entry.total, entry.sub, entry.rolls, {
         kind: entry.kind,
-        spellData: entry.spellData
+        spellData: entry.spellData,
+        mod: entry.mod,
+        modLabel: entry.modLabel
       });
       toast(`Повторен бросок заклинания «${entry.title}»`, "ok");
     } else if (entry.isDmg && entry.expr) {
@@ -217,7 +219,8 @@ function RollHistoryCard({ entry, onReroll }) {
       const raw = r.parts && r.parts.length ? r.parts.join("+") : r.value;
       return r.expr ? `${r.expr} (${raw})` : raw;
     }).join(" + ");
-    detailsText = diceLine + (entry.sub ? ` · ${entry.sub}` : "");
+    const modStr = entry.mod ? (entry.mod > 0 ? ` + ${entry.mod}` : ` - ${Math.abs(entry.mod)}`) + (entry.modLabel ? ` (${entry.modLabel})` : "") : "";
+    detailsText = diceLine + modStr + (entry.sub ? ` · ${entry.sub}` : "");
   }
 
   return (

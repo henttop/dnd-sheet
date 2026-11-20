@@ -175,10 +175,15 @@ function RollCard({ st, ui, onClose, old }) {
 
   // карточка броска заклинания (журнал кубиков)
   if (st.spell) {
-    const diceLine = (st.rolls || []).map(r => {
+    let diceLine = (st.rolls || []).map(r => {
       const raw = r.parts && r.parts.length ? r.parts.join("+") : r.value;
       return r.expr ? `${r.expr} (${raw})` : raw;
     }).join(" + ");
+    if (st.mod) {
+      const sign = st.mod > 0 ? " + " : " - ";
+      const label = st.modLabel ? ` (${st.modLabel})` : "";
+      diceLine += `${sign}${Math.abs(st.mod)}${label}`;
+    }
     return (
       <div className={cls + " spell-pop"}>
         <button className="rp-close" onClick={onClose}>×</button>

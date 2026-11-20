@@ -173,6 +173,16 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
       }
     }
 
+    // Прибавление модификатора базовой характеристики (например +ХАР для Барда/Чародея, +МУД для Жреца)
+    let appliedMod = 0;
+    let appliedModLabel = "";
+    if (rolls.length > 0 && spellAddsAbilityMod(spell) && abilMod) {
+      appliedMod = abilMod;
+      appliedModLabel = ABIL_RU[abil] || "ХАР";
+      total += appliedMod;
+      subParts.push(appliedMod > 0 ? `+${appliedMod} ${appliedModLabel}` : `${appliedMod} ${appliedModLabel}`);
+    }
+
     // Уровень наложения
     const lvlText = spell.level === 0 ? "заговор" : `ячейка ${useLevel} ур.`;
     subParts.push(lvlText);
@@ -194,7 +204,12 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
 
     const sub = subParts.filter(Boolean).join(" · ");
 
-    window.__rollSpell(spell.name, total, sub, rolls, { kind, spellData: spell });
+    window.__rollSpell(spell.name, total, sub, rolls, {
+      kind,
+      spellData: spell,
+      mod: appliedMod,
+      modLabel: appliedModLabel
+    });
   };
 
   return (
@@ -360,7 +375,8 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
             </div>
             {g.list.map(s => (
               <SpellRow key={s.id} spell={s} dc={dc} atk={atk} onOpen={() => setModal(s)}
-                castLevel={castLevel} onCast={castSpell} onRemove={removePrepared} />
+                castLevel={castLevel} onCast={castSpell} onRemove={removePrepared}
+                abilMod={abilMod} abilLabel={ABIL_RU[abil] || "ХАР"} />
             ))}
           </div>
         );
@@ -380,6 +396,8 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
           castLevel={castLevel}
           onCast={castSpell}
           slotInfo={slotInfo}
+          abilMod={abilMod}
+          abilLabel={ABIL_RU[abil] || "ХАР"}
         />
       ) : null}
       {prep ? <PrepareModal c={c} onSave={onSave} onClose={() => setPrep(false)} /> : null}
@@ -388,7 +406,7 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
 }
 
 /* ================= Строка заклинания ================= */
-function SpellRow({ spell, dc, atk, onOpen, castLevel, onCast, onRemove }) {
+function SpellRow({ spell, dc, atk, onOpen, castLevel, onCast, onRemove, abilMod, abilLabel }) {
   const s = spell;
 
   if (s.level === "?") {
@@ -428,7 +446,10 @@ function SpellRow({ spell, dc, atk, onOpen, castLevel, onCast, onRemove }) {
   // заговоры ячейками не усиливаются (только особые умения классов)
   const up = s.level > 0 ? useLevel - s.level : 0;
   const scaled = getSpellDiceForLevel(s, useLevel);
-  const dmgText = scaled || (dmg ? dmg.map(x => upcastDice(x.d, up)).join(" + ") : "—");
+  const baseDmg = scaled || (dmg ? dmg.map(x => upcastDice(x.d, up)).join(" + ") : null);
+  const addsMod = spellAddsAbilityMod(s) && abilMod;
+  const modSuffix = addsMod ? (abilMod > 0 ? ` + ${abilMod}` : ` - ${Math.abs(abilMod)}`) : "";
+  const dmgText = baseDmg ? `${baseDmg}${modSuffix}` : "—";
 
   const info = [];
   info.push(s.shortTime || "—");
@@ -486,8 +507,17 @@ export function getSpellDiceForLevel(spell, level) {
   return upcastDice(dmg, up);
 }
 
+/* Проверяет, прибавляется ли модификатор базовой характеристики к эффекту заклинания */
+export function spellAddsAbilityMod(spell) {
+  if (!spell) return false;
+  if (spell.addMod !== undefined) return !!spell.addMod;
+  const desc = spell.desc || "";
+  return /\+\s*(?:ваш\s+)?модификатор\s+(?:вашей\s+)?базовой\s+характеристики/i.test(desc)
+    || (/модификатор\s+(?:вашей\s+)?базовой\s+характеристики/i.test(desc) && /восстанавливает|хит/i.test(desc));
+}
+
 /* ================= Карточка заклинания ================= */
-function SpellModal({ spell, dc, atk, onClose, onToggle, onRemove, prepared, castLevel, onCast, slotInfo }) {
+function SpellModal({ spell, dc, atk, onClose, onToggle, onRemove, prepared, castLevel, onCast, slotInfo, abilMod, abilLabel }) {
   const s = spell;
   if (!s) return null;
 
@@ -561,12 +591,22 @@ function SpellModal({ spell, dc, atk, onClose, onToggle, onRemove, prepared, cas
           {currentDice ? (
             <div>
               <span>{/восстанавливает|лечен|хит/i.test(s.desc || "") || /хиты|лечение/i.test(s.dmg?.[0]?.t || "") ? "Эффект / Лечение:" : "Урон:"}</span>{" "}
-              <b style={{ color: "var(--accent, #6366f1)" }}>{currentDice}</b>
+              <b style={{ color: "var(--accent, #6366f1)" }}>
+                {currentDice}
+                {spellAddsAbilityMod(s) && abilMod ? (abilMod > 0 ? ` + ${abilMod}` : ` - ${Math.abs(abilMod)}`) : ""}
+              </b>
+              {spellAddsAbilityMod(s) && abilMod ? (
+                <span style={{ opacity: 0.85, fontSize: 12, marginLeft: 4 }}>({abilLabel || "ХАР"})</span>
+              ) : null}
               {s.dmg && s.dmg[0] && s.dmg[0].t ? ` (${s.dmg[0].t})` : ""}
               {up > 0 ? <span className="sp-badge up" style={{ marginLeft: 6 }}>ячейка {effectiveLevel}-го ур.</span> : null}
             </div>
           ) : s.dmg && s.dmg.length ? (
-            <div><span>Урон:</span> {s.dmg.map(x => `${upcastDice(x.d, up)} ${x.t || ""}`).join(" + ")}</div>
+            <div>
+              <span>Урон:</span> {s.dmg.map(x => `${upcastDice(x.d, up)} ${x.t || ""}`).join(" + ")}
+              {spellAddsAbilityMod(s) && abilMod ? (abilMod > 0 ? ` + ${abilMod}` : ` - ${Math.abs(abilMod)}`) : ""}
+              {spellAddsAbilityMod(s) && abilMod ? <span style={{ opacity: 0.85, fontSize: 12, marginLeft: 4 }}>({abilLabel || "ХАР"})</span> : null}
+            </div>
           ) : null}
         </div>
 
