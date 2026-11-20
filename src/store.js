@@ -24,7 +24,7 @@ SPELLS.forEach(s => {
 });
 export const SPELL_BY_SLUG = new Map(SPELLS.map(s => [s.slug, s]));
 
-const LS_KEY = "dnd-sheet-v1";
+const LS_KEY = "dnd-sheet-v2";
 
 export let characters = load();
 
