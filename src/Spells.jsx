@@ -132,28 +132,45 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
     let total = 0;
     const subParts = [];
 
-    // Если в dmg пусто, ищем формулу кубиков в описании (например 1к8 в «Лечение ран», 6к10 в «Стена клинков»)
-    if (!dmg || !dmg.length) {
-      const descMatch = String(spell.desc || "").match(/(\d+)[dкк](\d+)/i);
-      if (descMatch) {
-        const isHeal = /восстанавливает|лечен|хит/i.test(spell.desc || "");
-        kind = isHeal ? "лечение" : "урон";
-        const baseDice = `${descMatch[1]}к${descMatch[2]}`;
-        dmg = [{ d: baseDice, t: isHeal ? "лечение" : (spell.school || "эффект") }];
-      }
-    }
+    // Точный скейлинг заклинания по уровню ячейки (из таблицы diceByLevel или кастомного правила)
+    const scaledFormula = getSpellDiceForLevel(spell, useLevel);
 
-    if (dmg && dmg.length) {
-      for (const part of dmg) {
-        const expr = upcastDice(part.d, up);
-        const res = rollDiceExpr(expr);
-        if (!res) continue;
-        total += res.total;
-        const faces = +(String(expr).match(/[dкк](\d+)/i)?.[1] || 20);
-        const cleanExpr = String(expr).trim().replace(/d/i, "к");
+    if (scaledFormula) {
+      const type = (spell.dmg && spell.dmg.length) ? spell.dmg[0].t : (spell.school || "эффект");
+      const isHeal = /восстанавливает|лечен|хит/i.test(spell.desc || "") || /лечение/i.test(type);
+      kind = isHeal ? "лечение" : "урон";
+      const res = rollDiceExpr(scaledFormula);
+      if (res) {
+        total = res.total;
+        const faces = +(String(scaledFormula).match(/[dкк](\d+)/i)?.[1] || 20);
+        const cleanExpr = String(scaledFormula).trim().replace(/d/i, "к");
         rolls.push({ expr: cleanExpr, faces, value: res.total, parts: res.raw });
       }
-      subParts.push(dmg.map(x => x.t).filter(Boolean).join(", "));
+      subParts.push(type);
+    } else {
+      // Если в dmg пусто, ищем формулу кубиков в описании (например 1к8 в «Лечение ран», 6к10 в «Стена клинков»)
+      if (!dmg || !dmg.length) {
+        const descMatch = String(spell.desc || "").match(/(\d+)[dкк](\d+)/i);
+        if (descMatch) {
+          const isHeal = /восстанавливает|лечен|хит/i.test(spell.desc || "");
+          kind = isHeal ? "лечение" : "урон";
+          const baseDice = `${descMatch[1]}к${descMatch[2]}`;
+          dmg = [{ d: baseDice, t: isHeal ? "лечение" : (spell.school || "эффект") }];
+        }
+      }
+
+      if (dmg && dmg.length) {
+        for (const part of dmg) {
+          const expr = upcastDice(part.d, up);
+          const res = rollDiceExpr(expr);
+          if (!res) continue;
+          total += res.total;
+          const faces = +(String(expr).match(/[dкк](\d+)/i)?.[1] || 20);
+          const cleanExpr = String(expr).trim().replace(/d/i, "к");
+          rolls.push({ expr: cleanExpr, faces, value: res.total, parts: res.raw });
+        }
+        subParts.push(dmg.map(x => x.t).filter(Boolean).join(", "));
+      }
     }
 
     // Уровень наложения
@@ -294,8 +311,7 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
         </div>
         {castLevel !== null ? (
           <div className="f-hint">
-            Накладываем ячейкой {castLevel}-го уровня: заклинания ниже уровня «улучшаются» —
-            добавляется по одной кости урона за уровень разницы.
+            Накладываем ячейкой {castLevel}-го уровня: заклинания ниже уровня усиливаются по правилам справочника (точный скейлинг костей урона и эффектов).
           </div>
         ) : null}
       </div>
@@ -363,6 +379,7 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
           prepared={prepared.includes(modal.id)}
           castLevel={castLevel}
           onCast={castSpell}
+          slotInfo={slotInfo}
         />
       ) : null}
       {prep ? <PrepareModal c={c} onSave={onSave} onClose={() => setPrep(false)} /> : null}
@@ -410,7 +427,8 @@ function SpellRow({ spell, dc, atk, onOpen, castLevel, onCast, onRemove }) {
   const useLevel = castLevel !== null && castLevel >= s.level ? castLevel : s.level;
   // заговоры ячейками не усиливаются (только особые умения классов)
   const up = s.level > 0 ? useLevel - s.level : 0;
-  const dmgText = dmg ? dmg.map(x => upcastDice(x.d, up)).join(" + ") : "—";
+  const scaled = getSpellDiceForLevel(s, useLevel);
+  const dmgText = scaled || (dmg ? dmg.map(x => upcastDice(x.d, up)).join(" + ") : "—");
 
   const info = [];
   info.push(s.shortTime || "—");
@@ -455,10 +473,28 @@ export function upcastDice(dice, up) {
   return `${(+m[1] || 1) + up}${m[2]}${m[3]}`;
 }
 
+/* Точная формула кубиков заклинания для заданного уровня ячейки */
+export function getSpellDiceForLevel(spell, level) {
+  if (!spell) return null;
+  const targetLevel = level !== undefined && level !== null ? level : spell.level;
+  if (spell.diceByLevel && spell.diceByLevel[targetLevel]) {
+    return spell.diceByLevel[targetLevel];
+  }
+  const dmg = spell.dmg && spell.dmg.length ? spell.dmg[0].d : null;
+  if (!dmg) return null;
+  const up = spell.level > 0 ? Math.max(0, targetLevel - spell.level) : 0;
+  return upcastDice(dmg, up);
+}
+
 /* ================= Карточка заклинания ================= */
-function SpellModal({ spell, dc, atk, onClose, onToggle, onRemove, prepared, castLevel, onCast }) {
+function SpellModal({ spell, dc, atk, onClose, onToggle, onRemove, prepared, castLevel, onCast, slotInfo }) {
   const s = spell;
   if (!s) return null;
+
+  const [modalLevel, setModalLevel] = useState(() => {
+    if (castLevel !== null && castLevel >= s.level) return castLevel;
+    return s.level > 0 ? s.level : 0;
+  });
 
   if (s.level === "?") {
     return (
@@ -499,8 +535,10 @@ function SpellModal({ spell, dc, atk, onClose, onToggle, onRemove, prepared, cas
     );
   }
 
-  const useLevel = castLevel !== null && castLevel >= s.level ? castLevel : s.level;
-  const up = s.level > 0 ? useLevel - s.level : 0;
+  const effectiveLevel = s.level > 0 ? modalLevel : 0;
+  const up = s.level > 0 ? Math.max(0, effectiveLevel - s.level) : 0;
+  const currentDice = getSpellDiceForLevel(s, effectiveLevel);
+
   return (
     <div className="modal-back" onMouseDown={onClose}>
       <div className="modal sp-modal" onMouseDown={e => e.stopPropagation()}>
@@ -520,8 +558,56 @@ function SpellModal({ spell, dc, atk, onClose, onToggle, onRemove, prepared, cas
             <div><span>Спасбросок:</span> {s.saveAbility ? ABIL_RU[s.saveAbility] : "—"} · <span>Сложность:</span> <b>{dc}</b></div>
           ) : null}
           {s.mode === "attack" ? <div><span>Бонус атаки:</span> {atk >= 0 ? "+" + atk : atk}</div> : null}
-          {s.dmg && s.dmg.length ? <div><span>Урон:</span> {s.dmg.map(x => `${x.d} ${x.t}`).join(" + ")}</div> : null}
+          {currentDice ? (
+            <div>
+              <span>{/восстанавливает|лечен|хит/i.test(s.desc || "") || /хиты|лечение/i.test(s.dmg?.[0]?.t || "") ? "Эффект / Лечение:" : "Урон:"}</span>{" "}
+              <b style={{ color: "var(--accent, #6366f1)" }}>{currentDice}</b>
+              {s.dmg && s.dmg[0] && s.dmg[0].t ? ` (${s.dmg[0].t})` : ""}
+              {up > 0 ? <span className="sp-badge up" style={{ marginLeft: 6 }}>ячейка {effectiveLevel}-го ур.</span> : null}
+            </div>
+          ) : s.dmg && s.dmg.length ? (
+            <div><span>Урон:</span> {s.dmg.map(x => `${upcastDice(x.d, up)} ${x.t || ""}`).join(" + ")}</div>
+          ) : null}
         </div>
+
+        {s.level > 0 ? (
+          <div style={{ marginTop: 14, marginBottom: 8, padding: "8px 12px", background: "var(--card-sub, rgba(255,255,255,0.03))", borderRadius: 8, border: "1px solid var(--border)" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6, color: "var(--muted)" }}>
+              Уровень ячейки для сотворения:
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              {SLOT_LEVELS.filter(lv => lv >= s.level).map(lv => {
+                const si = slotInfo ? slotInfo(lv) : null;
+                const isSelected = effectiveLevel === lv;
+                return (
+                  <button
+                    key={lv}
+                    type="button"
+                    className={"sp-radio" + (isSelected ? " on" : "")}
+                    style={{
+                      cursor: "pointer",
+                      padding: "4px 8px",
+                      borderRadius: 6,
+                      border: isSelected ? "1px solid var(--accent, #6366f1)" : "1px solid var(--border)",
+                      background: isSelected ? "var(--accent-glow, rgba(99,102,241,0.2))" : "transparent",
+                      color: isSelected ? "var(--accent, #6366f1)" : "var(--text)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: 12
+                    }}
+                    onClick={() => setModalLevel(lv)}
+                    title={si ? `Ячеек: ${si.total - si.used}/${si.total}` : "Ячейка " + lv + " уровня"}
+                  >
+                    <b>{lv} ур.</b>
+                    {si ? <span style={{ opacity: 0.7, fontSize: 10 }}>({si.total - si.used})</span> : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
         {s.conc ? <div className="sp-modal-note">Концентрация</div> : null}
         {s.ritual ? <div className="sp-modal-note">Ритуал</div> : null}
         <div className="sp-desc">{s.desc ? s.desc.split("\n").map((p, i) => <p key={i}>{p}</p>) : <p className="hint">Нет описания</p>}</div>
@@ -535,8 +621,8 @@ function SpellModal({ spell, dc, atk, onClose, onToggle, onRemove, prepared, cas
             {prepared ? "Убрать из подготовленных" : "Подготовить"}
           </button>
           {onCast ? (
-            <button className="modal-btn primary" onClick={(e) => { onCast(e, s, useLevel, up); onClose(); }}>
-              Наложить
+            <button className="modal-btn primary" onClick={(e) => { onCast(e, s, effectiveLevel, up); onClose(); }}>
+              Наложить {effectiveLevel > 0 ? `(${effectiveLevel}-й ур.)` : ""}
             </button>
           ) : null}
         </div>
