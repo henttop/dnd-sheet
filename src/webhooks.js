@@ -1,4 +1,5 @@
 import { toast } from "./toast.jsx";
+import { characters } from "./store.js";
 
 const STORAGE_KEY = "dnd_roll_presets_v1";
 
@@ -318,18 +319,6 @@ export async function sendDiscordPayload(webhookUrl, payload, blob = null) {
     };
   }
 
-  // Подготавливаем JSON-пейлоад для прямого CORS-запроса (удаляем невалидные attachment-схемы без файла)
-  const jsonPayload = { ...payload };
-  if (jsonPayload.embeds) {
-    jsonPayload.embeds = jsonPayload.embeds.map(e => {
-      const copy = { ...e };
-      if (copy.thumbnail && copy.thumbnail.url && copy.thumbnail.url.startsWith("attachment:")) {
-        delete copy.thumbnail;
-      }
-      return copy;
-    });
-  }
-
   // 1. Проверяем, запущен ли локальный сервер (например Vite на localhost:5173).
   // На локальном сервере используем встроенный прокси Vite, который работает на Node.js.
   const isLocalHost = typeof window !== "undefined" && window.location &&
@@ -372,9 +361,68 @@ export async function sendDiscordPayload(webhookUrl, payload, blob = null) {
     }
   }
 
-  // 3. Основной прямой CORS-запрос application/json:
-  // Discord Webhook API официально возвращает Access-Control-Allow-Origin: * для application/json.
-  // Это надёжно работает во всех браузерах (Waterfox, Firefox, Chrome, Safari, Edge) на GitHub Pages!
+  // 3. Отправка напрямую с аватаром через FormData (multipart/form-data):
+  // Discord Webhook API официально поддерживает CORS для multipart/form-data.
+  // Это загружает файл аватара на серверы Discord и отображает его в embed (icon_url и thumbnail).
+  if (blob) {
+    try {
+      const formData = new FormData();
+      formData.append("payload_json", JSON.stringify(payload));
+      formData.append("files[0]", blob, "avatar.jpg");
+
+      const res = await fetch(url, {
+        method: "POST",
+        body: formData
+      });
+
+      if (res.ok || res.status === 204) {
+        return { ok: true, status: res.status, withAvatar: true };
+      }
+
+      const errText = await res.text().catch(() => "");
+      let friendlyError = `HTTP ${res.status}`;
+      try {
+        const errObj = JSON.parse(errText);
+        if (errObj.code === 50027 || errObj.message?.includes("Invalid Webhook Token")) {
+          friendlyError = "Неверный токен вебхука! Ссылка скопирована не до конца (токен обрезан). Скопируйте ссылку в Discord заново.";
+        } else if (errObj.code === 10015 || errObj.message?.includes("Unknown Webhook")) {
+          friendlyError = "Вебхук не найден в Discord! Возможно, он был удалён на сервере Discord. Создайте вебхук заново.";
+        } else if (errObj.code === 429 || res.status === 429) {
+          friendlyError = "Слишком много запросов в Discord (Rate limit). Подождите пару секунд.";
+        } else if (errObj.message) {
+          friendlyError = `Discord: ${errObj.message} (код ${errObj.code || res.status})`;
+        }
+      } catch {
+        if (errText) friendlyError = errText;
+      }
+
+      if (res.status === 401 || res.status === 404) {
+        return { ok: false, error: friendlyError, status: res.status };
+      }
+    } catch (blobErr) {
+      console.warn("Direct FormData fetch with avatar failed, trying JSON fallback...", blobErr);
+    }
+  }
+
+  // 4. Резервный прямой CORS-запрос application/json (без вложения):
+  // Если у персонажа нет аватара или браузер заблокировал multipart/form-data.
+  // Удаляем attachment:// схемы, чтобы Discord не вернул 400 Bad Request на несуществующий файл.
+  const jsonPayload = { ...payload };
+  if (jsonPayload.embeds) {
+    jsonPayload.embeds = jsonPayload.embeds.map(e => {
+      const copy = { ...e };
+      if (copy.thumbnail && copy.thumbnail.url && copy.thumbnail.url.startsWith("attachment:")) {
+        delete copy.thumbnail;
+      }
+      if (copy.author && copy.author.icon_url && copy.author.icon_url.startsWith("attachment:")) {
+        const aCopy = { ...copy.author };
+        delete aCopy.icon_url;
+        copy.author = aCopy;
+      }
+      return copy;
+    });
+  }
+
   try {
     const jsonRes = await fetch(url, {
       method: "POST",
@@ -410,7 +458,7 @@ export async function sendDiscordPayload(webhookUrl, payload, blob = null) {
     console.warn("Direct JSON CORS fetch to Discord failed, trying hidden form fallback...", corsErr);
   }
 
-  // 4. Резервный fallback: отправка через скрытую HTML-форму во фрейм
+  // 5. Резервный fallback: отправка через скрытую HTML-форму во фрейм
   try {
     const formRes = await submitViaHiddenForm(url, payload, blob);
     if (formRes && formRes.ok) {
@@ -422,25 +470,36 @@ export async function sendDiscordPayload(webhookUrl, payload, blob = null) {
 
   return {
     ok: false,
-    error: "Браузер заблокировал сетевой запрос к Discord (uBlock Origin или Защита от отслеживания). Нажмите на значок uBlock вверху и отключите блокировку для этого сайта, либо проверьте интернет-соединение."
+    error: "Браузер заблокировал сетевой запрос к Discord (uBlock Origin, Privacy Badger или Защита от отслеживания). Нажмите на значок расширения вверху и отключите блокировку для этого сайта."
   };
 }
 
-export async function testDiscordWebhook(preset, charName = "") {
+export async function testDiscordWebhook(preset, charOrName = null) {
   if (!preset.url || !preset.url.trim()) {
     toast("Ошибка: Укажите URL вебхука Discord", "err");
     return { ok: false, error: "Укажите URL вебхука" };
   }
 
-  const char = window.__activeChar;
-  const name = charName || char?.data?.name?.value || "Безымянный персонаж";
+  const char = (charOrName && typeof charOrName === "object")
+    ? charOrName
+    : (window.__activeChar || (typeof characters !== "undefined" && characters.length ? characters[0] : null));
+  const name = (charOrName && typeof charOrName === "string")
+    ? charOrName
+    : (char?.data?.name?.value || "Безымянный персонаж");
   const avatarUrl = getCharAvatarUrl(char);
   const isHttp = (url) => url && /^https?:\/\//i.test(url);
   const isData = (url) => url && /^data:/i.test(url);
 
   let blob = null;
+  if (isData(avatarUrl)) {
+    blob = dataUrlToBlob(avatarUrl);
+  }
+
   const embed = {
-    author: { name: name },
+    author: {
+      name: name,
+      icon_url: isHttp(avatarUrl) ? avatarUrl : (blob ? "attachment://avatar.jpg" : undefined)
+    },
     title: "Проверка систем",
     description: "Всё работает в штатном режиме 👍",
     color: hexToColorInt(preset.color)
@@ -448,26 +507,29 @@ export async function testDiscordWebhook(preset, charName = "") {
 
   if (isHttp(avatarUrl)) {
     embed.thumbnail = { url: avatarUrl };
-  } else if (isData(avatarUrl)) {
-    blob = dataUrlToBlob(avatarUrl);
-    if (blob) {
-      embed.thumbnail = { url: "attachment://avatar.jpg" };
-    }
+  } else if (blob) {
+    embed.thumbnail = { url: "attachment://avatar.jpg" };
   }
 
-  const payload = { embeds: [embed] };
+  const payload = {
+    username: name,
+    embeds: [embed]
+  };
+  if (isHttp(avatarUrl)) {
+    payload.avatar_url = avatarUrl;
+  }
 
   try {
     const res = await sendDiscordPayload(preset.url.trim(), payload, blob);
     if (res.ok) {
-      toast("Тестовое сообщение успешно отправлено в Discord!", "ok");
+      toast("Тестовое сообщение с аватаркой успешно отправлено в Discord!", "ok");
       return { ok: true };
     } else {
-      toast(`Ошибка: ${res.error || "Нет связи с сервером"}`, "err");
+      toast(`Ошибка: ${res.error || "Нет связи с сервером"}`, "err", 6000);
       return res;
     }
   } catch (e) {
-    toast(`Ошибка: ${e.message || "Нет связи с сервером"}`, "err");
+    toast(`Ошибка: ${e.message || "Нет связи с сервером"}`, "err", 6000);
     return { ok: false, error: e.message };
   }
 }
@@ -484,7 +546,7 @@ export async function sendRollToWebhooks(roll) {
     return;
   }
 
-  const char = window.__activeChar;
+  const char = window.__activeChar || (typeof characters !== "undefined" && characters.length ? characters[0] : null);
   const charName = roll.charName || char?.data?.name?.value || "Безымянный персонаж";
   const avatarUrl = roll.charAvatar || getCharAvatarUrl(char);
 
@@ -512,7 +574,10 @@ export async function sendRollToWebhooks(roll) {
   for (const p of presets) {
     const embedColor = (roll.crit ? 0x40c057 : roll.fail ? 0xfa5252 : hexToColorInt(p.color));
     const embed = {
-      author: { name: charName },
+      author: {
+        name: charName,
+        icon_url: isHttp(avatarUrl) ? avatarUrl : (blob ? "attachment://avatar.jpg" : undefined)
+      },
       title: rollTitle,
       description: description,
       color: embedColor
@@ -524,7 +589,13 @@ export async function sendRollToWebhooks(roll) {
       embed.thumbnail = { url: "attachment://avatar.jpg" };
     }
 
-    const payload = { embeds: [embed] };
+    const payload = {
+      username: charName,
+      embeds: [embed]
+    };
+    if (isHttp(avatarUrl)) {
+      payload.avatar_url = avatarUrl;
+    }
 
     sendDiscordPayload(p.url.trim(), payload, blob).then(res => {
       if (!res.ok) {

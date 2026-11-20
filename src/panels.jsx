@@ -362,7 +362,7 @@ export function RollsSettingsContent({ c, ui, setUi }) {
     if (testingId) return;
     setTestingId(preset.id);
     try {
-      await testDiscordWebhook(preset, c?.data?.name?.value);
+      await testDiscordWebhook(preset, c);
     } finally {
       setTestingId(null);
     }
@@ -510,7 +510,7 @@ export function RollsSettingsContent({ c, ui, setUi }) {
                     type: formState.type,
                     url: formState.url.trim(),
                     color: formState.color
-                  }, c?.data?.name?.value);
+                  }, c);
                 } finally {
                   setTestingId(null);
                 }
