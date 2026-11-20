@@ -371,7 +371,19 @@ export async function sendDiscordPayload(webhookUrl, payload, blob = null) {
       return { ok: false, error: errText || `HTTP ${res.status}`, status: res.status };
     }
   } catch (corsErr) {
-    console.warn("Direct CORS fetch to Discord failed, using fallback...", corsErr);
+    console.warn("Direct CORS fetch to Discord failed, using no-cors fallback...", corsErr);
+  }
+
+  // 3.1. Прямой no-cors fetch (для Waterfox, Firefox и браузеров со строгой защитой Tracking Protection / CORS)
+  try {
+    await fetch(url, {
+      method: "POST",
+      mode: "no-cors",
+      body: formData
+    });
+    return { ok: true, status: 204, noCors: true };
+  } catch (noCorsErr) {
+    console.warn("no-cors fetch failed, trying hidden form fallback:", noCorsErr);
   }
 
   // 4. Если нет прикреплённого blob-файла, пробуем стандартный JSON fetch
