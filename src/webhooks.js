@@ -309,21 +309,31 @@ export async function sendDiscordPayload(webhookUrl, payload, blob = null) {
     url = url.replace("discordapp.com/api/webhooks/", "discord.com/api/webhooks/");
   }
 
-  const formData = new FormData();
-  formData.append("payload_json", JSON.stringify(payload));
-  if (blob) {
-    formData.append("files[0]", blob, "avatar.jpg");
+  // Подготавливаем JSON-пейлоад для прямого CORS-запроса (удаляем невалидные attachment-схемы без файла)
+  const jsonPayload = { ...payload };
+  if (jsonPayload.embeds) {
+    jsonPayload.embeds = jsonPayload.embeds.map(e => {
+      const copy = { ...e };
+      if (copy.thumbnail && copy.thumbnail.url && copy.thumbnail.url.startsWith("attachment:")) {
+        delete copy.thumbnail;
+      }
+      return copy;
+    });
   }
 
   // 1. Проверяем, запущен ли локальный сервер (например Vite на localhost:5173).
   // На локальном сервере используем встроенный прокси Vite, который работает на Node.js.
-  // Это 100% гарантирует отправку мимо любых блокировщиков рекламы (uBlock Origin, Privacy Badger) и CORS!
   const isLocalHost = typeof window !== "undefined" && window.location &&
     (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname === "0.0.0.0") &&
     window.location.port;
 
   if (isLocalHost) {
     try {
+      const formData = new FormData();
+      formData.append("payload_json", JSON.stringify(payload));
+      if (blob) {
+        formData.append("files[0]", blob, "avatar.jpg");
+      }
       const proxyUrl = `/api/webhook-proxy?target=${encodeURIComponent(url)}`;
       const res = await fetch(proxyUrl, {
         method: "POST",
@@ -336,7 +346,6 @@ export async function sendDiscordPayload(webhookUrl, payload, blob = null) {
 
       const errText = await res.text().catch(() => "");
       console.warn("Local webhook proxy returned error:", res.status, errText);
-      // Если локальный прокси вернул 4xx/5xx, пробуем прямой запрос
     } catch (proxyErr) {
       console.warn("Local proxy fetch error, falling back to direct send:", proxyErr);
     }
@@ -354,53 +363,58 @@ export async function sendDiscordPayload(webhookUrl, payload, blob = null) {
     }
   }
 
-  // 3. Стандартный прямой fetch с FormData (нет preflight OPTIONS)
+  // 3. Основной прямой CORS-запрос application/json:
+  // Discord Webhook API официально возвращает Access-Control-Allow-Origin: * для application/json.
+  // Это надёжно работает во всех браузерах (Waterfox, Firefox, Chrome, Safari, Edge) на GitHub Pages!
   try {
-    const res = await fetch(url, {
+    const jsonRes = await fetch(url, {
       method: "POST",
-      body: formData
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(jsonPayload)
     });
 
-    if (res.ok || res.status === 204) {
-      return { ok: true, status: res.status };
+    if (jsonRes.ok || jsonRes.status === 204) {
+      return { ok: true, status: jsonRes.status };
     }
 
-    const errText = await res.text().catch(() => "");
-    // Если ошибка 400 Bad Request, возвращаем ошибку
-    if (res.status >= 400 && res.status < 500 && res.status !== 405) {
-      return { ok: false, error: errText || `HTTP ${res.status}`, status: res.status };
+    const errText = await jsonRes.text().catch(() => "");
+    if (jsonRes.status >= 400 && jsonRes.status < 500 && jsonRes.status !== 405) {
+      return { ok: false, error: errText || `HTTP ${jsonRes.status}`, status: jsonRes.status };
     }
   } catch (corsErr) {
-    console.warn("Direct CORS fetch to Discord failed, using no-cors fallback...", corsErr);
+    console.warn("Direct JSON CORS fetch to Discord failed, trying FormData / no-cors...", corsErr);
   }
 
-  // 3.1. Прямой no-cors fetch (для Waterfox, Firefox и браузеров со строгой защитой Tracking Protection / CORS)
+  // 4. Запрос с FormData (если есть прикрепленный файл аватара):
+  if (blob) {
+    try {
+      const formData = new FormData();
+      formData.append("payload_json", JSON.stringify(payload));
+      formData.append("files[0]", blob, "avatar.jpg");
+      const res = await fetch(url, {
+        method: "POST",
+        body: formData
+      });
+      if (res.ok || res.status === 204) {
+        return { ok: true, status: res.status };
+      }
+    } catch {}
+  }
+
+  // 5. Резервный no-cors fetch (для браузеров со строгой блокировкой трекеров)
   try {
     await fetch(url, {
       method: "POST",
       mode: "no-cors",
-      body: formData
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify(jsonPayload)
     });
     return { ok: true, status: 204, noCors: true };
   } catch (noCorsErr) {
     console.warn("no-cors fetch failed, trying hidden form fallback:", noCorsErr);
   }
 
-  // 4. Если нет прикреплённого blob-файла, пробуем стандартный JSON fetch
-  if (!blob) {
-    try {
-      const jsonRes = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      if (jsonRes.ok || jsonRes.status === 204) {
-        return { ok: true, status: jsonRes.status };
-      }
-    } catch {}
-  }
-
-  // 5. Финальный надёжный fallback: отправка через скрытую HTML-форму
+  // 6. Финальный надёжный fallback: отправка через скрытую HTML-форму
   try {
     return await submitViaHiddenForm(url, payload, blob);
   } catch (formErr) {

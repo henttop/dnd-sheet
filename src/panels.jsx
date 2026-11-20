@@ -459,6 +459,25 @@ export function RollsSettingsContent({ c, ui, setUi }) {
             <button className="f-btn primary" onClick={handleSaveForm}>
               {editingId ? "Сохранить" : "Создать"}
             </button>
+            <button
+              type="button"
+              className="f-btn"
+              disabled={testingId === "form" || (formState.type === "discord" && !formState.url.trim())}
+              onClick={async () => {
+                setTestingId("form");
+                try {
+                  await testDiscordWebhook({
+                    type: formState.type,
+                    url: formState.url.trim(),
+                    color: formState.color
+                  }, c?.data?.name?.value);
+                } finally {
+                  setTestingId(null);
+                }
+              }}
+            >
+              {testingId === "form" ? "Отправка..." : "Проверить"}
+            </button>
             <button className="f-btn" onClick={handleCancelForm}>
               Отмена
             </button>
