@@ -617,6 +617,11 @@ export function RollsSettingsContent({ c, ui, setUi }) {
         checked={ui.critColors !== false}
         onChange={v => setUi({ critColors: v })}
       />
+      <Check
+        label="Отправлять описание и свойства заклинаний в вебхук Discord"
+        checked={ui.sendSpellDesc !== false}
+        onChange={v => setUi({ sendSpellDesc: v })}
+      />
     </div>
   );
 }

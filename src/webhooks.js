@@ -1,5 +1,6 @@
 import { toast } from "./toast.jsx";
-import { characters } from "./store.js";
+import { characters, SPELLS } from "./store.js";
+import { getUi } from "./uistore.js";
 
 const STORAGE_KEY = "dnd_roll_presets_v1";
 
@@ -189,6 +190,64 @@ export function formatRollDetails(roll) {
   }
 
   return details;
+}
+
+export function findSpellForRoll(roll) {
+  if (roll.spellData) return roll.spellData;
+  if (!roll.spell) return null;
+  const t = (roll.title || "").trim().toLowerCase();
+  const clean = t.replace(/^заклинание:\s*/i, "").trim();
+  const baseName = clean.replace(/\s*\[.*\]$/, "").trim();
+  return (SPELLS || []).find(s => {
+    const sName = (s.name || "").toLowerCase();
+    const sBase = sName.replace(/\s*\[.*\]$/, "").trim();
+    return sName === clean || sBase === baseName || s.slug === clean || s.slug === baseName;
+  }) || null;
+}
+
+export function formatSpellBlock(spell) {
+  if (!spell) return "";
+
+  const lines = [];
+
+  // 1. Уровень, школа, ритуал, концентрация
+  const lvlStr = spell.level === 0 ? "Заговор" : `${spell.level}-й уровень`;
+  const schoolStr = spell.school ? `, ${spell.school}` : "";
+  const ritualStr = spell.ritual ? " *(ритуал)*" : "";
+  const concStr = spell.conc ? " *(концентрация)*" : "";
+  lines.push(`✨ **${lvlStr}${schoolStr}**${ritualStr}${concStr}`);
+
+  // 2. Метаданные (время сотворения, дистанция, длительность, компоненты)
+  const meta = [];
+  if (spell.time) meta.push(`⏱ **Время:** ${spell.time}`);
+  if (spell.range) meta.push(`📏 **Дистанция:** ${spell.range}`);
+  if (spell.dur) meta.push(`⏳ **Длительность:** ${spell.dur}`);
+
+  const compMap = { v: "В", s: "С", m: "М" };
+  if (spell.comp && spell.comp.length) {
+    const compParts = Array.isArray(spell.comp)
+      ? spell.comp.map(c => compMap[c] || c).join(", ")
+      : (compMap[spell.comp] || spell.comp);
+    const matStr = spell.mat ? ` (${spell.mat})` : "";
+    meta.push(`🔮 **Компоненты:** ${compParts}${matStr}`);
+  }
+
+  if (meta.length) {
+    lines.push(meta.join(" · "));
+  }
+
+  // 3. Описание заклинания
+  if (spell.desc && spell.desc.trim()) {
+    let desc = spell.desc.trim();
+    // Ограничиваем длину описания, чтобы embed гарантированно уложился в лимит Discord (4096 символов)
+    const MAX_DESC = 2200;
+    if (desc.length > MAX_DESC) {
+      desc = desc.slice(0, MAX_DESC).trim() + "…\n*(описание сокращено)*";
+    }
+    lines.push(`\n**Описание:**\n${desc}`);
+  }
+
+  return lines.join("\n");
 }
 
 export function getCharAvatarUrl(char) {
@@ -562,7 +621,20 @@ export async function sendRollToWebhooks(roll) {
     resultLine = `Итог: **${roll.total}** 💀`;
   }
 
-  const description = details ? `${details}\n${resultLine}` : resultLine;
+  let description = details ? `${details}\n${resultLine}` : resultLine;
+
+  if (roll.spell) {
+    const ui = typeof getUi === "function" ? getUi() : {};
+    if (ui.sendSpellDesc !== false) {
+      const spell = findSpellForRoll(roll);
+      if (spell) {
+        const spellBlock = formatSpellBlock(spell);
+        if (spellBlock) {
+          description = `${description}\n\n${spellBlock}`;
+        }
+      }
+    }
+  }
   const isHttp = (url) => url && /^https?:\/\//i.test(url);
   const isData = (url) => url && /^data:/i.test(url);
 
