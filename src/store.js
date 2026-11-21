@@ -17,12 +17,55 @@ export const SPELLS = spellsRaw.map(s => {
   return spell;
 });
 
-export const SPELL_BY_ID = new Map();
-SPELLS.forEach(s => {
-  if (s.id) SPELL_BY_ID.set(s.id, s);
-  if (s.slug) SPELL_BY_ID.set(s.slug, s);
-});
+// Соответствие ID заклинаний редакции D&D 2024 из Long Story Short классическим ID SRD
+export const LSS_2024_ALIASES = {
+  "698197c5a5dc6923c7028d03": "ray-of-frost",      // Ледяной луч / Луч холода (Ray of Frost)
+  "698197c0a5dc6923c7028c54": "prestidigitation",   // Мелкие фокусы / Фокусы (Prestidigitation)
+  "698197c9a5dc6923c7028d88": "disguise-self",     // Изменение облика / Маскировка (Disguise Self)
+  "698197c9a5dc6923c7028d08": "disguise-self",
+};
+
 export const SPELL_BY_SLUG = new Map(SPELLS.map(s => [s.slug, s]));
+
+export const SPELL_BY_ID = new Map();
+
+function registerSpellId(key, spell) {
+  if (!key) return;
+  const k = String(key).trim();
+  SPELL_BY_ID.set(k, spell);
+  SPELL_BY_ID.set(k.toLowerCase(), spell);
+  SPELL_BY_ID.set(k.toUpperCase(), spell);
+}
+
+SPELLS.forEach(s => {
+  if (s.id) registerSpellId(s.id, s);
+  if (s.slug) registerSpellId(s.slug, s);
+  if (Array.isArray(s.aliases)) {
+    s.aliases.forEach(a => registerSpellId(a, s));
+  }
+});
+
+for (const [aliasId, slug] of Object.entries(LSS_2024_ALIASES)) {
+  const target = SPELL_BY_SLUG.get(slug);
+  if (target) {
+    registerSpellId(aliasId, target);
+  }
+}
+
+const origGet = SPELL_BY_ID.get.bind(SPELL_BY_ID);
+const origHas = SPELL_BY_ID.has.bind(SPELL_BY_ID);
+
+SPELL_BY_ID.get = function(key) {
+  if (!key) return undefined;
+  const k = String(key).trim();
+  return origGet(k) || origGet(k.toLowerCase()) || origGet(k.toUpperCase()) || SPELL_BY_SLUG.get(LSS_2024_ALIASES[k.toLowerCase()]);
+};
+
+SPELL_BY_ID.has = function(key) {
+  if (!key) return false;
+  const k = String(key).trim();
+  return origHas(k) || origHas(k.toLowerCase()) || origHas(k.toUpperCase()) || Boolean(LSS_2024_ALIASES[k.toLowerCase()]);
+};
 
 const LS_KEY = "dnd-sheet-v4";
 

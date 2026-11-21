@@ -29,6 +29,7 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
   const cast = spellCasting(c);
   const abil = cast.abil, abilMod = cast.mod;
   const dc = cast.dc, atk = cast.atk;
+  const charLevel = levelOf(c);
 
   const [filter, setFilter] = useState("all");     // all | 0 | 1 | 2 ... | conc
   const [modal, setModal] = useState(null);         // {id}
@@ -41,7 +42,10 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
   const spells = useMemo(() => {
     return prepared.map(id => {
       const s = SPELL_BY_ID.get(id);
-      return s || { id, slug: null, name: "Заклинание (нет в справочнике)", level: "?", school: "", desc: "" };
+      if (!s) {
+        return { id, slug: null, name: "Заклинание (нет в справочнике)", level: "?", school: "", desc: "" };
+      }
+      return { ...s, _charSpellId: id };
     }).sort((a, b) => (a.level === "?" ? 99 : a.level) - (b.level === "?" ? 99 : b.level)
       || a.name.localeCompare(b.name, "ru"));
   }, [prepared.join(","), c]);
@@ -71,28 +75,47 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
   const others = shown.filter(s => s.level === "?");
   if (others.length) groups.push({ lv: "?", list: others, title: "Прочее" });
 
-  const togglePrepared = (id) => {
+  const isPrepared = (spell) => {
+    if (!spell) return false;
+    const matchKeys = [spell.id, spell.slug, spell._charSpellId, ...(spell.aliases || [])]
+      .filter(Boolean)
+      .map(x => String(x).toLowerCase());
+    return prepared.some(p => matchKeys.includes(String(p).toLowerCase()));
+  };
+
+  const togglePrepared = (idOrSpell) => {
+    const spell = typeof idOrSpell === "object" ? idOrSpell : SPELL_BY_ID.get(idOrSpell);
+    const targetId = typeof idOrSpell === "string" ? idOrSpell : (spell?._charSpellId || spell?.id || spell?.slug);
+    const matchKeys = [targetId, spell?.id, spell?.slug, spell?._charSpellId, ...(spell?.aliases || [])]
+      .filter(Boolean)
+      .map(x => String(x).toLowerCase());
     c.spells ||= {};
     c.spells.prepared ||= [];
     const arr = c.spells.prepared;
-    const i = arr.indexOf(id);
-    if (i >= 0) {
-      arr.splice(i, 1);
+    const existingIndex = arr.findIndex(x => matchKeys.includes(String(x).toLowerCase()));
+    if (existingIndex >= 0) {
+      arr.splice(existingIndex, 1);
       if (c.spells.book) {
-        const bi = c.spells.book.indexOf(id);
+        const bi = c.spells.book.findIndex(x => matchKeys.includes(String(x).toLowerCase()));
         if (bi >= 0) c.spells.book.splice(bi, 1);
       }
     } else {
-      arr.push(id);
+      arr.push(targetId);
     }
     onSave();
   };
 
-  const removePrepared = (id) => {
+  const removePrepared = (idOrSpell) => {
+    const spell = typeof idOrSpell === "object" ? idOrSpell : SPELL_BY_ID.get(idOrSpell);
+    const removeKeys = [
+      typeof idOrSpell === "string" ? idOrSpell : null,
+      spell?.id, spell?.slug, spell?._charSpellId, ...(spell?.aliases || [])
+    ].filter(Boolean).map(x => String(x).toLowerCase());
+
     c.spells ||= {};
-    c.spells.prepared = (c.spells.prepared || []).filter(x => x !== id);
+    c.spells.prepared = (c.spells.prepared || []).filter(x => !removeKeys.includes(String(x).toLowerCase()));
     if (c.spells.book) {
-      c.spells.book = (c.spells.book || []).filter(x => x !== id);
+      c.spells.book = (c.spells.book || []).filter(x => !removeKeys.includes(String(x).toLowerCase()));
     }
     onSave();
     setModal(null);
@@ -133,7 +156,7 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
     const subParts = [];
 
     // Точный скейлинг заклинания по уровню ячейки (из таблицы diceByLevel или кастомного правила)
-    const scaledFormula = getSpellDiceForLevel(spell, useLevel);
+    const scaledFormula = getSpellDiceForLevel(spell, useLevel, charLevel);
 
     if (scaledFormula) {
       const type = (spell.dmg && spell.dmg.length) ? spell.dmg[0].t : (spell.school || "эффект");
@@ -374,9 +397,9 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
               ) : null}
             </div>
             {g.list.map(s => (
-              <SpellRow key={s.id} spell={s} dc={dc} atk={atk} onOpen={() => setModal(s)}
+              <SpellRow key={s.id || s._charSpellId} spell={s} dc={dc} atk={atk} onOpen={() => setModal(s)}
                 castLevel={castLevel} onCast={castSpell} onRemove={removePrepared}
-                abilMod={abilMod} abilLabel={ABIL_RU[abil] || "ХАР"} />
+                abilMod={abilMod} abilLabel={ABIL_RU[abil] || "ХАР"} charLevel={charLevel} />
             ))}
           </div>
         );
@@ -390,14 +413,15 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
           dc={dc}
           atk={atk}
           onClose={() => setModal(null)}
-          onToggle={() => togglePrepared(modal.id)}
-          onRemove={removePrepared}
-          prepared={prepared.includes(modal.id)}
+          onToggle={() => togglePrepared(modal)}
+          onRemove={() => removePrepared(modal)}
+          prepared={isPrepared(modal)}
           castLevel={castLevel}
           onCast={castSpell}
           slotInfo={slotInfo}
           abilMod={abilMod}
           abilLabel={ABIL_RU[abil] || "ХАР"}
+          charLevel={charLevel}
         />
       ) : null}
       {prep ? <PrepareModal c={c} onSave={onSave} onClose={() => setPrep(false)} /> : null}
@@ -406,7 +430,7 @@ export default function SpellsTab({ c, onSave, ui = {} }) {
 }
 
 /* ================= Строка заклинания ================= */
-function SpellRow({ spell, dc, atk, onOpen, castLevel, onCast, onRemove, abilMod, abilLabel }) {
+function SpellRow({ spell, dc, atk, onOpen, castLevel, onCast, onRemove, abilMod, abilLabel, charLevel = 1 }) {
   const s = spell;
 
   if (s.level === "?") {
@@ -445,7 +469,7 @@ function SpellRow({ spell, dc, atk, onOpen, castLevel, onCast, onRemove, abilMod
   const useLevel = castLevel !== null && castLevel >= s.level ? castLevel : s.level;
   // заговоры ячейками не усиливаются (только особые умения классов)
   const up = s.level > 0 ? useLevel - s.level : 0;
-  const scaled = getSpellDiceForLevel(s, useLevel);
+  const scaled = getSpellDiceForLevel(s, useLevel, charLevel);
   const baseDmg = scaled || (dmg ? dmg.map(x => upcastDice(x.d, up)).join(" + ") : null);
   const addsMod = spellAddsAbilityMod(s) && abilMod;
   const modSuffix = addsMod ? (abilMod > 0 ? ` + ${abilMod}` : ` - ${Math.abs(abilMod)}`) : "";
@@ -495,8 +519,21 @@ export function upcastDice(dice, up) {
 }
 
 /* Точная формула кубиков заклинания для заданного уровня ячейки */
-export function getSpellDiceForLevel(spell, level) {
+export function getSpellDiceForLevel(spell, level, charLevel = 1) {
   if (!spell) return null;
+  if (spell.level === 0) {
+    const baseDmg = spell.dmg && spell.dmg.length ? spell.dmg[0].d : null;
+    if (!baseDmg) return null;
+    // Скейлинг заговоров по уровню персонажа (5-й ур: 2 кости, 11-й ур: 3 кости, 17-й ур: 4 кости)
+    const m = String(baseDmg).match(/^(\d*)([dкк])(\d+)$/i);
+    if (!m) return baseDmg;
+    let mult = 1;
+    if (charLevel >= 17) mult = 4;
+    else if (charLevel >= 11) mult = 3;
+    else if (charLevel >= 5) mult = 2;
+    const baseCount = +m[1] || 1;
+    return `${baseCount * mult}${m[2]}${m[3]}`;
+  }
   const targetLevel = level !== undefined && level !== null ? level : spell.level;
   if (spell.diceByLevel && spell.diceByLevel[targetLevel]) {
     return spell.diceByLevel[targetLevel];
@@ -517,7 +554,7 @@ export function spellAddsAbilityMod(spell) {
 }
 
 /* ================= Карточка заклинания ================= */
-function SpellModal({ spell, dc, atk, onClose, onToggle, onRemove, prepared, castLevel, onCast, slotInfo, abilMod, abilLabel }) {
+function SpellModal({ spell, dc, atk, onClose, onToggle, onRemove, prepared, castLevel, onCast, slotInfo, abilMod, abilLabel, charLevel = 1 }) {
   const s = spell;
   if (!s) return null;
 
@@ -567,7 +604,7 @@ function SpellModal({ spell, dc, atk, onClose, onToggle, onRemove, prepared, cas
 
   const effectiveLevel = s.level > 0 ? modalLevel : 0;
   const up = s.level > 0 ? Math.max(0, effectiveLevel - s.level) : 0;
-  const currentDice = getSpellDiceForLevel(s, effectiveLevel);
+  const currentDice = getSpellDiceForLevel(s, effectiveLevel, charLevel);
 
   return (
     <div className="modal-back" onMouseDown={onClose}>
@@ -716,11 +753,15 @@ function PrepareModal({ c, onSave, onClose }) {
     c.spells ||= {};
     c.spells.prepared ||= [];
     const arr = c.spells.prepared;
-    const i = arr.indexOf(id);
-    if (i >= 0) {
-      arr.splice(i, 1);
+    const spell = SPELL_BY_ID.get(id);
+    const matchKeys = [id, spell?.id, spell?.slug, ...(spell?.aliases || [])]
+      .filter(Boolean)
+      .map(x => String(x).toLowerCase());
+    const existingIndex = arr.findIndex(x => matchKeys.includes(String(x).toLowerCase()));
+    if (existingIndex >= 0) {
+      arr.splice(existingIndex, 1);
       if (c.spells.book) {
-        const bi = c.spells.book.indexOf(id);
+        const bi = c.spells.book.findIndex(x => matchKeys.includes(String(x).toLowerCase()));
         if (bi >= 0) c.spells.book.splice(bi, 1);
       }
     } else {
@@ -783,7 +824,8 @@ function PrepareModal({ c, onSave, onClose }) {
             </div>
           ))}
           {list.map(s => {
-            const isPrep = prepList.includes(s.id);
+            const matchKeys = [s.id, s.slug, ...(s.aliases || [])].filter(Boolean).map(x => String(x).toLowerCase());
+            const isPrep = prepList.some(p => matchKeys.includes(String(p).toLowerCase()));
             return (
               <div
                 key={s.id}
